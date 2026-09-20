@@ -14,23 +14,35 @@
         <div class="row g-5">
             <!-- Left Column: Court Info -->
             <div class="col-lg-5">
-                <div class="card border-0 shadow-sm mb-4">
-                    <div class="card-body p-4">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h2 class="fw-bold mb-0">@Model.Court.Name</h2>
-                            @{
-                                var badgeClass = Model.Court.SportType.ToLower() switch
-                                {
-                                    "football" => "badge-football",
-                                    "padel" => "badge-padel",
-                                    "tennis" => "badge-tennis",
-                                    _ => "bg-secondary"
-                                };
-                            }
-                            <span class="badge @badgeClass rounded-pill px-3 py-2">@Model.Court.SportType</span>
+                <div class="card border-0 shadow-sm mb-4 overflow-hidden">
+                    @{
+                        var badgeClass = Model.Court.SportType.ToLower() switch
+                        {
+                            "football" => "badge-football",
+                            "padel" => "badge-padel",
+                            "tennis" => "badge-tennis",
+                            _ => "bg-secondary"
+                        };
+                        var courtImg = Model.Court.SportType.ToLower() switch
+                        {
+                            "football" => "https://images.unsplash.com/photo-1556056504-5c7696c4c28d?w=800&q=80",
+                            "padel" => "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800&q=80",
+                            "tennis" => "https://images.unsplash.com/photo-1542144582-1ba00456b5e3?w=800&q=80",
+                            _ => "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&q=80"
+                        };
+                    }
+                    <div class="position-relative" style="height: 180px;">
+                        <img src="@courtImg" alt="@Model.Court.Name" class="w-100 h-100 object-fit-cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
+                        <div class="fallback-img w-100 h-100 bg-secondary d-flex align-items-center justify-content-center" style="display: none !important;">
+                            <i class="bi bi-circle fs-1 text-white opacity-50"></i>
                         </div>
-                        
+                        <div class="position-absolute top-0 end-0 p-3">
+                            <span class="badge @badgeClass rounded-pill px-3 py-2 shadow-sm">@Model.Court.SportType</span>
+                        </div>
+                    </div>
+                    <div class="card-body p-4">
                         <div class="mb-4 pb-4 border-bottom">
+                            <h2 class="fw-bold mb-2">@Model.Court.Name</h2>
                             <span class="fs-2 fw-bolder text-primary">$@Model.Court.PricePerHour</span>
                             <span class="text-muted">/ hr</span>
                             <input type="hidden" id="pricePerHour" value="@Model.Court.PricePerHour" />

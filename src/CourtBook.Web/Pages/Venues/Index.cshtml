@@ -17,7 +17,11 @@
             {
                 <div class="col">
                     <div class="card h-100 card-hover border-0 bg-white">
-                        <div class="position-relative" style="height: 180px; background: linear-gradient(45deg, #e9ecef, #dee2e6);">
+                        <div class="position-relative overflow-hidden" style="height: 180px;">
+                            <img src="https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=1200&q=80" alt="@venue.Name" class="w-100 h-100 object-fit-cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
+                            <div class="fallback-img w-100 h-100 bg-secondary d-flex align-items-center justify-content-center" style="display: none !important;">
+                                <i class="bi bi-building fs-1 text-white opacity-50"></i>
+                            </div>
                             <div class="position-absolute bottom-0 start-0 w-100 p-3" style="background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);">
                                 <span class="badge bg-primary rounded-pill mb-1"><i class="bi bi-geo-alt me-1"></i> @venue.City</span>
                             </div>
