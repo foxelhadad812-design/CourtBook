@@ -23,19 +23,9 @@
                             "tennis" => "badge-tennis",
                             _ => "bg-secondary"
                         };
-                        var courtImg = Model.Court.SportType.ToLower() switch
-                        {
-                            "football" => "https://images.unsplash.com/photo-1556056504-5c7696c4c28d?w=800&q=80",
-                            "padel" => "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800&q=80",
-                            "tennis" => "https://images.unsplash.com/photo-1542144582-1ba00456b5e3?w=800&q=80",
-                            _ => "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&q=80"
-                        };
                     }
                     <div class="position-relative" style="height: 180px;">
-                        <img src="@courtImg" alt="@Model.Court.Name" class="w-100 h-100 object-fit-cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
-                        <div class="fallback-img w-100 h-100 bg-secondary d-flex align-items-center justify-content-center" style="display: none !important;">
-                            <i class="bi bi-circle fs-1 text-white opacity-50"></i>
-                        </div>
+                        @Html.Raw(CourtBook.Web.Helpers.SportIllustrations.GetSvgForSport(Model.Court.SportType))
                         <div class="position-absolute top-0 end-0 p-3">
                             <span class="badge @badgeClass rounded-pill px-3 py-2 shadow-sm">@Model.Court.SportType</span>
                         </div>

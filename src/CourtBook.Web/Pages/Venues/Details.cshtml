@@ -10,8 +10,7 @@
         <!-- Venue Header -->
         <div class="card border-0 shadow-sm mb-5 overflow-hidden">
             <div class="position-relative" style="height: 250px;">
-                <img src="https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=1200&q=80" alt="@Model.Venue.Name" class="w-100 h-100 object-fit-cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='block'">
-                <div class="fallback-img w-100 h-100" style="background: linear-gradient(135deg, var(--primary-color), #0d4a2b); display: none !important;"></div>
+                @Html.Raw(CourtBook.Web.Helpers.SportIllustrations.GetVenueHeroSvg())
                 <div class="position-absolute top-0 start-0 w-100 h-100" style="background: rgba(0,0,0,0.3);"></div>
             </div>
             <div class="card-body p-4 position-relative">
@@ -39,21 +38,10 @@
                     _ => "bg-secondary"
                 };
 
-                var courtImg = court.SportType.ToLower() switch
-                {
-                    "football" => "https://images.unsplash.com/photo-1556056504-5c7696c4c28d?w=800&q=80",
-                    "padel" => "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800&q=80",
-                    "tennis" => "https://images.unsplash.com/photo-1542144582-1ba00456b5e3?w=800&q=80",
-                    _ => "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&q=80"
-                };
-
                 <div class="col">
                     <div class="card h-100 card-hover border-0 overflow-hidden">
                         <div class="position-relative" style="height: 160px;">
-                            <img src="@courtImg" alt="@court.Name" class="w-100 h-100 object-fit-cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
-                            <div class="fallback-img w-100 h-100 bg-secondary d-flex align-items-center justify-content-center" style="display: none !important;">
-                                <i class="bi bi-circle fs-1 text-white opacity-50"></i>
-                            </div>
+                            @Html.Raw(CourtBook.Web.Helpers.SportIllustrations.GetSvgForSport(court.SportType))
                             <div class="position-absolute top-0 end-0 p-3">
                                 <span class="badge @badgeClass rounded-pill px-3 py-2 shadow-sm">@court.SportType</span>
                             </div>
