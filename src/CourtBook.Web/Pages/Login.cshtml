@@ -4,23 +4,39 @@
     ViewData["Title"] = "Login";
 }
 
-<div class="row justify-content-center mt-5">
-    <div class="col-md-4">
-        <h2 class="text-center mb-4">Login</h2>
-        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
-        {
-            <div class="alert alert-danger">@Model.ErrorMessage</div>
-        }
-        <form method="post">
-            <div class="mb-3">
-                <label>Email</label>
-                <input asp-for="Input.Email" class="form-control" type="email" required />
+<div class="row justify-content-center py-5">
+    <div class="col-md-5 col-lg-4">
+        <div class="card border-0 shadow-sm p-4">
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <div class="d-inline-flex align-items-center justify-content-center bg-primary text-white rounded-circle mb-3 shadow-sm" style="width: 60px; height: 60px;">
+                        <i class="bi bi-box-arrow-in-right fs-2"></i>
+                    </div>
+                    <h3 class="fw-bold">Welcome Back</h3>
+                    <p class="text-muted">Log in to your CourtBook account</p>
+                </div>
+                
+                @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+                {
+                    <div class="alert alert-danger border-0 shadow-sm"><i class="bi bi-exclamation-triangle-fill me-2"></i> @Model.ErrorMessage</div>
+                }
+                
+                <form method="post">
+                    <div class="form-floating mb-3">
+                        <input asp-for="Input.Email" class="form-control" type="email" placeholder="name@example.com" required />
+                        <label>Email address</label>
+                    </div>
+                    <div class="form-floating mb-4">
+                        <input asp-for="Input.Password" class="form-control" type="password" placeholder="Password" required />
+                        <label>Password</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg w-100 rounded-pill fw-bold shadow-sm">Log In</button>
+                </form>
+                
+                <div class="text-center mt-4 pt-3 border-top">
+                    <p class="text-muted mb-0">Don't have an account? <a asp-page="/Register" class="text-primary text-decoration-none fw-bold">Sign up</a></p>
+                </div>
             </div>
-            <div class="mb-3">
-                <label>Password</label>
-                <input asp-for="Input.Password" class="form-control" type="password" required />
-            </div>
-            <button type="submit" class="btn btn-primary w-100">Login</button>
-        </form>
+        </div>
     </div>
 </div>

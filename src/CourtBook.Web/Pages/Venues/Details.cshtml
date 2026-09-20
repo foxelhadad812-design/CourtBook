@@ -1,42 +1,72 @@
 @page "{id:guid}"
 @model CourtBook.Web.Pages.Venues.DetailsModel
 @{
-    ViewData["Title"] = Model.Venue?.Name;
+    ViewData["Title"] = Model.Venue?.Name ?? "Venue Details";
 }
 
 @if (Model.Venue != null)
 {
-    <div class="mb-4">
-        <h2>@Model.Venue.Name</h2>
-        <p class="text-muted fs-5">@Model.Venue.City - @Model.Venue.Address</p>
-    </div>
-
-    <h4>Available Courts</h4>
-    <div class="row row-cols-1 row-cols-md-2 g-4 mt-2">
-        @foreach (var court in Model.Venue.Courts)
-        {
-            <div class="col">
-                <div class="card h-100 shadow-sm border-0 bg-light">
-                    <div class="card-body">
-                        <h5 class="card-title text-primary">@court.Name</h5>
-                        <div class="d-flex justify-content-between mb-3">
-                            <span class="badge bg-secondary">@court.SportType</span>
-                            <span class="fw-bold text-success">$@court.PricePerHour / hr</span>
-                        </div>
-                        <p class="card-text mb-1"><strong>Status:</strong> @(court.IsActive ? "Active" : "Inactive")</p>
-                    </div>
-                    <div class="card-footer bg-transparent border-top-0">
-                        @if (court.IsActive)
-                        {
-                            <a asp-page="/Courts/Book" asp-route-venueId="@Model.Venue.Id" asp-route-id="@court.Id" class="btn btn-primary w-100">Book Now</a>
-                        }
-                        else
-                        {
-                            <button class="btn btn-secondary w-100" disabled>Unavailable</button>
-                        }
-                    </div>
+    <div class="container py-4">
+        <!-- Venue Header -->
+        <div class="card border-0 shadow-sm mb-5 overflow-hidden">
+            <div style="height: 200px; background: linear-gradient(135deg, var(--primary-color), #0d4a2b);"></div>
+            <div class="card-body p-4 position-relative">
+                <div class="bg-white rounded-circle shadow d-flex justify-content-center align-items-center position-absolute" 
+                     style="width: 80px; height: 80px; top: -40px; border: 4px solid white;">
+                    <i class="bi bi-building fs-1 text-primary"></i>
+                </div>
+                <div class="pt-4 mt-2">
+                    <h1 class="fw-bold mb-1">@Model.Venue.Name</h1>
+                    <p class="text-muted fs-5 mb-0"><i class="bi bi-geo-alt-fill text-danger me-1"></i> @Model.Venue.City &mdash; @Model.Venue.Address</p>
                 </div>
             </div>
-        }
+        </div>
+
+        <h3 class="section-title mb-4">Available Courts</h3>
+        
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            @foreach (var court in Model.Venue.Courts)
+            {
+                var badgeClass = court.SportType.ToLower() switch
+                {
+                    "football" => "badge-football",
+                    "padel" => "badge-padel",
+                    "tennis" => "badge-tennis",
+                    _ => "bg-secondary"
+                };
+
+                <div class="col">
+                    <div class="card h-100 card-hover border-0">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <h5 class="card-title fw-bold text-dark mb-0">@court.Name</h5>
+                                <span class="badge @badgeClass rounded-pill px-3 py-2 shadow-sm">@court.SportType</span>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <span class="fs-3 fw-bolder text-dark">$@court.PricePerHour</span>
+                                <span class="text-muted">/ hr</span>
+                            </div>
+                            
+                            <div class="d-flex align-items-center mb-4">
+                                <div class="rounded-circle @(court.IsActive ? "bg-success" : "bg-danger") me-2" style="width: 10px; height: 10px;"></div>
+                                <span class="text-muted small fw-medium">@(court.IsActive ? "Available for booking" : "Currently Unavailable")</span>
+                            </div>
+                            
+                            @if (court.IsActive)
+                            {
+                                <a asp-page="/Courts/Book" asp-route-venueId="@Model.Venue.Id" asp-route-id="@court.Id" class="btn btn-primary w-100 py-2 fw-bold shadow-sm">
+                                    Book This Court
+                                </a>
+                            }
+                            else
+                            {
+                                <button class="btn btn-light w-100 py-2 fw-bold text-muted" disabled>Unavailable</button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
     </div>
 }

@@ -6,62 +6,167 @@
 
 @if (Model.Court != null)
 {
-    <div class="row">
-        <div class="col-md-6">
-            <h3>Book @Model.Court.Name</h3>
-            <p class="text-muted">Sport: @Model.Court.SportType | Price: $@Model.Court.PricePerHour / hr</p>
-            
-            <div class="card shadow-sm mt-4">
-                <div class="card-header bg-light">
-                    <h5 class="mb-0">Court Schedule</h5>
-                </div>
-                <ul class="list-group list-group-flush">
-                    @if (Model.Court.Schedules.Any())
-                    {
-                        @foreach (var s in Model.Court.Schedules)
-                        {
-                            <li class="list-group-item">
-                                <strong>@(((DayOfWeek)s.DayOfWeek).ToString()):</strong> @s.OpenTime - @s.CloseTime
-                            </li>
-                        }
-                    }
-                    else
-                    {
-                        <li class="list-group-item text-muted">No schedule defined.</li>
-                    }
-                </ul>
-            </div>
+    <div class="container py-4">
+        <div class="mb-4">
+            <a href="javascript:history.back()" class="text-decoration-none text-muted fw-medium"><i class="bi bi-arrow-left me-1"></i> Back to Venue</a>
         </div>
-
-        <div class="col-md-6 mt-4 mt-md-0">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <h4 class="card-title mb-4">Select Date & Time</h4>
-                    
-                    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
-                    {
-                        <div class="alert alert-danger">@Model.ErrorMessage</div>
-                    }
-
-                    <form method="post">
-                        <div class="mb-3">
-                            <label>Date</label>
-                            <input asp-for="BookingDate" class="form-control" type="date" required />
+        
+        <div class="row g-5">
+            <!-- Left Column: Court Info -->
+            <div class="col-lg-5">
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h2 class="fw-bold mb-0">@Model.Court.Name</h2>
+                            @{
+                                var badgeClass = Model.Court.SportType.ToLower() switch
+                                {
+                                    "football" => "badge-football",
+                                    "padel" => "badge-padel",
+                                    "tennis" => "badge-tennis",
+                                    _ => "bg-secondary"
+                                };
+                            }
+                            <span class="badge @badgeClass rounded-pill px-3 py-2">@Model.Court.SportType</span>
                         </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label>Start Time</label>
-                                <input asp-for="StartTime" class="form-control" type="time" required />
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label>End Time</label>
-                                <input asp-for="EndTime" class="form-control" type="time" required />
-                            </div>
+                        
+                        <div class="mb-4 pb-4 border-bottom">
+                            <span class="fs-2 fw-bolder text-primary">$@Model.Court.PricePerHour</span>
+                            <span class="text-muted">/ hr</span>
+                            <input type="hidden" id="pricePerHour" value="@Model.Court.PricePerHour" />
                         </div>
-                        <button type="submit" class="btn btn-primary w-100 btn-lg mt-3">Confirm Booking</button>
-                    </form>
+
+                        <h5 class="fw-bold mb-3"><i class="bi bi-clock me-2 text-primary"></i> Working Hours</h5>
+                        <ul class="list-group list-group-flush">
+                            @if (Model.Court.Schedules.Any())
+                            {
+                                @foreach (var s in Model.Court.Schedules.OrderBy(x => x.DayOfWeek))
+                                {
+                                    <li class="list-group-item d-flex justify-content-between px-0 py-2 border-0">
+                                        <span class="fw-medium">@(((DayOfWeek)s.DayOfWeek).ToString())</span>
+                                        <span class="text-muted">@s.OpenTime - @s.CloseTime</span>
+                                    </li>
+                                }
+                            }
+                            else
+                            {
+                                <li class="list-group-item px-0 border-0 text-muted">No schedule defined.</li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Booking Form -->
+            <div class="col-lg-7">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-5">
+                        <h3 class="fw-bold mb-4">Select your time</h3>
+                        
+                        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+                        {
+                            <div class="alert alert-danger border-0 shadow-sm d-flex align-items-center">
+                                <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+                                <div>@Model.ErrorMessage</div>
+                            </div>
+                        }
+
+                        <form method="post" id="bookingForm">
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">Date</label>
+                                <div class="input-group input-group-lg">
+                                    <span class="input-group-text bg-white"><i class="bi bi-calendar-event text-primary"></i></span>
+                                    <input asp-for="BookingDate" class="form-control bg-light border-start-0" type="date" required id="bookingDate" />
+                                </div>
+                            </div>
+                            
+                            <div class="row g-4 mb-4">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Start Time</label>
+                                    <div class="input-group input-group-lg">
+                                        <span class="input-group-text bg-white"><i class="bi bi-clock text-primary"></i></span>
+                                        <input asp-for="StartTime" class="form-control bg-light border-start-0 time-input" type="time" required id="startTime" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">End Time</label>
+                                    <div class="input-group input-group-lg">
+                                        <span class="input-group-text bg-white"><i class="bi bi-clock-history text-primary"></i></span>
+                                        <input asp-for="EndTime" class="form-control bg-light border-start-0 time-input" type="time" required id="endTime" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="p-4 bg-light rounded-4 mb-4">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="text-muted fw-medium">Duration</span>
+                                    <span class="fw-bold" id="calcDuration">1 hr 0 min</span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="text-muted fw-medium">Total Price</span>
+                                    <span class="fs-4 fw-bolder text-primary" id="calcTotal">$@Model.Court.PricePerHour</span>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary w-100 btn-lg py-3 fw-bold rounded-pill shadow-sm" id="submitBtn">
+                                Confirm Booking
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+}
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const startTimeInput = document.getElementById('startTime');
+            const endTimeInput = document.getElementById('endTime');
+            const durationEl = document.getElementById('calcDuration');
+            const totalEl = document.getElementById('calcTotal');
+            const submitBtn = document.getElementById('submitBtn');
+            const pricePerHour = parseFloat(document.getElementById('pricePerHour').value);
+            const form = document.getElementById('bookingForm');
+
+            function updateCalculator() {
+                if (!startTimeInput.value || !endTimeInput.value) return;
+                
+                const start = new Date(`2000-01-01T${startTimeInput.value}`);
+                const end = new Date(`2000-01-01T${endTimeInput.value}`);
+                
+                let diffMs = end - start;
+                
+                if (diffMs <= 0) {
+                    durationEl.textContent = "Invalid times";
+                    totalEl.textContent = "$0.00";
+                    submitBtn.disabled = true;
+                    return;
+                }
+                
+                submitBtn.disabled = false;
+                
+                const diffHrs = Math.floor(diffMs / 3600000);
+                const diffMins = Math.round((diffMs % 3600000) / 60000);
+                
+                durationEl.textContent = `${diffHrs} hr ${diffMins} min`;
+                
+                const totalHours = diffMs / 3600000;
+                const totalPrice = (totalHours * pricePerHour).toFixed(2);
+                totalEl.textContent = `$${totalPrice}`;
+            }
+
+            startTimeInput.addEventListener('change', updateCalculator);
+            endTimeInput.addEventListener('change', updateCalculator);
+            
+            form.addEventListener('submit', function() {
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Processing...';
+                submitBtn.classList.add('disabled');
+            });
+            
+            // Initial calc
+            updateCalculator();
+        });
+    </script>
 }

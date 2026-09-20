@@ -1,33 +1,103 @@
 @page
 @model IndexModel
 @{
-    ViewData["Title"] = "Home page";
+    ViewData["Title"] = "Home";
 }
 
-<div class="text-center p-5 bg-light rounded-3 mb-4">
-    <h1 class="display-4 fw-bold">Find and Book a Court</h1>
-    <p class="lead">Book your favorite football, padel, or tennis court in seconds.</p>
-    <form method="get" class="d-flex justify-content-center mt-4">
-        <input asp-for="SearchCity" class="form-control w-50 me-2" placeholder="Search by city..." />
-        <button type="submit" class="btn btn-primary">Search</button>
-    </form>
-</div>
-
-<h3 class="mb-4">Popular Venues</h3>
-<div class="row row-cols-1 row-cols-md-3 g-4">
-    @foreach (var venue in Model.Venues)
-    {
-        <div class="col">
-            <div class="card h-100 shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title">@venue.Name</h5>
-                    <p class="card-text text-muted">@venue.City - @venue.Address</p>
-                    <p class="card-text">Courts available: @venue.Courts.Count</p>
-                </div>
-                <div class="card-footer bg-white border-top-0">
-                    <a asp-page="/Venues/Details" asp-route-id="@venue.Id" class="btn btn-outline-primary w-100">View Courts</a>
+<!-- Hero Section -->
+<div class="position-relative py-5 mb-5" style="background: linear-gradient(135deg, var(--primary-color) 0%, #0d4a2b 100%); min-height: 400px; display: flex; align-items: center;">
+    <!-- Abstract pattern overlay (optional) -->
+    <div class="position-absolute top-0 start-0 w-100 h-100" style="background-image: radial-gradient(rgba(255,255,255,0.1) 1px, transparent 1px); background-size: 20px 20px; opacity: 0.3;"></div>
+    
+    <div class="container position-relative z-index-1">
+        <div class="row justify-content-center text-center">
+            <div class="col-lg-8 col-md-10">
+                <h1 class="display-3 fw-bolder text-white mb-3 tracking-tight">Find & Book Your Perfect Court</h1>
+                <p class="lead text-white-50 mb-5 fs-4">Join thousands of players enjoying football, padel, and tennis.</p>
+                
+                <div class="bg-white p-2 rounded-pill shadow-lg d-flex align-items-center mx-auto" style="max-width: 600px;">
+                    <i class="bi bi-geo-alt-fill text-muted ms-3 fs-5"></i>
+                    <form method="get" class="d-flex w-100 m-0 p-0 align-items-center">
+                        <input asp-for="SearchCity" class="form-control border-0 shadow-none fs-5 py-2 px-3" placeholder="Where do you want to play? (e.g., Cairo, Dubai)" style="background: transparent;" />
+                        <button type="submit" class="btn btn-primary rounded-pill px-4 py-2 fs-5 fw-bold d-flex align-items-center">
+                            Search
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>
-    }
+    </div>
+</div>
+
+<!-- Stats Bar -->
+<div class="container mb-5">
+    <div class="row g-4 text-center">
+        <div class="col-md-4">
+            <div class="p-4 bg-white rounded-4 shadow-sm border border-light">
+                <div class="d-inline-flex align-items-center justify-content-center bg-light text-primary rounded-circle mb-3" style="width: 60px; height: 60px;">
+                    <i class="bi bi-grid-fill fs-3"></i>
+                </div>
+                <h2 class="fw-bold mb-0">150+</h2>
+                <p class="text-muted mb-0">Active Courts</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="p-4 bg-white rounded-4 shadow-sm border border-light">
+                <div class="d-inline-flex align-items-center justify-content-center bg-light text-accent rounded-circle mb-3" style="width: 60px; height: 60px;">
+                    <i class="bi bi-map-fill fs-3"></i>
+                </div>
+                <h2 class="fw-bold mb-0">20+</h2>
+                <p class="text-muted mb-0">Cities Covered</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="p-4 bg-white rounded-4 shadow-sm border border-light">
+                <div class="d-inline-flex align-items-center justify-content-center bg-light text-success rounded-circle mb-3" style="width: 60px; height: 60px;">
+                    <i class="bi bi-emoji-smile-fill fs-3"></i>
+                </div>
+                <h2 class="fw-bold mb-0">5,000+</h2>
+                <p class="text-muted mb-0">Happy Players</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Popular Venues Section -->
+<div class="container mb-5 pb-5">
+    <div class="d-flex justify-content-between align-items-end mb-4">
+        <h2 class="section-title mb-0">Popular Venues</h2>
+        <a asp-page="/Venues/Index" class="btn btn-outline-primary rounded-pill">View All <i class="bi bi-arrow-right ms-1"></i></a>
+    </div>
+    
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        @foreach (var venue in Model.Venues.Take(6))
+        {
+            <div class="col">
+                <div class="card h-100 card-hover border-0 bg-white">
+                    <div class="position-relative" style="height: 180px; background: linear-gradient(45deg, #e9ecef, #dee2e6);">
+                        <!-- Placeholder for venue image -->
+                        <div class="position-absolute bottom-0 start-0 w-100 p-3 bg-gradient-dark text-white">
+                            <span class="badge bg-primary rounded-pill mb-1"><i class="bi bi-geo-alt me-1"></i> @venue.City</span>
+                        </div>
+                        <style>
+                            .bg-gradient-dark {
+                                background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+                            }
+                        </style>
+                    </div>
+                    <div class="card-body p-4">
+                        <h4 class="card-title fw-bold mb-2">@venue.Name</h4>
+                        <p class="text-muted small mb-3"><i class="bi bi-pin-map"></i> @venue.Address</p>
+                        
+                        <div class="d-flex justify-content-between align-items-center pt-3 border-top border-light">
+                            <span class="text-secondary fw-medium">
+                                <i class="bi bi-columns-gap text-primary me-1"></i> @venue.Courts.Count Courts
+                            </span>
+                            <a asp-page="/Venues/Details" asp-route-id="@venue.Id" class="btn btn-primary btn-sm rounded-pill px-3">Book <i class="bi bi-chevron-right ms-1 small"></i></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
 </div>

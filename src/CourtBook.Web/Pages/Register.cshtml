@@ -4,31 +4,47 @@
     ViewData["Title"] = "Register";
 }
 
-<div class="row justify-content-center mt-5">
-    <div class="col-md-4">
-        <h2 class="text-center mb-4">Register</h2>
-        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
-        {
-            <div class="alert alert-danger">@Model.ErrorMessage</div>
-        }
-        <form method="post">
-            <div class="mb-3">
-                <label>Name</label>
-                <input asp-for="Input.Name" class="form-control" required />
+<div class="row justify-content-center py-5">
+    <div class="col-md-5 col-lg-4">
+        <div class="card border-0 shadow-sm p-4">
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <div class="d-inline-flex align-items-center justify-content-center bg-accent text-white rounded-circle mb-3 shadow-sm" style="width: 60px; height: 60px; background-color: var(--accent-color);">
+                        <i class="bi bi-person-plus-fill fs-2"></i>
+                    </div>
+                    <h3 class="fw-bold">Create Account</h3>
+                    <p class="text-muted">Join CourtBook today</p>
+                </div>
+                
+                @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+                {
+                    <div class="alert alert-danger border-0 shadow-sm"><i class="bi bi-exclamation-triangle-fill me-2"></i> @Model.ErrorMessage</div>
+                }
+                
+                <form method="post">
+                    <div class="form-floating mb-3">
+                        <input asp-for="Input.Name" class="form-control" placeholder="John Doe" required />
+                        <label>Full Name</label>
+                    </div>
+                    <div class="form-floating mb-3">
+                        <input asp-for="Input.Email" class="form-control" type="email" placeholder="name@example.com" required />
+                        <label>Email address</label>
+                    </div>
+                    <div class="form-floating mb-3">
+                        <input asp-for="Input.Phone" class="form-control" placeholder="+123456789" />
+                        <label>Phone Number</label>
+                    </div>
+                    <div class="form-floating mb-4">
+                        <input asp-for="Input.Password" class="form-control" type="password" placeholder="Password" required />
+                        <label>Password</label>
+                    </div>
+                    <button type="submit" class="btn btn-accent btn-lg w-100 rounded-pill fw-bold shadow-sm">Sign Up</button>
+                </form>
+                
+                <div class="text-center mt-4 pt-3 border-top">
+                    <p class="text-muted mb-0">Already have an account? <a asp-page="/Login" class="text-primary text-decoration-none fw-bold">Log in</a></p>
+                </div>
             </div>
-            <div class="mb-3">
-                <label>Email</label>
-                <input asp-for="Input.Email" class="form-control" type="email" required />
-            </div>
-            <div class="mb-3">
-                <label>Phone</label>
-                <input asp-for="Input.Phone" class="form-control" />
-            </div>
-            <div class="mb-3">
-                <label>Password</label>
-                <input asp-for="Input.Password" class="form-control" type="password" required />
-            </div>
-            <button type="submit" class="btn btn-success w-100">Register</button>
-        </form>
+        </div>
     </div>
 </div>

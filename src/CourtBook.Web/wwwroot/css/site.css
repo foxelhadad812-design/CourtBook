@@ -1,31 +1,123 @@
-html {
-  font-size: 14px;
-}
-
-@media (min-width: 768px) {
-  html {
-    font-size: 16px;
-  }
-}
-
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
-}
-
-html {
-  position: relative;
-  min-height: 100%;
+:root {
+  --primary-color: #1a7a4a;
+  --primary-hover: #145c38;
+  --accent-color: #f0a500;
+  --accent-hover: #d18f00;
+  --bg-color: #f8f9fa;
+  --text-color: #1a1a2e;
+  --card-radius: 12px;
+  --btn-radius: 8px;
+  --shadow-sm: 0 4px 20px rgba(0,0,0,0.08);
+  --shadow-md: 0 8px 30px rgba(0,0,0,0.12);
+  --transition: all 0.3s ease;
 }
 
 body {
-  margin-bottom: 60px;
+  font-family: 'Inter', sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  margin-bottom: 0 !important; /* Override bootstrap footer margin */
 }
 
-.form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
-  color: var(--bs-secondary-color);
-  text-align: end;
+/* Navbar */
+.navbar-brand {
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+.navbar {
+  border-top: 3px solid var(--accent-color);
+}
+.nav-link {
+  font-weight: 500;
 }
 
-.form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
-  text-align: start;
+/* Cards */
+.card {
+  border: none;
+  border-radius: var(--card-radius);
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition);
+  overflow: hidden;
+}
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+}
+.card-header {
+  background-color: transparent;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+/* Buttons */
+.btn {
+  border-radius: var(--btn-radius);
+  font-weight: 500;
+  padding: 0.5rem 1.2rem;
+  transition: var(--transition);
+}
+.btn-primary {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+.btn-primary:hover {
+  background-color: var(--primary-hover);
+  border-color: var(--primary-hover);
+}
+.btn-accent {
+  background-color: var(--accent-color);
+  color: white;
+  border: none;
+}
+.btn-accent:hover {
+  background-color: var(--accent-hover);
+  color: white;
+}
+
+/* Typography */
+.section-title {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 2rem;
+  font-weight: 700;
+}
+.section-title::after {
+  content: '';
+  position: absolute;
+  width: 50px;
+  height: 3px;
+  background-color: var(--accent-color);
+  bottom: -8px;
+  left: 0;
+  border-radius: 2px;
+}
+.section-title.text-center::after {
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Badges */
+.badge-football { background-color: #28a745; color: white; }
+.badge-padel { background-color: #007bff; color: white; }
+.badge-tennis { background-color: #ffc107; color: #212529; }
+
+/* Dashboard */
+.dashboard-sidebar {
+  background-color: white;
+  border-radius: var(--card-radius);
+  box-shadow: var(--shadow-sm);
+  padding: 1.5rem;
+}
+.dashboard-nav .nav-link {
+  color: var(--text-color);
+  border-radius: var(--btn-radius);
+  margin-bottom: 0.5rem;
+}
+.dashboard-nav .nav-link:hover, .dashboard-nav .nav-link.active {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+/* Floating labels adjustment */
+.form-floating > label {
+  color: #6c757d;
 }

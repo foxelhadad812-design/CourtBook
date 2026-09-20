@@ -4,65 +4,171 @@
     ViewData["Title"] = "Owner Dashboard";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>My Venues</h2>
-    <a asp-page="/Dashboard/Venues/Create" class="btn btn-primary">Create New Venue</a>
-</div>
-
-@if (Model.Venues.Any())
-{
-    @foreach (var venue in Model.Venues)
-    {
-        <div class="card mb-4 shadow-sm">
-            <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                <h4 class="mb-0">@venue.Name</h4>
-                <a asp-page="/Dashboard/Courts/Create" asp-route-venueId="@venue.Id" class="btn btn-sm btn-success">Add Court</a>
-            </div>
-            <div class="card-body">
-                <p class="text-muted mb-3">@venue.City - @venue.Address</p>
-                
-                @if (venue.Courts.Any())
-                {
-                    <div class="table-responsive">
-                        <table class="table table-bordered mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Court Name</th>
-                                    <th>Sport</th>
-                                    <th>Price/hr</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var court in venue.Courts)
-                                {
-                                    <tr>
-                                        <td>@court.Name</td>
-                                        <td>@court.SportType</td>
-                                        <td>$@court.PricePerHour</td>
-                                        <td>@(court.IsActive ? "Active" : "Inactive")</td>
-                                        <td>
-                                            <a asp-page="/Dashboard/Courts/Schedules" asp-route-venueId="@venue.Id" asp-route-courtId="@court.Id" class="btn btn-sm btn-outline-primary">Manage Schedule</a>
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
+<div class="container-fluid py-4">
+    <div class="row g-4">
+        <!-- Sidebar -->
+        <div class="col-lg-3 col-md-4">
+            <div class="dashboard-sidebar">
+                <div class="d-flex align-items-center mb-4 pb-3 border-bottom">
+                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px;">
+                        <i class="bi bi-person-workspace fs-4"></i>
                     </div>
-                }
-                else
-                {
-                    <p class="mb-0 text-muted">No courts added yet.</p>
-                }
+                    <div>
+                        <h5 class="fw-bold mb-0">Owner Panel</h5>
+                        <small class="text-muted">Manage your venues</small>
+                    </div>
+                </div>
+                
+                <nav class="nav flex-column dashboard-nav">
+                    <a class="nav-link active fw-medium px-3 py-2" asp-page="/Dashboard/Index">
+                        <i class="bi bi-speedometer2 me-2"></i> Overview
+                    </a>
+                    <a class="nav-link fw-medium px-3 py-2" asp-page="/Dashboard/Venues/Create">
+                        <i class="bi bi-plus-circle me-2"></i> Add Venue
+                    </a>
+                    <!-- More links could be added here -->
+                </nav>
             </div>
         </div>
-    }
-}
-else
-{
-    <div class="text-center p-5 bg-light rounded">
-        <p class="lead text-muted">You don't have any venues yet.</p>
-        <a asp-page="/Dashboard/Venues/Create" class="btn btn-primary">Create Your First Venue</a>
+
+        <!-- Main Content -->
+        <div class="col-lg-9 col-md-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="fw-bold mb-0">Dashboard Overview</h2>
+                <a asp-page="/Dashboard/Venues/Create" class="btn btn-primary rounded-pill shadow-sm"><i class="bi bi-plus me-1"></i> New Venue</a>
+            </div>
+
+            <!-- Stats -->
+            <div class="row g-3 mb-5">
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm bg-primary text-white h-100 p-3">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="text-white-50 mb-0 fw-bold text-uppercase tracking-wider">Total Venues</h6>
+                                <i class="bi bi-building fs-3 opacity-50"></i>
+                            </div>
+                            <h2 class="display-5 fw-bolder mb-0">@Model.Venues.Count</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm h-100 p-3 bg-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="text-muted mb-0 fw-bold text-uppercase tracking-wider">Total Courts</h6>
+                                <i class="bi bi-columns-gap fs-3 text-primary opacity-75"></i>
+                            </div>
+                            <h2 class="display-5 fw-bolder mb-0 text-dark">@Model.Venues.Sum(v => v.Courts.Count)</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm h-100 p-3 bg-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="text-muted mb-0 fw-bold text-uppercase tracking-wider">Avg Price</h6>
+                                <i class="bi bi-cash fs-3 text-success opacity-75"></i>
+                            </div>
+                            @{
+                                var courts = Model.Venues.SelectMany(v => v.Courts).ToList();
+                                var avgPrice = courts.Any() ? courts.Average(c => c.PricePerHour) : 0;
+                            }
+                            <h2 class="display-5 fw-bolder mb-0 text-dark">$@avgPrice.ToString("0.00")</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h4 class="fw-bold mb-4">My Venues</h4>
+            
+            @if (Model.Venues.Any())
+            {
+                @foreach (var venue in Model.Venues)
+                {
+                    <div class="card border-0 shadow-sm mb-4 overflow-hidden">
+                        <div class="card-header bg-white border-bottom p-4 d-flex justify-content-between align-items-center">
+                            <div>
+                                <h4 class="fw-bold mb-1">@venue.Name</h4>
+                                <p class="text-muted small mb-0"><i class="bi bi-geo-alt"></i> @venue.City - @venue.Address</p>
+                            </div>
+                            <a asp-page="/Dashboard/Courts/Create" asp-route-venueId="@venue.Id" class="btn btn-sm btn-outline-success rounded-pill px-3 fw-medium">
+                                <i class="bi bi-plus-lg me-1"></i> Add Court
+                            </a>
+                        </div>
+                        <div class="card-body p-0">
+                            @if (venue.Courts.Any())
+                            {
+                                <div class="table-responsive">
+                                    <table class="table table-hover align-middle mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th class="ps-4">Court Name</th>
+                                                <th>Sport</th>
+                                                <th>Price/hr</th>
+                                                <th>Status</th>
+                                                <th class="pe-4 text-end">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var court in venue.Courts)
+                                            {
+                                                <tr>
+                                                    <td class="ps-4 fw-bold">@court.Name</td>
+                                                    <td>
+                                                        @{
+                                                            var badgeClass = court.SportType.ToLower() switch
+                                                            {
+                                                                "football" => "badge-football",
+                                                                "padel" => "badge-padel",
+                                                                "tennis" => "badge-tennis",
+                                                                _ => "bg-secondary"
+                                                            };
+                                                        }
+                                                        <span class="badge @badgeClass rounded-pill">@court.SportType</span>
+                                                    </td>
+                                                    <td class="fw-medium text-success">$@court.PricePerHour</td>
+                                                    <td>
+                                                        @if (court.IsActive)
+                                                        {
+                                                            <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-2">Active</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="badge bg-danger bg-opacity-10 text-danger rounded-pill px-2">Inactive</span>
+                                                        }
+                                                    </td>
+                                                    <td class="pe-4 text-end">
+                                                        <a asp-page="/Dashboard/Courts/Schedules" asp-route-venueId="@venue.Id" asp-route-courtId="@court.Id" class="btn btn-sm btn-light text-primary border rounded-pill">
+                                                            <i class="bi bi-calendar3 me-1"></i> Schedule
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="p-4 text-center text-muted">
+                                    <p class="mb-0">No courts added yet.</p>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="text-center p-5 bg-white rounded-4 shadow-sm">
+                    <div class="d-inline-flex align-items-center justify-content-center bg-light text-primary rounded-circle mb-4" style="width: 80px; height: 80px;">
+                        <i class="bi bi-building fs-1"></i>
+                    </div>
+                    <h3 class="fw-bold mb-3">No Venues Found</h3>
+                    <p class="lead text-muted mb-4">Start by creating your first venue.</p>
+                    <a asp-page="/Dashboard/Venues/Create" class="btn btn-primary btn-lg rounded-pill px-4 shadow-sm">Create Venue</a>
+                </div>
+            }
+        </div>
     </div>
-}
+</div>

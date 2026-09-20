@@ -4,22 +4,35 @@
     ViewData["Title"] = "All Venues";
 }
 
-<h2 class="mb-4">All Venues</h2>
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+        <h2 class="section-title mb-0">Discover Venues</h2>
+        <span class="text-muted fw-medium">@Model.Venues.Count venues found</span>
+    </div>
 
-<div class="row row-cols-1 row-cols-md-3 g-4">
-    @foreach (var venue in Model.Venues)
-    {
-        <div class="col">
-            <div class="card h-100 shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title">@venue.Name</h5>
-                    <p class="card-text text-muted">@venue.City - @venue.Address</p>
-                    <p class="card-text">Courts available: @venue.Courts.Count</p>
-                </div>
-                <div class="card-footer bg-white border-top-0">
-                    <a asp-page="/Venues/Details" asp-route-id="@venue.Id" class="btn btn-outline-primary w-100">View Courts</a>
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        @foreach (var venue in Model.Venues)
+        {
+            <div class="col">
+                <div class="card h-100 card-hover border-0 bg-white">
+                    <div class="position-relative" style="height: 180px; background: linear-gradient(45deg, #e9ecef, #dee2e6);">
+                        <div class="position-absolute bottom-0 start-0 w-100 p-3" style="background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);">
+                            <span class="badge bg-primary rounded-pill mb-1"><i class="bi bi-geo-alt me-1"></i> @venue.City</span>
+                        </div>
+                    </div>
+                    <div class="card-body p-4">
+                        <h4 class="card-title fw-bold mb-2">@venue.Name</h4>
+                        <p class="text-muted small mb-3"><i class="bi bi-pin-map"></i> @venue.Address</p>
+                        
+                        <div class="d-flex justify-content-between align-items-center pt-3 border-top border-light">
+                            <span class="text-secondary fw-medium">
+                                <i class="bi bi-columns-gap text-primary me-1"></i> @venue.Courts.Count Courts
+                            </span>
+                            <a asp-page="/Venues/Details" asp-route-id="@venue.Id" class="btn btn-primary btn-sm rounded-pill px-3">View Courts</a>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-    }
+        }
+    </div>
 </div>

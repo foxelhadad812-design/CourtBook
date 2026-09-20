@@ -10,54 +10,68 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - CourtBook</title>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Bootstrap 5 CDN -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
-<body>
+<body class="d-flex flex-column min-vh-100">
     <header>
-        <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-3">
+        <nav class="navbar navbar-expand-lg navbar-dark pb-3 pt-3" style="background-color: var(--primary-color);">
             <div class="container">
-                <a class="navbar-brand fw-bold" asp-area="" asp-page="/Index">CourtBook</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <a class="navbar-brand fs-4" asp-area="" asp-page="/Index">
+                    <i class="bi bi-dribbble me-2 text-warning"></i>CourtBook
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="collapse navbar-collapse" id="navbarNav">
-                    <ul class="navbar-nav me-auto">
+                    <ul class="navbar-nav me-auto ms-4">
                         <li class="nav-item">
-                            <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString() == "/Venues/Index" ? "active" : "")" asp-area="" asp-page="/Venues/Index">Venues</a>
+                            <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString() == "/Venues/Index" ? "active fw-bold text-white" : "")" asp-area="" asp-page="/Venues/Index">Venues</a>
                         </li>
                         @if (isLoggedIn && userRole == "Client")
                         {
                             <li class="nav-item">
-                                <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString() == "/Bookings/MyBookings" ? "active" : "")" asp-area="" asp-page="/Bookings/MyBookings">My Bookings</a>
+                                <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString() == "/Bookings/MyBookings" ? "active fw-bold text-white" : "")" asp-area="" asp-page="/Bookings/MyBookings">My Bookings</a>
                             </li>
                         }
                         @if (isLoggedIn && userRole == "Owner")
                         {
                             <li class="nav-item">
-                                <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Dashboard") == true ? "active" : "")" asp-area="" asp-page="/Dashboard/Index">Dashboard</a>
+                                <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Dashboard") == true ? "active fw-bold text-white" : "")" asp-area="" asp-page="/Dashboard/Index">Dashboard</a>
                             </li>
                         }
                     </ul>
-                    <ul class="navbar-nav">
+                    <ul class="navbar-nav align-items-center">
                         @if (isLoggedIn)
                         {
-                            <li class="nav-item d-flex align-items-center me-3 text-white">
-                                <span class="badge bg-secondary me-2">@userRole</span>
-                                Hello, @userName!
-                            </li>
-                            <li class="nav-item">
-                                <a class="btn btn-light btn-sm mt-1" asp-area="" asp-page="/Logout">Logout</a>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle text-white fw-medium d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <div class="rounded-circle bg-white text-primary d-flex align-items-center justify-content-center me-2 fw-bold" style="width: 32px; height: 32px;">
+                                        @(userName?.Substring(0,1).ToUpper() ?? "U")
+                                    </div>
+                                    @userName
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end shadow border-0" aria-labelledby="navbarDropdown">
+                                    <li><h6 class="dropdown-header">Role: @userRole</h6></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item text-danger" asp-area="" asp-page="/Logout"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+                                </ul>
                             </li>
                         }
                         else
                         {
-                            <li class="nav-item">
-                                <a class="nav-link" asp-area="" asp-page="/Login">Login</a>
+                            <li class="nav-item me-2">
+                                <a class="nav-link text-white" asp-area="" asp-page="/Login">Log In</a>
                             </li>
                             <li class="nav-item">
-                                <a class="btn btn-light btn-sm mt-1 ms-2" asp-area="" asp-page="/Register">Register</a>
+                                <a class="btn btn-accent px-4" asp-area="" asp-page="/Register">Sign Up</a>
                             </li>
                         }
                     </ul>
@@ -66,17 +80,49 @@
         </nav>
     </header>
     
-    <div class="container mb-5 pb-5">
-        <main role="main" class="pb-3">
+    <div class="flex-grow-1">
+        <main role="main">
             @RenderBody()
         </main>
     </div>
 
-    <footer class="border-top footer text-muted mt-5 py-3 bg-light fixed-bottom">
-        <div class="container text-center">
-            &copy; @DateTime.Now.Year - CourtBook - <a asp-area="" asp-page="/Index">Home</a>
+    <footer class="text-white mt-auto py-5" style="background-color: #111;">
+        <div class="container">
+            <div class="row gy-4">
+                <div class="col-md-4">
+                    <h5 class="fw-bold mb-3"><i class="bi bi-dribbble me-2 text-warning"></i>CourtBook</h5>
+                    <p class="text-secondary">The easiest way to find and book sports facilities near you. Football, Padel, and Tennis courts available at your fingertips.</p>
+                </div>
+                <div class="col-md-4">
+                    <h5 class="fw-bold mb-3">Quick Links</h5>
+                    <ul class="list-unstyled text-secondary">
+                        <li class="mb-2"><a asp-page="/Index" class="text-decoration-none text-secondary hover-white">Home</a></li>
+                        <li class="mb-2"><a asp-page="/Venues/Index" class="text-decoration-none text-secondary hover-white">Find a Court</a></li>
+                        <li class="mb-2"><a asp-page="/Register" class="text-decoration-none text-secondary hover-white">Partner with us</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h5 class="fw-bold mb-3">Contact Us</h5>
+                    <ul class="list-unstyled text-secondary">
+                        <li class="mb-2"><i class="bi bi-envelope me-2"></i> hello@courtbook.dev</li>
+                        <li class="mb-2"><i class="bi bi-telephone me-2"></i> +1 (555) 123-4567</li>
+                        <li class="mb-2">
+                            <a href="#" class="text-secondary me-3 fs-5"><i class="bi bi-instagram"></i></a>
+                            <a href="#" class="text-secondary me-3 fs-5"><i class="bi bi-twitter-x"></i></a>
+                            <a href="#" class="text-secondary fs-5"><i class="bi bi-facebook"></i></a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-top border-secondary mt-4 pt-4 text-center text-secondary">
+                <small>&copy; @DateTime.Now.Year CourtBook. All rights reserved.</small>
+            </div>
         </div>
     </footer>
+
+    <style>
+        .hover-white:hover { color: white !important; }
+    </style>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
