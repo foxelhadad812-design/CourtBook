@@ -3,7 +3,7 @@ using CourtBook.Domain.Enums;
 namespace CourtBook.Domain.Entities;
 
 /// <summary>
-/// Represents a registered user. Can be an Admin, Owner, or Client.
+/// Represents a registered user (Admin, Owner, or Client).
 /// </summary>
 public class User
 {
@@ -13,8 +13,18 @@ public class User
     public string PasswordHash { get; set; } = string.Empty;
     public string Phone { get; set; } = string.Empty;
     public Role Role { get; set; }
+    public bool IsActive { get; set; } = true;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation properties
+    public UserProfile? Profile { get; set; }
+    public PlayerPreference? Preference { get; set; }
     public ICollection<Venue> OwnedVenues { get; set; } = [];
     public ICollection<Booking> Bookings { get; set; } = [];
+    public ICollection<Review> Reviews { get; set; } = [];
+    public ICollection<Favorite> Favorites { get; set; } = [];
+    public ICollection<Game> CreatedGames { get; set; } = [];
+    public ICollection<GameParticipant> GameParticipations { get; set; } = [];
+    public ICollection<Notification> Notifications { get; set; } = [];
+    public ICollection<AuditLog> AuditLogs { get; set; } = [];
 }

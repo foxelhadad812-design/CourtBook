@@ -10,8 +10,19 @@ public class BookingConfiguration : IEntityTypeConfiguration<Booking>
     {
         builder.HasKey(b => b.Id);
 
-        // Store BookingStatus as a string for readability in the DB
+        builder.Property(b => b.BookingReference)
+            .IsRequired()
+            .HasMaxLength(30);
+
+        builder.HasIndex(b => b.BookingReference)
+            .IsUnique();
+
         builder.Property(b => b.Status)
+            .HasConversion<string>()
+            .HasMaxLength(20)
+            .IsRequired();
+
+        builder.Property(b => b.PaymentStatus)
             .HasConversion<string>()
             .HasMaxLength(20)
             .IsRequired();
@@ -29,25 +40,45 @@ public class BookingConfiguration : IEntityTypeConfiguration<Booking>
         builder.Property(b => b.CreatedAt)
             .IsRequired();
 
+        builder.Property(b => b.Notes)
+            .HasMaxLength(500);
+
+        builder.Property(b => b.CancellationReason)
+            .HasMaxLength(500);
+
         // DB-level guard: a booking must end after it starts
         builder.ToTable(t => t.HasCheckConstraint(
             "CK_Booking_EndTime_After_StartTime",
             "[EndTime] > [StartTime]"));
 
-        // TODO (Phase 2): Add a DB-level filtered index or trigger to prevent
-        // overlapping bookings for the same court. EF Core Fluent API cannot
-        // express this natively; it will be added as raw SQL in a dedicated migration.
+        // Critical index for availability and double-booking conflict detection
+        builder.HasIndex(b => new { b.CourtId, b.StartTime, b.EndTime, b.Status });
 
-        // Court → Bookings: restrict deletion if active bookings exist
+        // Index for user booking history
+        builder.HasIndex(b => new { b.UserId, b.StartTime });
+
+        // Court → Bookings
         builder.HasOne(b => b.Court)
             .WithMany(c => c.Bookings)
             .HasForeignKey(b => b.CourtId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // User → Bookings: restrict deletion if the user still has bookings
+        // User → Bookings
         builder.HasOne(b => b.User)
             .WithMany(u => u.Bookings)
             .HasForeignKey(b => b.UserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // 1:1 Payment
+        builder.HasOne(b => b.Payment)
+            .WithOne(p => p.Booking)
+            .HasForeignKey<Payment>(p => p.BookingId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // 1:1 Review
+        builder.HasOne(b => b.Review)
+            .WithOne(r => r.Booking)
+            .HasForeignKey<Review>(r => r.BookingId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

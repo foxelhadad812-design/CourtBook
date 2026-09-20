@@ -1,215 +1,284 @@
-@inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
-@{
-    var userName = HttpContextAccessor.HttpContext?.Session.GetString("UserName");
-    var userRole = HttpContextAccessor.HttpContext?.Session.GetString("UserRole");
-    var isLoggedIn = !string.IsNullOrEmpty(userName);
-}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-100">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - CourtBook</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <!-- Toastr CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-</head>
-<body class="d-flex flex-column min-vh-100">
-    <!-- Page Loading Bar -->
-    <div id="page-loader"></div>
+    <meta name="description" content="PlaySpot — Find courts, book slots, and join games near you." />
+    <title>@ViewData["Title"] — PlaySpot</title>
 
-    <header>
-        <nav class="navbar navbar-expand-lg navbar-dark pb-3 pt-3 sticky-top shadow-sm" style="background-color: var(--primary-color);">
-            <div class="container">
-                <a class="navbar-brand fs-4" asp-area="" asp-page="/Index">
-                    <i class="bi bi-dribbble me-2 text-warning"></i>CourtBook
-                </a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="collapse navbar-collapse" id="navbarNav">
-                    <ul class="navbar-nav me-auto ms-4">
-                        <li class="nav-item">
-                            <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString() == "/Venues/Index" ? "active fw-bold text-white" : "")" asp-area="" asp-page="/Venues/Index">Venues</a>
-                        </li>
-                        <li class="nav-item d-none d-lg-block ms-3">
-                            <a class="btn btn-outline-light rounded-pill btn-sm mt-1 fw-bold px-3" asp-area="" asp-page="/Venues/Index">Book a Court</a>
-                        </li>
-                        @if (isLoggedIn && userRole == "Client")
-                        {
-                            <li class="nav-item ms-2">
-                                <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString() == "/Bookings/MyBookings" ? "active fw-bold text-white" : "")" asp-area="" asp-page="/Bookings/MyBookings">My Bookings</a>
-                            </li>
-                        }
-                        @if (isLoggedIn && userRole == "Owner")
-                        {
-                            <li class="nav-item ms-2">
-                                <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Dashboard") == true ? "active fw-bold text-white" : "")" asp-area="" asp-page="/Dashboard/Index">Dashboard</a>
-                            </li>
-                        }
-                    </ul>
-                    <ul class="navbar-nav align-items-center">
-                        @if (isLoggedIn)
-                        {
-                            <li class="nav-item me-3">
-                                <a href="#" class="text-white position-relative">
-                                    <i class="bi bi-bell fs-5"></i>
-                                    <span class="position-absolute top-0 start-100 translate-middle p-1 bg-accent border border-light rounded-circle"></span>
-                                </a>
-                            </li>
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle text-white fw-medium d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <div class="rounded-circle bg-white text-primary d-flex align-items-center justify-content-center me-2 fw-bold" style="width: 32px; height: 32px;">
-                                        @(userName?.Substring(0,1).ToUpper() ?? "U")
-                                    </div>
-                                    @userName
-                                </a>
-                                <ul class="dropdown-menu dropdown-menu-end shadow border-0" aria-labelledby="navbarDropdown">
-                                    <li><h6 class="dropdown-header">Role: @userRole</h6></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item text-danger" asp-area="" asp-page="/Logout"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
-                                </ul>
-                            </li>
-                        }
-                        else
-                        {
-                            <li class="nav-item me-2">
-                                <a class="nav-link text-white" asp-area="" asp-page="/Login">Log In</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="btn btn-accent px-4 rounded-pill fw-bold" asp-area="" asp-page="/Register">Sign Up</a>
-                            </li>
-                        }
-                    </ul>
-                </div>
-            </div>
-        </nav>
-    </header>
-    
-    <div class="flex-grow-1">
-        <main role="main">
-            @RenderBody()
-        </main>
-    </div>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
-    <footer class="text-white mt-auto py-5" style="background-color: #111;">
-        <div class="container">
-            <div class="row gy-4">
-                <div class="col-lg-3 col-md-6">
-                    <h5 class="fw-bold mb-3"><i class="bi bi-dribbble me-2 text-warning"></i>CourtBook</h5>
-                    <p class="text-secondary small mb-4">Book smarter. Play better. The easiest way to find and book sports facilities near you.</p>
-                    <div class="d-flex gap-3">
-                        <a href="#" class="text-secondary hover-white fs-5"><i class="bi bi-facebook"></i></a>
-                        <a href="#" class="text-secondary hover-white fs-5"><i class="bi bi-instagram"></i></a>
-                        <a href="#" class="text-secondary hover-white fs-5"><i class="bi bi-twitter-x"></i></a>
-                        <a href="#" class="text-secondary hover-white fs-5"><i class="bi bi-whatsapp"></i></a>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-md-6">
-                    <h5 class="fw-bold mb-3">Product</h5>
-                    <ul class="list-unstyled text-secondary small">
-                        <li class="mb-2"><a asp-page="/Index" class="text-decoration-none text-secondary hover-white">Home</a></li>
-                        <li class="mb-2"><a asp-page="/Venues/Index" class="text-decoration-none text-secondary hover-white">Venues</a></li>
-                        <li class="mb-2"><a asp-page="/Index" fragment="how-it-works" class="text-decoration-none text-secondary hover-white">How it Works</a></li>
-                        <li class="mb-2"><a asp-page="/Register" class="text-decoration-none text-secondary hover-white">Pricing</a></li>
-                    </ul>
-                </div>
-                <div class="col-lg-3 col-md-6">
-                    <h5 class="fw-bold mb-3">Company</h5>
-                    <ul class="list-unstyled text-secondary small">
-                        <li class="mb-2"><a asp-page="/About" class="text-decoration-none text-secondary hover-white">About Us</a></li>
-                        <li class="mb-2"><a href="#" class="text-decoration-none text-secondary hover-white">Careers</a></li>
-                        <li class="mb-2"><a href="#" class="text-decoration-none text-secondary hover-white">Blog</a></li>
-                        <li class="mb-2"><a href="#" class="text-decoration-none text-secondary hover-white">Press</a></li>
-                    </ul>
-                </div>
-                <div class="col-lg-3 col-md-6">
-                    <h5 class="fw-bold mb-3">Support</h5>
-                    <ul class="list-unstyled text-secondary small">
-                        <li class="mb-2"><a asp-page="/Faq" class="text-decoration-none text-secondary hover-white">FAQ</a></li>
-                        <li class="mb-2"><a asp-page="/Contact" class="text-decoration-none text-secondary hover-white">Contact Us</a></li>
-                        <li class="mb-2"><a asp-page="/Terms" class="text-decoration-none text-secondary hover-white">Terms of Service</a></li>
-                        <li class="mb-2"><a asp-page="/Privacy" class="text-decoration-none text-secondary hover-white">Privacy Policy</a></li>
-                    </ul>
-                </div>
-            </div>
-            <div class="border-top border-secondary mt-5 pt-4 d-flex flex-column flex-md-row justify-content-between align-items-center text-secondary small">
-                <div>&copy; 2026 CourtBook. All rights reserved.</div>
-                <div class="mt-2 mt-md-0 d-flex align-items-center">
-                    <i class="bi bi-globe me-2"></i> English (US)
-                </div>
-            </div>
-        </div>
-    </footer>
+    <!-- Bootstrap 5 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous" />
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+
+    <!-- PlaySpot Design System -->
+    <link rel="stylesheet" href="~/css/playspot.css" asp-append-version="true" />
+
+    <!-- Page-specific styles -->
+    @await RenderSectionAsync("Styles", required: false)
 
     <style>
-        .hover-white:hover { color: white !important; }
-        .bg-accent { background-color: var(--accent-color); }
+        /* Ensure body fills viewport and footer stays at bottom */
+        body { min-height: 100vh; display: flex; flex-direction: column; }
+        main { flex: 1; }
     </style>
+</head>
+<body>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
-    
-    <script>
-        // Page Loader
-        document.addEventListener("DOMContentLoaded", function() {
-            let loader = document.getElementById("page-loader");
-            loader.style.width = "30%";
-            setTimeout(() => loader.style.width = "70%", 200);
-            window.onload = function() {
-                loader.style.width = "100%";
-                setTimeout(() => loader.style.opacity = "0", 300);
+<!-- ══════════════════════════════════════════════════════════
+     NAVIGATION BAR
+     ══════════════════════════════════════════════════════════ -->
+<nav class="ps-navbar" role="navigation" aria-label="Main navigation">
+    <div class="container-fluid px-4">
+
+        <!-- Brand -->
+        <a class="ps-navbar-brand" href="/" aria-label="PlaySpot Home">
+            <div class="brand-icon" aria-hidden="true">⚡</div>
+            PlaySpot
+        </a>
+
+        <!-- Desktop Nav Links -->
+        <div class="ps-nav-links d-none d-lg-flex">
+            <a class="ps-nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.Equals("/Index", StringComparison.OrdinalIgnoreCase) == true ? "active" : "")"
+               href="/">
+                <i class="bi bi-house-door"></i> Home
+            </a>
+            <a class="ps-nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Venues", StringComparison.OrdinalIgnoreCase) == true ? "active" : "")"
+               href="/venues">
+                <i class="bi bi-building"></i> Venues
+            </a>
+            <a class="ps-nav-link" href="/venues">
+                <i class="bi bi-trophy"></i> Sports
+            </a>
+            <a class="ps-nav-link" href="/venues">
+                <i class="bi bi-people"></i> Games
+            </a>
+        </div>
+
+        <!-- Actions -->
+        <div class="ps-navbar-actions">
+            @{
+                var userName  = Context.Session.GetString("UserName");
+                var userRole  = Context.Session.GetString("UserRole");
+                var loggedIn  = !string.IsNullOrEmpty(userName);
             }
-        });
 
-        // Mobile Menu Auto-close
-        document.querySelectorAll('.navbar-nav .nav-link').forEach(link => {
-            link.addEventListener('click', () => {
-                const navbarCollapse = document.getElementById('navbarNav');
-                if (navbarCollapse.classList.contains('show')) {
-                    var bsCollapse = new bootstrap.Collapse(navbarCollapse, { toggle: false });
-                    bsCollapse.hide();
-                }
-            });
-        });
+            @if (loggedIn)
+            {
+                <!-- Notifications bell (placeholder for Phase 9) -->
+                <button class="ps-btn ps-btn-ghost ps-btn-sm d-none d-md-flex" title="Notifications">
+                    <i class="bi bi-bell"></i>
+                </button>
 
-        // Toastr config
-        toastr.options = {
-            "closeButton": true,
-            "progressBar": true,
-            "positionClass": "toast-top-right",
-            "timeOut": "3000"
-        };
-        
-        @if(TempData["SuccessMessage"] != null) {
-            <text>toastr.success('@TempData["SuccessMessage"]');</text>
+                <!-- User dropdown -->
+                <div class="dropdown">
+                    <button class="ps-btn ps-btn-secondary ps-btn-sm dropdown-toggle d-flex align-items-center gap-2"
+                            type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <div style="width:28px;height:28px;background:var(--ps-primary-100);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--ps-primary);">
+                            @(userName?.Substring(0, 1).ToUpper())
+                        </div>
+                        <span class="d-none d-md-inline">@userName</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="border-radius: var(--ps-radius-lg); min-width: 200px;">
+                        <li>
+                            <div class="px-3 py-2 border-bottom">
+                                <div class="fw-semibold small">@userName</div>
+                                <div class="text-muted" style="font-size:11px;">@userRole</div>
+                            </div>
+                        </li>
+                        @if (userRole == "Owner" || userRole == "Admin")
+                        {
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="/dashboard">
+                                    <i class="bi bi-speedometer2 text-primary"></i> Dashboard
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider my-1"></li>
+                        }
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="/bookings/mybookings">
+                                <i class="bi bi-calendar-check text-primary"></i> My Bookings
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="#">
+                                <i class="bi bi-heart text-primary"></i> Favorites
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="#">
+                                <i class="bi bi-person text-primary"></i> Profile
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider my-1"></li>
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center gap-2 py-2 text-danger" href="/logout">
+                                <i class="bi bi-box-arrow-right"></i> Sign out
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            }
+            else
+            {
+                <a href="/login" class="ps-btn ps-btn-ghost ps-btn-sm d-none d-sm-flex">Sign in</a>
+                <a href="/register" class="ps-btn ps-btn-primary ps-btn-sm">
+                    Get Started <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            }
+
+            <!-- Mobile menu toggle -->
+            <button id="ps-mobile-toggle" class="ps-mobile-toggle d-lg-none ms-1"
+                    aria-label="Open navigation menu" aria-expanded="false" aria-controls="ps-mobile-menu">
+                <i class="bi bi-list fs-5"></i>
+            </button>
+        </div>
+    </div>
+</nav>
+
+<!-- Mobile menu -->
+<div id="ps-mobile-menu" class="ps-mobile-menu" role="navigation" aria-label="Mobile navigation">
+    <a class="ps-nav-link" href="/"><i class="bi bi-house-door me-2"></i>Home</a>
+    <a class="ps-nav-link" href="/venues"><i class="bi bi-building me-2"></i>Venues</a>
+    <a class="ps-nav-link" href="/venues"><i class="bi bi-trophy me-2"></i>Sports</a>
+    <a class="ps-nav-link" href="/venues"><i class="bi bi-people me-2"></i>Games</a>
+    @if (loggedIn)
+    {
+        <hr class="my-2">
+        <a class="ps-nav-link" href="/bookings/mybookings"><i class="bi bi-calendar-check me-2"></i>My Bookings</a>
+        @if (userRole == "Owner" || userRole == "Admin")
+        {
+            <a class="ps-nav-link" href="/dashboard"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
         }
-        @if(TempData["ErrorMessage"] != null) {
-            <text>toastr.error('@TempData["ErrorMessage"]');</text>
-        }
+        <a class="ps-nav-link text-danger" href="/logout"><i class="bi bi-box-arrow-right me-2"></i>Sign out</a>
+    }
+    else
+    {
+        <hr class="my-2">
+        <a class="ps-nav-link" href="/login"><i class="bi bi-person me-2"></i>Sign in</a>
+        <a class="ps-nav-link fw-semibold" href="/register" style="color:var(--ps-primary)">
+            <i class="bi bi-person-plus me-2"></i>Get Started
+        </a>
+    }
+</div>
 
-        // Global button spinner to prevent double submit
-        document.querySelectorAll('form').forEach(form => {
-            form.addEventListener('submit', function(e) {
-                if(this.checkValidity()) {
-                    const btn = this.querySelector('button[type="submit"]');
-                    if(btn) {
-                        btn.dataset.originalText = btn.innerHTML;
-                        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Processing...';
-                        btn.classList.add('disabled');
-                        btn.setAttribute('disabled', 'disabled');
-                    }
-                }
-            });
-        });
-    </script>
-    @await RenderSectionAsync("Scripts", required: false)
+<!-- ══════════════════════════════════════════════════════════
+     MAIN CONTENT
+     ══════════════════════════════════════════════════════════ -->
+<main role="main">
+    @RenderBody()
+</main>
+
+<!-- ══════════════════════════════════════════════════════════
+     FOOTER
+     ══════════════════════════════════════════════════════════ -->
+<footer class="ps-footer" role="contentinfo">
+    <div class="container">
+        <div class="row g-8">
+
+            <!-- Brand column -->
+            <div class="col-lg-4 col-md-6 mb-5 mb-lg-0">
+                <div class="ps-footer-brand">
+                    <span>⚡</span> PlaySpot
+                </div>
+                <p class="ps-footer-tagline">
+                    Find your court, book your slot, and own your game.
+                    Egypt's sports community, all in one place.
+                </p>
+                <!-- Social links -->
+                <div class="d-flex gap-3 mt-4">
+                    <a href="#" class="text-gray-500 hover:text-white" style="color:var(--ps-gray-500);"
+                       aria-label="Facebook">
+                        <i class="bi bi-facebook fs-5"></i>
+                    </a>
+                    <a href="#" style="color:var(--ps-gray-500);" aria-label="Instagram">
+                        <i class="bi bi-instagram fs-5"></i>
+                    </a>
+                    <a href="#" style="color:var(--ps-gray-500);" aria-label="Twitter">
+                        <i class="bi bi-twitter-x fs-5"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Platform links -->
+            <div class="col-lg-2 col-md-3 col-6 mb-5 mb-lg-0">
+                <h6 class="ps-footer-heading">Platform</h6>
+                <ul class="ps-footer-links">
+                    <li><a href="/venues">Browse Venues</a></li>
+                    <li><a href="/venues">Find a Game</a></li>
+                    <li><a href="/register">Get Started</a></li>
+                    <li><a href="#">How It Works</a></li>
+                    <li><a href="#">Pricing</a></li>
+                </ul>
+            </div>
+
+            <!-- For Owners links -->
+            <div class="col-lg-2 col-md-3 col-6 mb-5 mb-lg-0">
+                <h6 class="ps-footer-heading">For Owners</h6>
+                <ul class="ps-footer-links">
+                    <li><a href="/register">List Your Venue</a></li>
+                    <li><a href="/dashboard">Owner Dashboard</a></li>
+                    <li><a href="#">Revenue Analytics</a></li>
+                    <li><a href="#">Booking Management</a></li>
+                    <li><a href="/contact">Contact Sales</a></li>
+                </ul>
+            </div>
+
+            <!-- Support links -->
+            <div class="col-lg-2 col-md-6 mb-5 mb-lg-0">
+                <h6 class="ps-footer-heading">Support</h6>
+                <ul class="ps-footer-links">
+                    <li><a href="/faq">FAQ</a></li>
+                    <li><a href="/contact">Contact Us</a></li>
+                    <li><a href="/about">About PlaySpot</a></li>
+                    <li><a href="/terms">Terms of Service</a></li>
+                    <li><a href="/privacy">Privacy Policy</a></li>
+                </ul>
+            </div>
+
+            <!-- Sports links -->
+            <div class="col-lg-2 col-md-6">
+                <h6 class="ps-footer-heading">Sports</h6>
+                <ul class="ps-footer-links">
+                    <li><a href="/venues">⚽ Football</a></li>
+                    <li><a href="/venues">🎾 Padel</a></li>
+                    <li><a href="/venues">🏸 Tennis</a></li>
+                    <li><a href="/venues">🏀 Basketball</a></li>
+                    <li><a href="/venues">🏐 Volleyball</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <hr class="ps-footer-divider" />
+
+        <div class="ps-footer-bottom">
+            <p class="ps-footer-copy mb-0">
+                &copy; @DateTime.Now.Year PlaySpot. All rights reserved.
+            </p>
+            <p class="ps-footer-copy mb-0">
+                Made with ❤️ for the Egyptian sports community.
+            </p>
+        </div>
+    </div>
+</footer>
+
+<!-- Bootstrap 5 JS Bundle -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-YvpcrYf0tY3lHB60NNkmXc4s9bIOgUxi8T/jzmVFFy+YPv4/MVLQy+i6D5ERTv/" crossorigin="anonymous">
+</script>
+
+<!-- PlaySpot Core JS -->
+<script src="~/js/playspot.js" asp-append-version="true"></script>
+
+<!-- Page-specific scripts -->
+@await RenderSectionAsync("Scripts", required: false)
+
 </body>
 </html>

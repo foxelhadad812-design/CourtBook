@@ -1,5 +1,4 @@
 using CourtBook.Domain.Entities;
-using CourtBook.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -29,10 +28,24 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.Phone)
             .HasMaxLength(20);
 
-        // Store the Role enum as a readable string (e.g. "Admin", "Owner", "Client")
+        // Store the Role enum as a readable string
         builder.Property(u => u.Role)
             .HasConversion<string>()
             .HasMaxLength(20)
             .IsRequired();
+
+        builder.HasIndex(u => u.Role);
+
+        // 1:1 UserProfile
+        builder.HasOne(u => u.Profile)
+            .WithOne(p => p.User)
+            .HasForeignKey<UserProfile>(p => p.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // 1:1 PlayerPreference
+        builder.HasOne(u => u.Preference)
+            .WithOne(p => p.User)
+            .HasForeignKey<PlayerPreference>(p => p.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

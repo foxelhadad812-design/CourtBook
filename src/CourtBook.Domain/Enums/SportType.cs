@@ -4,5 +4,8 @@ public enum SportType
 {
     Football,
     Padel,
-    Tennis
+    Tennis,
+    Basketball,
+    Volleyball,
+    Badminton
 }

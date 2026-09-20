@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 namespace CourtBook.Infrastructure.Persistence;
 
 /// <summary>
-/// Main EF Core database context for CourtBook.
+/// Main EF Core database context for PlaySpot.
 /// All Fluent API configurations are auto-discovered from this assembly.
 /// </summary>
 public class AppDbContext : DbContext
@@ -12,10 +12,27 @@ public class AppDbContext : DbContext
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
     public DbSet<User> Users => Set<User>();
+    public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
+    public DbSet<PlayerPreference> PlayerPreferences => Set<PlayerPreference>();
     public DbSet<Venue> Venues => Set<Venue>();
     public DbSet<Court> Courts => Set<Court>();
     public DbSet<CourtSchedule> CourtSchedules => Set<CourtSchedule>();
+    public DbSet<VenueImage> VenueImages => Set<VenueImage>();
+    public DbSet<CourtImage> CourtImages => Set<CourtImage>();
+    public DbSet<Amenity> Amenities => Set<Amenity>();
+    public DbSet<VenueAmenity> VenueAmenities => Set<VenueAmenity>();
+    public DbSet<OperatingHour> OperatingHours => Set<OperatingHour>();
+    public DbSet<PriceRule> PriceRules => Set<PriceRule>();
+    public DbSet<CancellationPolicy> CancellationPolicies => Set<CancellationPolicy>();
     public DbSet<Booking> Bookings => Set<Booking>();
+    public DbSet<Review> Reviews => Set<Review>();
+    public DbSet<Favorite> Favorites => Set<Favorite>();
+    public DbSet<Game> Games => Set<Game>();
+    public DbSet<GameParticipant> GameParticipants => Set<GameParticipant>();
+    public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<Report> Reports => Set<Report>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
