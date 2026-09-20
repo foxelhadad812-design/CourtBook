@@ -18,6 +18,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // ── Application Services ──────────────────────────────────────────────────────
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IVenueService, VenueService>();
+builder.Services.AddScoped<ICourtService, CourtService>();
+builder.Services.AddScoped<IBookingService, BookingService>();
 
 // ── JWT Authentication ────────────────────────────────────────────────────────
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
