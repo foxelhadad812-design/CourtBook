@@ -21,8 +21,12 @@ public class CourtResponse
     public Guid Id { get; set; }
     public Guid VenueId { get; set; }
     public string Name { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
     public string SportType { get; set; } = string.Empty;
     public decimal PricePerHour { get; set; }
+    public string SurfaceType { get; set; } = string.Empty;
+    public bool IsIndoor { get; set; }
+    public int Capacity { get; set; }
     public bool IsActive { get; set; }
     public List<ScheduleResponse> Schedules { get; set; } = [];
 }

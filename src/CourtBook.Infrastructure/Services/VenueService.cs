@@ -123,7 +123,10 @@ public class VenueService : IVenueService
     {
         var venues = await _db.Venues
             .AsNoTracking()
-            .Include(v => v.Courts)
+            .Include(v => v.Courts.Where(c => c.IsActive))
+            .Include(v => v.Amenities).ThenInclude(va => va.Amenity)
+            .Include(v => v.Images)
+            .AsSplitQuery()
             .ToListAsync();
 
         return venues.Select(MapToResponse).ToList();
@@ -133,8 +136,14 @@ public class VenueService : IVenueService
     {
         var venue = await _db.Venues
             .AsNoTracking()
-            .Include(v => v.Courts)
+            .Include(v => v.Courts.Where(c => c.IsActive))
                 .ThenInclude(c => c.Schedules)
+            .Include(v => v.Amenities)
+                .ThenInclude(va => va.Amenity)
+            .Include(v => v.Images.OrderBy(i => i.DisplayOrder))
+            .Include(v => v.OperatingHours.OrderBy(o => o.DayOfWeek))
+            .Include(v => v.CancellationPolicy)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(v => v.Id == id);
 
         return venue is null ? null : MapToResponse(venue);
@@ -189,20 +198,89 @@ public class VenueService : IVenueService
 
     private static VenueResponse MapToResponse(Venue venue)
     {
+        var sports = venue.Courts
+            .Where(c => c.IsActive)
+            .Select(c => c.SportType.ToString())
+            .Distinct()
+            .ToList();
+
+        // If no images seeded in DB, generate default photo items from wwwroot/images
+        var images = venue.Images != null && venue.Images.Any()
+            ? venue.Images.OrderBy(i => i.DisplayOrder).Select(i => new VenueImageDto
+            {
+                Id = i.Id,
+                ImageUrl = i.ImageUrl,
+                IsPrimary = i.IsPrimary,
+                DisplayOrder = i.DisplayOrder,
+                Caption = i.Caption
+            }).ToList()
+            : sports.Select((sp, idx) => new VenueImageDto
+            {
+                Id = Guid.NewGuid(),
+                ImageUrl = sp.ToLower() switch
+                {
+                    "football" => "/images/football.jpg",
+                    "padel" => "/images/padel.jpg",
+                    "tennis" => "/images/tennis.jpg",
+                    "basketball" => "/images/basketball.jpg",
+                    _ => "/images/venue.jpg"
+                },
+                IsPrimary = idx == 0,
+                DisplayOrder = idx,
+                Caption = $"{venue.Name} - {sp} Court"
+            }).ToList();
+
+        // If no operating hours seeded in DB, fall back to standard 08:00 - 23:00 daily
+        var opHours = venue.OperatingHours != null && venue.OperatingHours.Any()
+            ? venue.OperatingHours.OrderBy(o => o.DayOfWeek).Select(o => new OperatingHourDto
+            {
+                DayOfWeek = o.DayOfWeek,
+                DayName = o.DayOfWeek.ToString(),
+                OpenTime = o.OpenTime.ToString("HH:mm"),
+                CloseTime = o.CloseTime.ToString("HH:mm"),
+                IsClosed = o.IsClosed
+            }).ToList()
+            : Enum.GetValues<DayOfWeek>().Select(d => new OperatingHourDto
+            {
+                DayOfWeek = d,
+                DayName = d.ToString(),
+                OpenTime = d == DayOfWeek.Friday ? "14:00" : "08:00",
+                CloseTime = "23:00",
+                IsClosed = false
+            }).ToList();
+
         return new VenueResponse
         {
             Id = venue.Id,
             OwnerId = venue.OwnerId,
             Name = venue.Name,
+            Description = venue.Description,
             City = venue.City,
+            Area = venue.Area,
             Address = venue.Address,
+            Country = venue.Country,
+            Latitude = venue.Latitude,
+            Longitude = venue.Longitude,
+            Phone = venue.Phone,
+            Email = venue.Email,
+            Website = venue.Website,
+            IsActive = venue.IsActive,
+            IsVerified = venue.IsVerified,
+            AverageRating = venue.AverageRating,
+            TotalReviews = venue.TotalReviews,
+            CreatedAt = venue.CreatedAt,
+            Sports = sports,
             Courts = venue.Courts.Select(c => new CourtResponse
             {
                 Id = c.Id,
                 VenueId = c.VenueId,
                 Name = c.Name,
+                Description = c.Description,
                 SportType = c.SportType.ToString(),
                 PricePerHour = c.PricePerHour,
+                SurfaceType = c.SurfaceType,
+                IsIndoor = c.IsIndoor,
+                Capacity = c.Capacity,
                 IsActive = c.IsActive,
                 Schedules = c.Schedules?.Select(s => new ScheduleResponse
                 {
@@ -212,7 +290,27 @@ public class VenueService : IVenueService
                     OpenTime = s.OpenTime.ToString("HH:mm"),
                     CloseTime = s.CloseTime.ToString("HH:mm")
                 }).ToList() ?? new List<ScheduleResponse>()
-            }).ToList()
+            }).ToList(),
+            Amenities = venue.Amenities?.Select(va => new VenueAmenityDto
+            {
+                Id = va.AmenityId,
+                Name = va.Amenity?.Name ?? "",
+                Icon = va.Amenity?.Icon ?? "bi-check-circle",
+                Category = va.Amenity?.Category ?? "General"
+            }).Where(a => !string.IsNullOrEmpty(a.Name)).ToList() ?? [],
+            Images = images,
+            OperatingHours = opHours,
+            CancellationPolicy = venue.CancellationPolicy is not null ? new CancellationPolicyDto
+            {
+                FreeCancellationHours = venue.CancellationPolicy.FreeCancellationHours,
+                LateCancellationFeePercent = venue.CancellationPolicy.LateCancellationFeePercent,
+                PolicyDescription = venue.CancellationPolicy.PolicyDescription
+            } : new CancellationPolicyDto
+            {
+                FreeCancellationHours = 24,
+                LateCancellationFeePercent = 50.0m,
+                PolicyDescription = "Free cancellation up to 24 hours before your booking."
+            }
         };
     }
 }

@@ -1,87 +1,845 @@
-@page "{id:guid}"
+@page "{id:guid?}"
 @model CourtBook.Web.Pages.Venues.DetailsModel
 @{
-    ViewData["Title"] = Model.Venue?.Name ?? "Venue Details";
+    ViewData["Title"] = Model.Venue != null ? $"{Model.Venue.Name} - Facility Details" : "Facility Not Found";
 }
 
-@if (Model.Venue != null)
+@if (Model.IsNotFound || Model.Venue == null)
 {
-    <div class="container py-4">
-        <!-- Venue Header -->
-        <div class="card border-0 shadow-sm mb-5 overflow-hidden">
-            <div class="position-relative" style="height: 250px;">
-                @Html.Raw(CourtBook.Web.Helpers.SportIllustrations.GetVenueHeroSvg())
-                <div class="position-absolute top-0 start-0 w-100 h-100" style="background: rgba(0,0,0,0.3);"></div>
+    <!-- ═════════════════════════════════════════════════════════════════════
+         EDGE CASE: FACILITY NOT FOUND (404)
+         ═════════════════════════════════════════════════════════════════════ -->
+    <div class="container py-5 text-center" style="min-height: 60vh; display: flex; align-items: center; justify-content: center;">
+        <div class="card border-0 shadow-sm p-5 max-w-md mx-auto" style="border-radius: var(--ps-radius-2xl); background: #ffffff;">
+            <div class="mb-4">
+                <div class="d-inline-flex align-items-center justify-content-center bg-danger-subtle text-danger rounded-circle" style="width: 80px; height: 80px; font-size: 2.5rem;">
+                    <i class="bi bi-building-exclamation"></i>
+                </div>
             </div>
-            <div class="card-body p-4 position-relative">
-                <div class="bg-white rounded-circle shadow d-flex justify-content-center align-items-center position-absolute" 
-                     style="width: 80px; height: 80px; top: -40px; border: 4px solid white;">
-                    <i class="bi bi-building fs-1 text-primary"></i>
-                </div>
-                <div class="pt-4 mt-2">
-                    <h1 class="fw-bold mb-1">@Model.Venue.Name</h1>
-                    <p class="text-muted fs-5 mb-0"><i class="bi bi-geo-alt-fill text-danger me-1"></i> @Model.Venue.City &mdash; @Model.Venue.Address</p>
-                </div>
+            <h2 class="fw-extrabold text-dark mb-2">Facility Not Found</h2>
+            <p class="text-muted mb-4">
+                The sports facility you are looking for does not exist, has been deactivated, or the link may be broken.
+            </p>
+            <div class="d-flex flex-column flex-sm-row gap-2 justify-content-center">
+                <a href="/venues" class="ps-btn ps-btn-primary px-4 py-2">
+                    <i class="bi bi-compass me-1"></i> Browse All Facilities
+                </a>
+                <a href="/" class="ps-btn ps-btn-outline px-4 py-2">
+                    <i class="bi bi-house me-1"></i> Back to Home
+                </a>
             </div>
         </div>
+    </div>
+}
+else
+{
+    var venue = Model.Venue;
+    var primaryImage = venue.Images.FirstOrDefault(i => i.IsPrimary)?.ImageUrl 
+                       ?? venue.Images.FirstOrDefault()?.ImageUrl 
+                       ?? "/images/venue.jpg";
+    var sports = venue.Sports.Any() 
+                 ? venue.Sports 
+                 : venue.Courts.Select(c => c.SportType).Distinct().ToList();
 
-        <h3 class="section-title mb-4">Available Courts</h3>
-        
-        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-            @foreach (var court in Model.Venue.Courts)
-            {
-                var badgeClass = court.SportType.ToLower() switch
-                {
-                    "football" => "badge-football",
-                    "padel" => "badge-padel",
-                    "tennis" => "badge-tennis",
-                    _ => "bg-secondary"
-                };
+    <div class="venue-details-wrapper py-4" style="background: #F8FAFC; min-height: 90vh;">
+        <div class="container">
 
-                <div class="col">
-                    <div class="card h-100 card-hover border-0 overflow-hidden">
-                        @{
-                            var courtImgPath = court.SportType?.ToLower() switch {
-                                "football" => "/images/football.jpg",
-                                "padel" => "/images/padel.jpg",
-                                "tennis" => "/images/tennis.jpg",
-                                "basketball" => "/images/basketball.jpg",
-                                _ => "/images/venue.jpg"
-                            };
-                        }
-                        <div class="position-relative" style="height: 160px;">
-                            <img src="@courtImgPath" alt="@court.SportType court" class="w-100 h-100 object-fit-cover" style="display: block;">
-                            <div class="position-absolute top-0 end-0 p-3">
-                                <span class="badge @badgeClass rounded-pill px-3 py-2 shadow-sm">@court.SportType</span>
-                            </div>
-                        </div>
-                        <div class="card-body p-4">
-                            <h5 class="card-title fw-bold text-dark mb-3">@court.Name</h5>
-                            
-                            <div class="mb-3">
-                                <span class="fs-3 fw-bolder text-dark">$@court.PricePerHour</span>
-                                <span class="text-muted">/ hr</span>
-                            </div>
-                            
-                            <div class="d-flex align-items-center mb-4">
-                                <div class="rounded-circle @(court.IsActive ? "bg-success" : "bg-danger") me-2" style="width: 10px; height: 10px;"></div>
-                                <span class="text-muted small fw-medium">@(court.IsActive ? "Available for booking" : "Currently Unavailable")</span>
-                            </div>
-                            
-                            @if (court.IsActive)
+            <!-- ── Breadcrumb ────────────────────────────────────────────────── -->
+            <nav aria-label="breadcrumb" class="mb-3">
+                <ol class="breadcrumb small mb-0">
+                    <li class="breadcrumb-item"><a href="/" class="text-decoration-none text-muted">Home</a></li>
+                    <li class="breadcrumb-item"><a href="/venues" class="text-decoration-none text-muted">Facilities</a></li>
+                    <li class="breadcrumb-item active text-dark fw-semibold" aria-current="page">@venue.Name</li>
+                </ol>
+            </nav>
+
+            <!-- ── Venue Header Card ─────────────────────────────────────────── -->
+            <div class="card border-0 shadow-sm p-4 p-md-4 mb-4" style="border-radius: var(--ps-radius-xl); background: #ffffff;">
+                <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+                    <div>
+                        <!-- Verification & Sports -->
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                            @if (venue.IsVerified)
                             {
-                                <a asp-page="/Courts/Book" asp-route-venueId="@Model.Venue.Id" asp-route-id="@court.Id" class="btn btn-primary w-100 py-2 fw-bold shadow-sm">
-                                    Book This Court
-                                </a>
+                                <span class="badge bg-primary-subtle text-primary fw-semibold px-2 py-1 rounded-pill d-inline-flex align-items-center gap-1" style="font-size: 12px;">
+                                    <i class="bi bi-patch-check-fill text-primary"></i> Verified Facility
+                                </span>
                             }
-                            else
+                            @foreach (var sp in sports)
                             {
-                                <button class="btn btn-light w-100 py-2 fw-bold text-muted" disabled>Unavailable</button>
+                                var badgeCls = sp.ToLower() switch {
+                                    "football" => "badge-football",
+                                    "padel" => "badge-padel",
+                                    "tennis" => "badge-tennis",
+                                    "basketball" => "badge-basketball",
+                                    _ => "bg-light text-dark"
+                                };
+                                <span class="badge @badgeCls px-2 py-1 rounded-pill" style="font-size: 11px;">@sp</span>
+                            }
+                        </div>
+
+                        <!-- Venue Name -->
+                        <h1 class="fw-extrabold text-dark mb-2" style="font-size: 1.85rem; letter-spacing: -0.02em;">
+                            @venue.Name
+                        </h1>
+
+                        <!-- Location & Contact bar -->
+                        <div class="d-flex flex-wrap align-items-center gap-3 text-muted small">
+                            <span class="d-flex align-items-center gap-1">
+                                <i class="bi bi-geo-alt-fill text-danger"></i>
+                                @venue.City@(!string.IsNullOrEmpty(venue.Area) ? $" • {venue.Area}" : "") &mdash; @venue.Address
+                            </span>
+                            @if (!string.IsNullOrEmpty(venue.Phone))
+                            {
+                                <span class="d-flex align-items-center gap-1">
+                                    <i class="bi bi-telephone-fill text-success"></i>
+                                    <a href="tel:@venue.Phone" class="text-decoration-none text-muted fw-medium">@venue.Phone</a>
+                                </span>
+                            }
+                            @if (!string.IsNullOrEmpty(venue.Email))
+                            {
+                                <span class="d-flex align-items-center gap-1">
+                                    <i class="bi bi-envelope-fill text-primary"></i>
+                                    <a href="mailto:@venue.Email" class="text-decoration-none text-muted">@venue.Email</a>
+                                </span>
                             }
                         </div>
                     </div>
+
+                    <!-- Rating and CTAs -->
+                    <div class="d-flex flex-column flex-sm-row align-items-sm-center gap-3">
+                        <div class="bg-light p-3 rounded-3 text-center text-sm-start d-flex align-items-center gap-3">
+                            <div class="d-flex align-items-center justify-content-center rounded-3 bg-white shadow-xs fw-extrabold fs-3 text-dark px-3 py-2 border">
+                                ⭐ @venue.AverageRating.ToString("0.0")
+                            </div>
+                            <div>
+                                <div class="text-dark fw-bold small">
+                                    @(venue.AverageRating >= 4.8 ? "Exceptional" : venue.AverageRating >= 4.5 ? "Superb" : "Very Good")
+                                </div>
+                                <a href="#reviews-section" class="text-primary text-decoration-none small fw-medium">
+                                    @venue.TotalReviews verified reviews <i class="bi bi-arrow-down-short"></i>
+                                </a>
+                            </div>
+                        </div>
+
+                        <a href="#courts-section" class="ps-btn ps-btn-primary px-4 py-3 fw-bold text-center">
+                            <i class="bi bi-calendar-check me-1"></i> Book a Court
+                        </a>
+                    </div>
                 </div>
-            }
+            </div>
+
+            <!-- ── Interactive Photo Gallery ─────────────────────────────────── -->
+            <div class="card border-0 shadow-sm overflow-hidden mb-4" style="border-radius: var(--ps-radius-xl); background: #ffffff;">
+                <div class="p-3 p-md-4">
+                    <!-- Main Gallery Viewer -->
+                    <div class="position-relative gallery-main-container rounded-4 overflow-hidden shadow-xs" style="height: 440px; background: #0F172A;">
+                        <img id="gallery-main-img" 
+                             src="@primaryImage" 
+                             alt="@venue.Name photo" 
+                             class="w-100 h-100 object-fit-cover" 
+                             style="transition: opacity 0.25s ease-in-out; cursor: pointer;"
+                             onclick="openLightboxCurrent()">
+
+                        <!-- Gradient Bottom Overlay -->
+                        <div class="position-absolute bottom-0 start-0 w-100 p-3 p-md-4 d-flex justify-content-between align-items-end" 
+                             style="background: linear-gradient(to top, rgba(15, 23, 42, 0.85) 0%, transparent 100%);">
+                            <div>
+                                <span id="gallery-caption" class="text-white fw-medium small d-block">
+                                    @(venue.Images.FirstOrDefault(i => i.IsPrimary)?.Caption ?? $"{venue.Name} - Main Arena")
+                                </span>
+                                <span class="badge bg-dark bg-opacity-75 text-white-50 small mt-1">
+                                    <i class="bi bi-camera-fill me-1"></i> Photos (@venue.Images.Count)
+                                </span>
+                            </div>
+
+                            <button type="button" 
+                                    class="btn btn-sm btn-light fw-bold shadow-sm d-flex align-items-center gap-2 rounded-pill px-3 py-2"
+                                    onclick="openLightbox(0)">
+                                <i class="bi bi-arrows-fullscreen text-primary"></i> View Fullscreen
+                            </button>
+                        </div>
+
+                        <!-- Prev / Next overlay navigation arrows -->
+                        @if (venue.Images.Count > 1)
+                        {
+                            <button type="button" 
+                                    class="gallery-nav-arrow gallery-arrow-prev position-absolute top-50 start-0 translate-middle-y ms-3 btn btn-dark btn-sm rounded-circle d-flex align-items-center justify-content-center"
+                                    style="width: 44px; height: 44px; opacity: 0.85; backdrop-filter: blur(4px);"
+                                    onclick="stepGallery(-1)">
+                                <i class="bi bi-chevron-left fs-5"></i>
+                            </button>
+                            <button type="button" 
+                                    class="gallery-nav-arrow gallery-arrow-next position-absolute top-50 end-0 translate-middle-y me-3 btn btn-dark btn-sm rounded-circle d-flex align-items-center justify-content-center"
+                                    style="width: 44px; height: 44px; opacity: 0.85; backdrop-filter: blur(4px);"
+                                    onclick="stepGallery(1)">
+                                <i class="bi bi-chevron-right fs-5"></i>
+                            </button>
+                        }
+                    </div>
+
+                    <!-- Thumbnail Strip (Edge case: rendered only if more than 1 image) -->
+                    @if (venue.Images.Count > 1)
+                    {
+                        <div class="d-flex gap-2 mt-3 overflow-auto pb-1 gallery-thumb-strip">
+                            @for (int i = 0; i < venue.Images.Count; i++)
+                            {
+                                var img = venue.Images[i];
+                                <div class="gallery-thumb-item position-relative rounded-3 overflow-hidden @(i == 0 ? "active" : "")"
+                                     style="width: 100px; height: 68px; flex-shrink: 0; cursor: pointer; border: 2px solid transparent; transition: all 0.2s;"
+                                     onclick="selectGalleryImage(@i, '@img.ImageUrl', '@(img.Caption ?? $"{venue.Name} Photo")')">
+                                    <img src="@img.ImageUrl" alt="Thumbnail @(i + 1)" class="w-100 h-100 object-fit-cover">
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- ── Main Grid: Left Column (Content) + Right Column (Sidebar) ─── -->
+            <div class="row g-4">
+                
+                <!-- Left 8 Cols: Overview, Courts, Amenities, Reviews -->
+                <div class="col-lg-8">
+
+                    <!-- 1. Overview & Description -->
+                    <div class="card border-0 shadow-sm p-4 mb-4" style="border-radius: var(--ps-radius-xl); background: #ffffff;">
+                        <h4 class="fw-bold text-dark mb-3">About this Facility</h4>
+                        <p class="text-muted leading-relaxed mb-4" style="font-size: 15px; line-height: 1.7;">
+                            @venue.Description
+                        </p>
+
+                        <!-- Quick Highlights Grid -->
+                        <div class="row g-3 pt-3 border-top">
+                            <div class="col-sm-4 col-6">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="bg-primary-subtle text-primary p-2 rounded-3 fs-5">
+                                        <i class="bi bi-trophy"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-muted small">Total Courts</div>
+                                        <div class="fw-bold text-dark">@venue.Courts.Count Pitches</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-4 col-6">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="bg-success-subtle text-success p-2 rounded-3 fs-5">
+                                        <i class="bi bi-clock-history"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-muted small">Opening Hours</div>
+                                        <div class="fw-bold text-dark">08:00 AM - 11:00 PM</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-4 col-12">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="bg-warning-subtle text-warning p-2 rounded-3 fs-5">
+                                        <i class="bi bi-shield-check"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-muted small">Cancellation</div>
+                                        <div class="fw-bold text-dark">Flexible Window</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. Available Courts Section -->
+                    <div id="courts-section" class="card border-0 shadow-sm p-4 mb-4" style="border-radius: var(--ps-radius-xl); background: #ffffff;">
+                        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-4">
+                            <div>
+                                <h4 class="fw-bold text-dark mb-1">Available Courts & Pitches</h4>
+                                <p class="text-muted small mb-0">Select your preferred pitch and reserve your time slot</p>
+                            </div>
+                            <span class="badge bg-light text-dark border px-3 py-2 rounded-pill small fw-medium">
+                                @venue.Courts.Count Courts Available
+                            </span>
+                        </div>
+
+                        <!-- Courts List -->
+                        <div class="d-flex flex-column gap-3">
+                            @foreach (var court in venue.Courts)
+                            {
+                                var courtImg = court.SportType.ToLower() switch {
+                                    "football" => "/images/football.jpg",
+                                    "padel" => "/images/padel.jpg",
+                                    "tennis" => "/images/tennis.jpg",
+                                    "basketball" => "/images/basketball.jpg",
+                                    _ => "/images/venue.jpg"
+                                };
+
+                                var badgeCls = court.SportType.ToLower() switch {
+                                    "football" => "badge-football",
+                                    "padel" => "badge-padel",
+                                    "tennis" => "badge-tennis",
+                                    "basketball" => "badge-basketball",
+                                    _ => "bg-light text-dark"
+                                };
+
+                                <div class="card border border-light-subtle rounded-3 p-3 p-md-4 shadow-xs hover-elevation" style="transition: transform 0.2s, box-shadow 0.2s;">
+                                    <div class="row align-items-center g-3">
+                                        
+                                        <!-- Court Image Thumbnail -->
+                                        <div class="col-sm-3 col-12">
+                                            <div class="position-relative rounded-3 overflow-hidden" style="height: 120px;">
+                                                <img src="@courtImg" alt="@court.Name" class="w-100 h-100 object-fit-cover">
+                                                <div class="position-absolute top-0 start-0 m-2">
+                                                    <span class="badge @badgeCls rounded-pill" style="font-size: 10px;">@court.SportType</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Court Details -->
+                                        <div class="col-sm-5 col-12">
+                                            <div class="d-flex align-items-center gap-2 mb-1">
+                                                <h5 class="fw-bold text-dark mb-0">@court.Name</h5>
+                                                @if (court.IsActive)
+                                                {
+                                                    <span class="badge bg-success-subtle text-success" style="font-size: 10px;">Available</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary-subtle text-secondary" style="font-size: 10px;">Maintenance</span>
+                                                }
+                                            </div>
+
+                                            <p class="text-muted small mb-2 text-truncate-2" style="font-size: 13px;">
+                                                @court.Description
+                                            </p>
+
+                                            <!-- Specs Row -->
+                                            <div class="d-flex flex-wrap gap-2 text-muted small" style="font-size: 12px;">
+                                                <span class="d-flex align-items-center gap-1 bg-light px-2 py-1 rounded">
+                                                    <i class="bi bi-layers-fill text-primary"></i> @court.SurfaceType
+                                                </span>
+                                                <span class="d-flex align-items-center gap-1 bg-light px-2 py-1 rounded">
+                                                    <i class="bi @(court.IsIndoor ? "bi-house-door-fill text-info" : "bi-sun-fill text-warning")"></i>
+                                                    @(court.IsIndoor ? "Indoor" : "Outdoor")
+                                                </span>
+                                                <span class="d-flex align-items-center gap-1 bg-light px-2 py-1 rounded">
+                                                    <i class="bi bi-people-fill text-secondary"></i> Cap: @court.Capacity
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Price & Booking CTA -->
+                                        <div class="col-sm-4 col-12 text-sm-end pt-2 pt-sm-0 border-top border-sm-0">
+                                            <div class="mb-2">
+                                                <span class="text-muted small d-block">Hourly Rate</span>
+                                                <span class="fw-extrabold text-dark fs-4">@court.PricePerHour.ToString("0")</span>
+                                                <span class="text-muted small">EGP / hr</span>
+                                            </div>
+
+                                            @if (court.IsActive)
+                                            {
+                                                <a href="/Courts/Book?courtId=@court.Id&venueId=@venue.Id" class="ps-btn ps-btn-primary ps-btn-sm w-100 w-sm-auto px-4 py-2 fw-bold">
+                                                    <i class="bi bi-calendar-check me-1"></i> Book Court
+                                                </a>
+                                            }
+                                            else
+                                            {
+                                                <button class="btn btn-light btn-sm w-100 w-sm-auto text-muted" disabled>
+                                                    Temporarily Closed
+                                                </button>
+                                            }
+                                        </div>
+
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- 3. Amenities Grid -->
+                    <div class="card border-0 shadow-sm p-4 mb-4" style="border-radius: var(--ps-radius-xl); background: #ffffff;">
+                        <h4 class="fw-bold text-dark mb-3">Facility Amenities</h4>
+                        @if (venue.Amenities.Any())
+                        {
+                            <div class="row g-3">
+                                @foreach (var am in venue.Amenities)
+                                {
+                                    <div class="col-sm-4 col-6">
+                                        <div class="d-flex align-items-center gap-3 p-3 rounded-3 bg-light border border-light-subtle">
+                                            <div class="d-flex align-items-center justify-content-center bg-white text-primary rounded-circle shadow-xs" style="width: 40px; height: 40px; font-size: 1.15rem;">
+                                                <i class="bi @am.Icon"></i>
+                                            </div>
+                                            <div>
+                                                <span class="fw-semibold text-dark d-block small">@am.Name</span>
+                                                <span class="text-muted" style="font-size: 11px;">@am.Category</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="text-muted small mb-0">Standard facility amenities available upon arrival.</p>
+                        }
+                    </div>
+
+                    <!-- 4. Verified Reviews Section -->
+                    <div id="reviews-section" class="card border-0 shadow-sm p-4 mb-4" style="border-radius: var(--ps-radius-xl); background: #ffffff;">
+                        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-4">
+                            <div>
+                                <h4 class="fw-bold text-dark mb-1">Verified Player Reviews</h4>
+                                <div class="d-flex align-items-center gap-1 text-muted small">
+                                    <i class="bi bi-shield-check text-success"></i>
+                                    <span>Only players with verified completed bookings can review this facility.</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Rating Overview Box -->
+                        <div class="bg-light p-4 rounded-3 mb-4">
+                            <div class="row align-items-center g-4">
+                                
+                                <!-- Overall Score -->
+                                <div class="col-md-4 text-center border-end-md">
+                                    <div class="display-4 fw-extrabold text-dark mb-0">
+                                        @venue.AverageRating.ToString("0.0")
+                                    </div>
+                                    <div class="text-warning fs-5 my-1">
+                                        @for (int s = 1; s <= 5; s++)
+                                        {
+                                            if (s <= Math.Round(venue.AverageRating))
+                                            {
+                                                <i class="bi bi-star-fill"></i>
+                                            }
+                                            else
+                                            {
+                                                <i class="bi bi-star"></i>
+                                            }
+                                        }
+                                    </div>
+                                    <div class="text-muted small">
+                                        Based on <strong>@venue.TotalReviews</strong> verified reviews
+                                    </div>
+                                </div>
+
+                                <!-- Sub-category Scores -->
+                                <div class="col-md-8">
+                                    <div class="row g-3">
+                                        <div class="col-6">
+                                            <div class="d-flex justify-content-between small text-muted mb-1">
+                                                <span>Court Quality</span>
+                                                <strong class="text-dark">@(Model.CourtQualityAvg > 0 ? Model.CourtQualityAvg.ToString("0.0") : "5.0") / 5</strong>
+                                            </div>
+                                            <div class="progress" style="height: 6px;">
+                                                <div class="progress-bar bg-primary" role="progressbar" style="width: @((Model.CourtQualityAvg > 0 ? Model.CourtQualityAvg : 5.0) * 20)%;"></div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-6">
+                                            <div class="d-flex justify-content-between small text-muted mb-1">
+                                                <span>Cleanliness</span>
+                                                <strong class="text-dark">@(Model.CleanlinessAvg > 0 ? Model.CleanlinessAvg.ToString("0.0") : "4.9") / 5</strong>
+                                            </div>
+                                            <div class="progress" style="height: 6px;">
+                                                <div class="progress-bar bg-success" role="progressbar" style="width: @((Model.CleanlinessAvg > 0 ? Model.CleanlinessAvg : 4.9) * 20)%;"></div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-6">
+                                            <div class="d-flex justify-content-between small text-muted mb-1">
+                                                <span>Staff & Hospitality</span>
+                                                <strong class="text-dark">@(Model.StaffAvg > 0 ? Model.StaffAvg.ToString("0.0") : "4.8") / 5</strong>
+                                            </div>
+                                            <div class="progress" style="height: 6px;">
+                                                <div class="progress-bar bg-info" role="progressbar" style="width: @((Model.StaffAvg > 0 ? Model.StaffAvg : 4.8) * 20)%;"></div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-6">
+                                            <div class="d-flex justify-content-between small text-muted mb-1">
+                                                <span>Value for Money</span>
+                                                <strong class="text-dark">@(Model.ValueAvg > 0 ? Model.ValueAvg.ToString("0.0") : "4.8") / 5</strong>
+                                            </div>
+                                            <div class="progress" style="height: 6px;">
+                                                <div class="progress-bar bg-warning" role="progressbar" style="width: @((Model.ValueAvg > 0 ? Model.ValueAvg : 4.8) * 20)%;"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        <!-- Individual Reviews Feed -->
+                        @if (Model.Reviews != null && Model.Reviews.Items.Any())
+                        {
+                            <div class="d-flex flex-column gap-3">
+                                @foreach (var rev in Model.Reviews.Items)
+                                {
+                                    var initials = !string.IsNullOrWhiteSpace(rev.UserName) 
+                                        ? string.Join("", rev.UserName.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(s => s[0])) 
+                                        : "P";
+
+                                    <div class="border-bottom pb-4 mb-2">
+                                        <div class="d-flex align-items-center justify-content-between mb-2">
+                                            <div class="d-flex align-items-center gap-3">
+                                                <!-- Avatar Initials -->
+                                                <div class="d-flex align-items-center justify-content-center rounded-circle bg-primary text-white fw-bold shadow-xs" 
+                                                     style="width: 44px; height: 44px; font-size: 14px;">
+                                                    @initials
+                                                </div>
+                                                <div>
+                                                    <div class="d-flex align-items-center gap-2">
+                                                        <span class="fw-bold text-dark">@rev.UserName</span>
+                                                        <span class="badge bg-success-subtle text-success d-inline-flex align-items-center gap-1" style="font-size: 10px;">
+                                                            <i class="bi bi-patch-check-fill"></i> Verified Player
+                                                        </span>
+                                                    </div>
+                                                    <div class="text-muted" style="font-size: 12px;">
+                                                        @rev.CreatedAt.ToString("MMM dd, yyyy")
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Review Stars -->
+                                            <div class="text-warning small">
+                                                @for (int s = 1; s <= 5; s++)
+                                                {
+                                                    if (s <= rev.OverallRating)
+                                                    {
+                                                        <i class="bi bi-star-fill"></i>
+                                                    }
+                                                    else
+                                                    {
+                                                        <i class="bi bi-star"></i>
+                                                    }
+                                                }
+                                            </div>
+                                        </div>
+
+                                        <!-- Review Comment -->
+                                        @if (!string.IsNullOrEmpty(rev.Comment))
+                                        {
+                                            <p class="text-dark small mb-3 ps-1" style="font-size: 14px; line-height: 1.6;">
+                                                "@rev.Comment"
+                                            </p>
+                                        }
+
+                                        <!-- Owner Response Box (if present) -->
+                                        @if (!string.IsNullOrEmpty(rev.OwnerResponse))
+                                        {
+                                            <div class="p-3 rounded-3 bg-light border-start border-primary border-3 ms-4 mt-2">
+                                                <div class="d-flex align-items-center gap-2 mb-1">
+                                                    <i class="bi bi-reply-fill text-primary"></i>
+                                                    <span class="fw-bold text-dark small">Response from Management</span>
+                                                    @if (rev.OwnerRespondedAt.HasValue)
+                                                    {
+                                                        <span class="text-muted" style="font-size: 11px;">&bull; @rev.OwnerRespondedAt.Value.ToString("MMM dd, yyyy")</span>
+                                                    }
+                                                </div>
+                                                <p class="text-muted small mb-0 fst-italic" style="font-size: 13px;">
+                                                    @rev.OwnerResponse
+                                                </p>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <!-- Edge case: Venue with no reviews yet -->
+                            <div class="text-center py-5 bg-light rounded-3">
+                                <div class="text-muted fs-1 mb-2">
+                                    <i class="bi bi-chat-square-quote"></i>
+                                </div>
+                                <h6 class="fw-bold text-dark mb-1">No Reviews Yet</h6>
+                                <p class="text-muted small mb-3">
+                                    Be the first player to book a court at @venue.Name and share your experience!
+                                </p>
+                                <a href="#courts-section" class="ps-btn ps-btn-primary ps-btn-sm px-3">
+                                    Book a Court & Be First
+                                </a>
+                            </div>
+                        }
+                    </div>
+
+                </div>
+
+                <!-- Right 4 Cols: Operating Hours, Cancellation Policy, Location & Map -->
+                <div class="col-lg-4">
+                    <div class="d-flex flex-column gap-4 position-sticky" style="top: 85px;">
+
+                        <!-- Operating Hours Card -->
+                        <div class="card border-0 shadow-sm p-4" style="border-radius: var(--ps-radius-xl); background: #ffffff;">
+                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                <h5 class="fw-bold text-dark mb-0">Operating Hours</h5>
+                                <span class="badge bg-success-subtle text-success d-flex align-items-center gap-1 small">
+                                    <span class="rounded-circle bg-success" style="width: 6px; height: 6px;"></span> Open Today
+                                </span>
+                            </div>
+
+                            <ul class="list-unstyled mb-0 d-flex flex-column gap-2 small">
+                                @{
+                                    var todayDay = DateTime.UtcNow.DayOfWeek;
+                                }
+                                @foreach (var op in venue.OperatingHours)
+                                {
+                                    var isToday = op.DayOfWeek == todayDay;
+                                    <li class="d-flex justify-content-between py-1 border-bottom border-light-subtle @(isToday ? "fw-bold text-primary" : "text-muted")">
+                                        <span>@(isToday ? $"👉 {op.DayName}" : op.DayName)</span>
+                                        <span>
+                                            @if (op.IsClosed)
+                                            {
+                                                <span class="text-danger">Closed</span>
+                                            }
+                                            else
+                                            {
+                                                <span>@op.OpenTime &mdash; @op.CloseTime</span>
+                                            }
+                                        </span>
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+
+                        <!-- Cancellation Policy Card -->
+                        <div class="card border-0 shadow-sm p-4" style="border-radius: var(--ps-radius-xl); background: #EFF6FF; border-left: 4px solid var(--ps-primary) !important;">
+                            <div class="d-flex align-items-center gap-2 mb-2 text-primary">
+                                <i class="bi bi-shield-check fs-5"></i>
+                                <h5 class="fw-bold text-dark mb-0">Cancellation Policy</h5>
+                            </div>
+
+                            @if (venue.CancellationPolicy != null)
+                            {
+                                <p class="text-dark small mb-3" style="line-height: 1.5;">
+                                    @venue.CancellationPolicy.PolicyDescription
+                                </p>
+                                <div class="bg-white p-3 rounded-3 shadow-xs">
+                                    <div class="d-flex align-items-center gap-2 text-success small fw-bold mb-1">
+                                        <i class="bi bi-check-circle-fill"></i> Free cancellation: up to @venue.CancellationPolicy.FreeCancellationHours hours before game
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2 text-muted small">
+                                        <i class="bi bi-info-circle"></i> Late cancellation fee: @venue.CancellationPolicy.LateCancellationFeePercent.ToString("0")%
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <p class="text-muted small mb-0">
+                                    Free cancellation up to 24 hours prior to game start.
+                                </p>
+                            }
+                        </div>
+
+                        <!-- Location & Google Maps Card -->
+                        <div class="card border-0 shadow-sm p-4" style="border-radius: var(--ps-radius-xl); background: #ffffff;">
+                            <h5 class="fw-bold text-dark mb-3">Facility Location</h5>
+                            
+                            <div class="d-flex align-items-start gap-2 mb-3 text-muted small">
+                                <i class="bi bi-geo-alt-fill text-danger fs-5 mt-n1"></i>
+                                <div>
+                                    <strong class="text-dark d-block">@venue.Name</strong>
+                                    <span>@venue.Address</span>
+                                    <div class="text-muted mt-1">@venue.Area, @venue.City, @venue.Country</div>
+                                </div>
+                            </div>
+
+                            @if (venue.Latitude.HasValue && venue.Longitude.HasValue)
+                            {
+                                var mapUrl = $"https://www.google.com/maps/search/?api=1&query={venue.Latitude.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)},{venue.Longitude.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
+                                
+                                <a href="@mapUrl" target="_blank" rel="noopener noreferrer" 
+                                   class="ps-btn ps-btn-outline w-100 py-2 small fw-bold text-center d-flex align-items-center justify-content-center gap-2">
+                                    <i class="bi bi-map text-primary"></i> Open in Google Maps
+                                </a>
+                            }
+                        </div>
+
+                        <!-- Facility Assistance Card -->
+                        <div class="card border-0 shadow-sm p-4 text-center" style="border-radius: var(--ps-radius-xl); background: #ffffff;">
+                            <i class="bi bi-headset text-primary fs-2 mb-2 d-block"></i>
+                            <h6 class="fw-bold text-dark mb-1">Need help with booking?</h6>
+                            <p class="text-muted small mb-3">
+                                Contact the facility desk directly for inquiries or team bookings.
+                            </p>
+                            @if (!string.IsNullOrEmpty(venue.Phone))
+                            {
+                                <a href="tel:@venue.Phone" class="btn btn-light w-100 py-2 fw-bold text-primary">
+                                    <i class="bi bi-telephone-fill me-1"></i> Call @venue.Phone
+                                </a>
+                            }
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+
         </div>
     </div>
+
+    <!-- ═════════════════════════════════════════════════════════════════════
+         FULLSCREEN LIGHTBOX MODAL (Gallery Feature)
+         ═════════════════════════════════════════════════════════════════════ -->
+    <div id="ps-lightbox" class="lightbox-overlay" tabindex="-1" role="dialog" aria-modal="true" style="display: none;">
+        <!-- Top Toolbar -->
+        <div class="lightbox-toolbar d-flex justify-content-between align-items-center px-4 py-3 text-white">
+            <div class="d-flex align-items-center gap-3">
+                <span id="lb-counter" class="badge bg-dark bg-opacity-75 px-3 py-2 rounded-pill font-monospace small">1 / 1</span>
+                <span id="lb-caption" class="small text-white-50 text-truncate d-none d-md-inline" style="max-width: 500px;"></span>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-light rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;" onclick="closeLightbox()">
+                <i class="bi bi-x-lg fs-5"></i>
+            </button>
+        </div>
+
+        <!-- Main Viewport -->
+        <div class="lightbox-viewport position-relative d-flex align-items-center justify-content-center p-3">
+            <img id="lb-image" src="" alt="Fullscreen view" class="img-fluid rounded-3 shadow-lg" style="max-height: 80vh; max-width: 90vw; object-fit: contain;">
+
+            <!-- Prev / Next Controls -->
+            <button type="button" class="lb-control lb-prev position-absolute start-0 top-50 translate-middle-y ms-3 ms-md-4 btn btn-dark btn-lg rounded-circle" onclick="stepLightbox(-1)">
+                <i class="bi bi-chevron-left fs-4"></i>
+            </button>
+            <button type="button" class="lb-control lb-next position-absolute end-0 top-50 translate-middle-y me-3 me-md-4 btn btn-dark btn-lg rounded-circle" onclick="stepLightbox(1)">
+                <i class="bi bi-chevron-right fs-4"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Gallery Data & Controller Script -->
+    <script>
+        const galleryImages = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(venue.Images.Select(i => new {
+            url = i.ImageUrl,
+            caption = i.Caption ?? venue.Name
+        })));
+
+        let currentImageIdx = 0;
+
+        function selectGalleryImage(idx, url, caption) {
+            currentImageIdx = idx;
+            const mainImg = document.getElementById('gallery-main-img');
+            const captionEl = document.getElementById('gallery-caption');
+            
+            if (mainImg) {
+                mainImg.style.opacity = '0.3';
+                setTimeout(() => {
+                    mainImg.src = url;
+                    mainImg.style.opacity = '1';
+                }, 150);
+            }
+            if (captionEl) captionEl.textContent = caption;
+
+            // Highlight thumbnail
+            document.querySelectorAll('.gallery-thumb-item').forEach((el, i) => {
+                el.classList.toggle('active', i === idx);
+                if (i === idx) {
+                    el.style.borderColor = 'var(--ps-primary)';
+                } else {
+                    el.style.borderColor = 'transparent';
+                }
+            });
+        }
+
+        function stepGallery(step) {
+            if (!galleryImages || galleryImages.length <= 1) return;
+            let nextIdx = currentImageIdx + step;
+            if (nextIdx < 0) nextIdx = galleryImages.length - 1;
+            if (nextIdx >= galleryImages.length) nextIdx = 0;
+            selectGalleryImage(nextIdx, galleryImages[nextIdx].url, galleryImages[nextIdx].caption);
+        }
+
+        function openLightboxCurrent() {
+            openLightbox(currentImageIdx);
+        }
+
+        function openLightbox(idx) {
+            if (!galleryImages || galleryImages.length === 0) return;
+            currentImageIdx = idx;
+            updateLightboxView();
+            const lb = document.getElementById('ps-lightbox');
+            if (lb) {
+                lb.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+            }
+        }
+
+        function closeLightbox() {
+            const lb = document.getElementById('ps-lightbox');
+            if (lb) {
+                lb.style.display = 'none';
+                document.body.style.overflow = '';
+            }
+        }
+
+        function stepLightbox(step) {
+            if (!galleryImages || galleryImages.length <= 1) return;
+            currentImageIdx += step;
+            if (currentImageIdx < 0) currentImageIdx = galleryImages.length - 1;
+            if (currentImageIdx >= galleryImages.length) currentImageIdx = 0;
+            updateLightboxView();
+        }
+
+        function updateLightboxView() {
+            const img = galleryImages[currentImageIdx];
+            if (!img) return;
+
+            const lbImg = document.getElementById('lb-image');
+            const lbCounter = document.getElementById('lb-counter');
+            const lbCaption = document.getElementById('lb-caption');
+
+            if (lbImg) lbImg.src = img.url;
+            if (lbCounter) lbCounter.textContent = `${currentImageIdx + 1} / ${galleryImages.length}`;
+            if (lbCaption) lbCaption.textContent = img.caption;
+        }
+
+        // Keyboard navigation for lightbox
+        document.addEventListener('keydown', function (e) {
+            const lb = document.getElementById('ps-lightbox');
+            if (lb && lb.style.display === 'flex') {
+                if (e.key === 'Escape') closeLightbox();
+                if (e.key === 'ArrowLeft') stepLightbox(-1);
+                if (e.key === 'ArrowRight') stepLightbox(1);
+            }
+        });
+    </script>
+
+    <style>
+        .gallery-main-container:hover .gallery-nav-arrow {
+            opacity: 1 !important;
+        }
+        .gallery-thumb-item.active {
+            border-color: var(--ps-primary) !important;
+            transform: scale(0.98);
+        }
+        .lightbox-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(8px);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .lightbox-viewport {
+            flex: 1;
+        }
+        .lb-control {
+            opacity: 0.75;
+            transition: opacity 0.2s, transform 0.2s;
+        }
+        .lb-control:hover {
+            opacity: 1;
+            transform: translateY(-50%) scale(1.1);
+        }
+        .hover-elevation:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04) !important;
+        }
+        @@media (min-width: 768px) {
+            .border-end-md {
+                border-right: 1px solid #E2E8F0;
+            }
+        }
+    </style>
 }

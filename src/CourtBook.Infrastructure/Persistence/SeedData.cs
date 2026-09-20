@@ -19,7 +19,8 @@ public static class SeedData
 
         if (await db.Users.AnyAsync())
         {
-            logger.LogInformation("Database already seeded — skipping.");
+            await EnsureVenueAssetsAndDetailsAsync(db, logger);
+            logger.LogInformation("Database already seeded — verified venue assets and details.");
             return;
         }
 
@@ -276,6 +277,258 @@ public static class SeedData
         });
 
         await db.SaveChangesAsync();
+
+        await EnsureVenueAssetsAndDetailsAsync(db, logger);
+
         logger.LogInformation("Database seeded successfully with rich PlaySpot entities!");
+    }
+
+    public static async Task EnsureVenueAssetsAndDetailsAsync(AppDbContext db, ILogger logger)
+    {
+        var venues = await db.Venues
+            .Include(v => v.Courts)
+            .Include(v => v.Images)
+            .Include(v => v.OperatingHours)
+            .ToListAsync();
+
+        if (!venues.Any()) return;
+
+        // 1. Seed VenueImages if empty
+        if (!await db.VenueImages.AnyAsync())
+        {
+            logger.LogInformation("Seeding venue images for existing venues...");
+            var images = new List<VenueImage>();
+
+            foreach (var v in venues)
+            {
+                var sports = v.Courts.Select(c => c.SportType).Distinct().ToList();
+                int order = 1;
+
+                // First sport as primary
+                var primarySport = sports.FirstOrDefault();
+                string primaryUrl = primarySport switch
+                {
+                    SportType.Football => "/images/football.jpg",
+                    SportType.Padel => "/images/padel.jpg",
+                    SportType.Tennis => "/images/tennis.jpg",
+                    SportType.Basketball => "/images/basketball.jpg",
+                    _ => "/images/venue.jpg"
+                };
+
+                images.Add(new VenueImage
+                {
+                    Id = Guid.NewGuid(),
+                    VenueId = v.Id,
+                    ImageUrl = primaryUrl,
+                    IsPrimary = true,
+                    DisplayOrder = order++,
+                    Caption = $"{v.Name} - Main Facility & {primarySport} Arena"
+                });
+
+                // Add secondary court photos for other sports
+                foreach (var sp in sports.Skip(1))
+                {
+                    string secUrl = sp switch
+                    {
+                        SportType.Football => "/images/football.jpg",
+                        SportType.Padel => "/images/padel.jpg",
+                        SportType.Tennis => "/images/tennis.jpg",
+                        SportType.Basketball => "/images/basketball.jpg",
+                        _ => "/images/venue.jpg"
+                    };
+
+                    images.Add(new VenueImage
+                    {
+                        Id = Guid.NewGuid(),
+                        VenueId = v.Id,
+                        ImageUrl = secUrl,
+                        IsPrimary = false,
+                        DisplayOrder = order++,
+                        Caption = $"{v.Name} - {sp} Court View"
+                    });
+                }
+
+                // Add clubhouse & amenities photo
+                images.Add(new VenueImage
+                {
+                    Id = Guid.NewGuid(),
+                    VenueId = v.Id,
+                    ImageUrl = "/images/venue.jpg",
+                    IsPrimary = false,
+                    DisplayOrder = order++,
+                    Caption = $"{v.Name} - Players Lounge & Amenities"
+                });
+            }
+
+            await db.VenueImages.AddRangeAsync(images);
+            await db.SaveChangesAsync();
+            logger.LogInformation("Added {Count} venue images successfully.", images.Count);
+        }
+
+        // 2. Seed OperatingHours if empty
+        if (!await db.OperatingHours.AnyAsync())
+        {
+            logger.LogInformation("Seeding operating hours for venues...");
+            var opHours = new List<OperatingHour>();
+            var weekDays = new[] { DayOfWeek.Saturday, DayOfWeek.Sunday, DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday };
+
+            foreach (var v in venues)
+            {
+                foreach (var day in weekDays)
+                {
+                    opHours.Add(new OperatingHour
+                    {
+                        Id = Guid.NewGuid(),
+                        VenueId = v.Id,
+                        DayOfWeek = day,
+                        OpenTime = new TimeOnly(8, 0),
+                        CloseTime = new TimeOnly(23, 0),
+                        IsClosed = false
+                    });
+                }
+
+                opHours.Add(new OperatingHour
+                {
+                    Id = Guid.NewGuid(),
+                    VenueId = v.Id,
+                    DayOfWeek = DayOfWeek.Friday,
+                    OpenTime = new TimeOnly(14, 0),
+                    CloseTime = new TimeOnly(23, 0),
+                    IsClosed = false
+                });
+            }
+
+            await db.OperatingHours.AddRangeAsync(opHours);
+            await db.SaveChangesAsync();
+            logger.LogInformation("Added {Count} operating hours successfully.", opHours.Count);
+        }
+
+        // 3. Seed realistic verified reviews if fewer than 4 reviews exist
+        if (await db.Reviews.CountAsync() < 4)
+        {
+            logger.LogInformation("Seeding additional verified reviews...");
+            var users = await db.Users.Where(u => u.Role == Role.Client).ToListAsync();
+            var nada = users.FirstOrDefault(u => u.Email.Contains("nada"));
+            var karim = users.FirstOrDefault(u => u.Email.Contains("karim"));
+            var omar = users.FirstOrDefault(u => u.Email.Contains("omar"));
+
+            var maadiVenue = venues.FirstOrDefault(v => v.City.Contains("Maadi"));
+            var fayoumVenue = venues.FirstOrDefault(v => v.City.Contains("الفيوم") || v.Name.Contains("سيد"));
+            var zamalekVenue = venues.FirstOrDefault(v => v.City.Contains("Zamalek"));
+
+            var newBookings = new List<Booking>();
+            var newReviews = new List<Review>();
+            var today = DateTime.UtcNow.Date;
+
+            if (maadiVenue != null && nada != null && maadiVenue.Courts.Any())
+            {
+                var c = maadiVenue.Courts.First();
+                var b = new Booking
+                {
+                    Id = Guid.NewGuid(),
+                    BookingReference = $"PS-{today.AddDays(-5):yyyyMMdd}-M1A2D3",
+                    CourtId = c.Id,
+                    UserId = nada.Id,
+                    TotalPrice = c.PricePerHour,
+                    Status = BookingStatus.Completed,
+                    PaymentStatus = PaymentStatus.Completed,
+                    StartTime = today.AddDays(-5).AddHours(19),
+                    EndTime = today.AddDays(-5).AddHours(20)
+                };
+                newBookings.Add(b);
+                newReviews.Add(new Review
+                {
+                    Id = Guid.NewGuid(),
+                    BookingId = b.Id,
+                    UserId = nada.Id,
+                    VenueId = maadiVenue.Id,
+                    OverallRating = 5,
+                    CourtQualityRating = 5,
+                    CleanlinessRating = 5,
+                    StaffRating = 5,
+                    ValueRating = 4,
+                    Comment = "ملاعب البادل والتنس هنا من أنضف وأرقى الملاعب في المعادي! الإضاءة ممتازة وغرف تغيير الملابس مكيفة ومريحة جداً.",
+                    OwnerResponse = "أهلاً بكِ كابتن ندى! نسعد دائماً بوجودك معنا وفي انتظارك في مبارياتك القادمة ✨",
+                    OwnerRespondedAt = DateTime.UtcNow.AddDays(-3),
+                    CreatedAt = DateTime.UtcNow.AddDays(-4)
+                });
+            }
+
+            if (fayoumVenue != null && karim != null && fayoumVenue.Courts.Any())
+            {
+                var c = fayoumVenue.Courts.First();
+                var b = new Booking
+                {
+                    Id = Guid.NewGuid(),
+                    BookingReference = $"PS-{today.AddDays(-4):yyyyMMdd}-F4Y5M6",
+                    CourtId = c.Id,
+                    UserId = karim.Id,
+                    TotalPrice = c.PricePerHour,
+                    Status = BookingStatus.Completed,
+                    PaymentStatus = PaymentStatus.Completed,
+                    StartTime = today.AddDays(-4).AddHours(20),
+                    EndTime = today.AddDays(-4).AddHours(21)
+                };
+                newBookings.Add(b);
+                newReviews.Add(new Review
+                {
+                    Id = Guid.NewGuid(),
+                    BookingId = b.Id,
+                    UserId = karim.Id,
+                    VenueId = fayoumVenue.Id,
+                    OverallRating = 5,
+                    CourtQualityRating = 5,
+                    CleanlinessRating = 5,
+                    StaffRating = 5,
+                    ValueRating = 5,
+                    Comment = "أفضل ملعب نجيل صناعي في الفيوم بالكامل! الكابتن محمد الحداد وإدارة الملعب محترمين جداً، والكافيه وغرف الملابس 10/10.",
+                    OwnerResponse = "تسلم يا كابتن كريم، شهادة نعتز بيها والملعب منور بيك دايماً يا غالي ⚽❤️",
+                    OwnerRespondedAt = DateTime.UtcNow.AddDays(-2),
+                    CreatedAt = DateTime.UtcNow.AddDays(-3)
+                });
+            }
+
+            if (zamalekVenue != null && omar != null && zamalekVenue.Courts.Any())
+            {
+                var c = zamalekVenue.Courts.First();
+                var b = new Booking
+                {
+                    Id = Guid.NewGuid(),
+                    BookingReference = $"PS-{today.AddDays(-3):yyyyMMdd}-Z7A8M9",
+                    CourtId = c.Id,
+                    UserId = omar.Id,
+                    TotalPrice = c.PricePerHour,
+                    Status = BookingStatus.Completed,
+                    PaymentStatus = PaymentStatus.Completed,
+                    StartTime = today.AddDays(-3).AddHours(17),
+                    EndTime = today.AddDays(-3).AddHours(18)
+                };
+                newBookings.Add(b);
+                newReviews.Add(new Review
+                {
+                    Id = Guid.NewGuid(),
+                    BookingId = b.Id,
+                    UserId = omar.Id,
+                    VenueId = zamalekVenue.Id,
+                    OverallRating = 5,
+                    CourtQualityRating = 5,
+                    CleanlinessRating = 4,
+                    StaffRating = 5,
+                    ValueRating = 5,
+                    Comment = "مكان أسطوري على النيل في الزمالك، جودة الملاعب ممتازة والفيو يفتح النفس للعب.",
+                    OwnerResponse = "شكراً جزيلاً كابتن عمر! يسعدنا دائماً استضافتكم في ملاعب الزمالك.",
+                    OwnerRespondedAt = DateTime.UtcNow.AddDays(-1),
+                    CreatedAt = DateTime.UtcNow.AddDays(-2)
+                });
+            }
+
+            if (newBookings.Any())
+            {
+                await db.Bookings.AddRangeAsync(newBookings);
+                await db.Reviews.AddRangeAsync(newReviews);
+                await db.SaveChangesAsync();
+                logger.LogInformation("Added {Count} additional verified reviews and completed bookings.", newReviews.Count);
+            }
+        }
     }
 }
