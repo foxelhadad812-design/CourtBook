@@ -1,0 +1,85 @@
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
+@{
+    var userName = HttpContextAccessor.HttpContext?.Session.GetString("UserName");
+    var userRole = HttpContextAccessor.HttpContext?.Session.GetString("UserRole");
+    var isLoggedIn = !string.IsNullOrEmpty(userName);
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - CourtBook</title>
+    <!-- Bootstrap 5 CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-3">
+            <div class="container">
+                <a class="navbar-brand fw-bold" asp-area="" asp-page="/Index">CourtBook</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav me-auto">
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString() == "/Venues/Index" ? "active" : "")" asp-area="" asp-page="/Venues/Index">Venues</a>
+                        </li>
+                        @if (isLoggedIn && userRole == "Client")
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString() == "/Bookings/MyBookings" ? "active" : "")" asp-area="" asp-page="/Bookings/MyBookings">My Bookings</a>
+                            </li>
+                        }
+                        @if (isLoggedIn && userRole == "Owner")
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Dashboard") == true ? "active" : "")" asp-area="" asp-page="/Dashboard/Index">Dashboard</a>
+                            </li>
+                        }
+                    </ul>
+                    <ul class="navbar-nav">
+                        @if (isLoggedIn)
+                        {
+                            <li class="nav-item d-flex align-items-center me-3 text-white">
+                                <span class="badge bg-secondary me-2">@userRole</span>
+                                Hello, @userName!
+                            </li>
+                            <li class="nav-item">
+                                <a class="btn btn-light btn-sm mt-1" asp-area="" asp-page="/Logout">Logout</a>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-area="" asp-page="/Login">Login</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="btn btn-light btn-sm mt-1 ms-2" asp-area="" asp-page="/Register">Register</a>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+    
+    <div class="container mb-5 pb-5">
+        <main role="main" class="pb-3">
+            @RenderBody()
+        </main>
+    </div>
+
+    <footer class="border-top footer text-muted mt-5 py-3 bg-light fixed-bottom">
+        <div class="container text-center">
+            &copy; @DateTime.Now.Year - CourtBook - <a asp-area="" asp-page="/Index">Home</a>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

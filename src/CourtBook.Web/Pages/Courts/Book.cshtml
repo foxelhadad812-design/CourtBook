@@ -1,0 +1,67 @@
+@page "{id:guid}"
+@model CourtBook.Web.Pages.Courts.BookModel
+@{
+    ViewData["Title"] = "Book Court";
+}
+
+@if (Model.Court != null)
+{
+    <div class="row">
+        <div class="col-md-6">
+            <h3>Book @Model.Court.Name</h3>
+            <p class="text-muted">Sport: @Model.Court.SportType | Price: $@Model.Court.PricePerHour / hr</p>
+            
+            <div class="card shadow-sm mt-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Court Schedule</h5>
+                </div>
+                <ul class="list-group list-group-flush">
+                    @if (Model.Court.Schedules.Any())
+                    {
+                        @foreach (var s in Model.Court.Schedules)
+                        {
+                            <li class="list-group-item">
+                                <strong>@(((DayOfWeek)s.DayOfWeek).ToString()):</strong> @s.OpenTime - @s.CloseTime
+                            </li>
+                        }
+                    }
+                    else
+                    {
+                        <li class="list-group-item text-muted">No schedule defined.</li>
+                    }
+                </ul>
+            </div>
+        </div>
+
+        <div class="col-md-6 mt-4 mt-md-0">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h4 class="card-title mb-4">Select Date & Time</h4>
+                    
+                    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+                    {
+                        <div class="alert alert-danger">@Model.ErrorMessage</div>
+                    }
+
+                    <form method="post">
+                        <div class="mb-3">
+                            <label>Date</label>
+                            <input asp-for="BookingDate" class="form-control" type="date" required />
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label>Start Time</label>
+                                <input asp-for="StartTime" class="form-control" type="time" required />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label>End Time</label>
+                                <input asp-for="EndTime" class="form-control" type="time" required />
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 btn-lg mt-3">Confirm Booking</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+}

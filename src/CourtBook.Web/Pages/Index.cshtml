@@ -1,0 +1,33 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home page";
+}
+
+<div class="text-center p-5 bg-light rounded-3 mb-4">
+    <h1 class="display-4 fw-bold">Find and Book a Court</h1>
+    <p class="lead">Book your favorite football, padel, or tennis court in seconds.</p>
+    <form method="get" class="d-flex justify-content-center mt-4">
+        <input asp-for="SearchCity" class="form-control w-50 me-2" placeholder="Search by city..." />
+        <button type="submit" class="btn btn-primary">Search</button>
+    </form>
+</div>
+
+<h3 class="mb-4">Popular Venues</h3>
+<div class="row row-cols-1 row-cols-md-3 g-4">
+    @foreach (var venue in Model.Venues)
+    {
+        <div class="col">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">@venue.Name</h5>
+                    <p class="card-text text-muted">@venue.City - @venue.Address</p>
+                    <p class="card-text">Courts available: @venue.Courts.Count</p>
+                </div>
+                <div class="card-footer bg-white border-top-0">
+                    <a asp-page="/Venues/Details" asp-route-id="@venue.Id" class="btn btn-outline-primary w-100">View Courts</a>
+                </div>
+            </div>
+        </div>
+    }
+</div>

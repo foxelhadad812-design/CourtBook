@@ -1,0 +1,68 @@
+@page
+@model CourtBook.Web.Pages.Dashboard.IndexModel
+@{
+    ViewData["Title"] = "Owner Dashboard";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>My Venues</h2>
+    <a asp-page="/Dashboard/Venues/Create" class="btn btn-primary">Create New Venue</a>
+</div>
+
+@if (Model.Venues.Any())
+{
+    @foreach (var venue in Model.Venues)
+    {
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">@venue.Name</h4>
+                <a asp-page="/Dashboard/Courts/Create" asp-route-venueId="@venue.Id" class="btn btn-sm btn-success">Add Court</a>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3">@venue.City - @venue.Address</p>
+                
+                @if (venue.Courts.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-bordered mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Court Name</th>
+                                    <th>Sport</th>
+                                    <th>Price/hr</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var court in venue.Courts)
+                                {
+                                    <tr>
+                                        <td>@court.Name</td>
+                                        <td>@court.SportType</td>
+                                        <td>$@court.PricePerHour</td>
+                                        <td>@(court.IsActive ? "Active" : "Inactive")</td>
+                                        <td>
+                                            <a asp-page="/Dashboard/Courts/Schedules" asp-route-venueId="@venue.Id" asp-route-courtId="@court.Id" class="btn btn-sm btn-outline-primary">Manage Schedule</a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <p class="mb-0 text-muted">No courts added yet.</p>
+                }
+            </div>
+        </div>
+    }
+}
+else
+{
+    <div class="text-center p-5 bg-light rounded">
+        <p class="lead text-muted">You don't have any venues yet.</p>
+        <a asp-page="/Dashboard/Venues/Create" class="btn btn-primary">Create Your First Venue</a>
+    </div>
+}

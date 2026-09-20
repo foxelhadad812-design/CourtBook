@@ -4,5 +4,6 @@
     <Project Path="src/CourtBook.Application/CourtBook.Application.csproj" />
     <Project Path="src/CourtBook.Domain/CourtBook.Domain.csproj" />
     <Project Path="src/CourtBook.Infrastructure/CourtBook.Infrastructure.csproj" />
+    <Project Path="src/CourtBook.Web/CourtBook.Web.csproj" />
   </Folder>
 </Solution>

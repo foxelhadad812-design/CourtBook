@@ -1,0 +1,25 @@
+@page
+@model CourtBook.Web.Pages.Venues.IndexModel
+@{
+    ViewData["Title"] = "All Venues";
+}
+
+<h2 class="mb-4">All Venues</h2>
+
+<div class="row row-cols-1 row-cols-md-3 g-4">
+    @foreach (var venue in Model.Venues)
+    {
+        <div class="col">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">@venue.Name</h5>
+                    <p class="card-text text-muted">@venue.City - @venue.Address</p>
+                    <p class="card-text">Courts available: @venue.Courts.Count</p>
+                </div>
+                <div class="card-footer bg-white border-top-0">
+                    <a asp-page="/Venues/Details" asp-route-id="@venue.Id" class="btn btn-outline-primary w-100">View Courts</a>
+                </div>
+            </div>
+        </div>
+    }
+</div>

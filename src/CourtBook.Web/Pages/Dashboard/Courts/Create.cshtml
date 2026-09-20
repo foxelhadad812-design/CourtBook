@@ -1,0 +1,43 @@
+@page
+@model CourtBook.Web.Pages.Dashboard.Courts.CreateModel
+@{
+    ViewData["Title"] = "Add Court";
+}
+
+<div class="row justify-content-center mt-4">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h3 class="card-title mb-4">Add Court</h3>
+                @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+                {
+                    <div class="alert alert-danger">@Model.ErrorMessage</div>
+                }
+                <form method="post">
+                    <input type="hidden" asp-for="VenueId" />
+                    <div class="mb-3">
+                        <label>Court Name</label>
+                        <input asp-for="Input.Name" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label>Sport Type</label>
+                        <select asp-for="Input.SportType" class="form-select" required>
+                            <option value="">Select a sport...</option>
+                            <option value="Football">Football</option>
+                            <option value="Padel">Padel</option>
+                            <option value="Tennis">Tennis</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label>Price Per Hour ($)</label>
+                        <input asp-for="Input.PricePerHour" class="form-control" type="number" step="0.01" required />
+                    </div>
+                    <div class="d-flex justify-content-between mt-4">
+                        <a asp-page="/Dashboard/Index" class="btn btn-outline-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-success">Add Court</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

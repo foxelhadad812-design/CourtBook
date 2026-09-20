@@ -1,0 +1,76 @@
+@page
+@model CourtBook.Web.Pages.Bookings.MyBookingsModel
+@{
+    ViewData["Title"] = "My Bookings";
+}
+
+<h2 class="mb-4">My Bookings</h2>
+
+@if (Model.Success)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        Booking confirmed successfully!
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger">@Model.ErrorMessage</div>
+}
+
+@if (Model.Bookings.Any())
+{
+    <div class="table-responsive shadow-sm rounded">
+        <table class="table table-hover align-middle mb-0 bg-white">
+            <thead class="bg-light">
+                <tr>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Price</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var b in Model.Bookings)
+                {
+                    <tr>
+                        <td>@b.StartTime.ToString("MMM dd, yyyy")</td>
+                        <td>@b.StartTime.ToString("HH:mm") - @b.EndTime.ToString("HH:mm")</td>
+                        <td class="fw-bold">$@b.TotalPrice</td>
+                        <td>
+                            @if (b.Status == "Confirmed")
+                            {
+                                <span class="badge bg-success">Confirmed</span>
+                            }
+                            else if (b.Status == "Cancelled")
+                            {
+                                <span class="badge bg-danger">Cancelled</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">@b.Status</span>
+                            }
+                        </td>
+                        <td>
+                            @if (b.Status != "Cancelled" && b.StartTime > DateTime.UtcNow)
+                            {
+                                <form method="post" asp-page-handler="Cancel" asp-route-id="@b.Id" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to cancel this booking?');">Cancel</button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+else
+{
+    <div class="text-center p-5 bg-light rounded">
+        <p class="lead text-muted">You have no bookings yet.</p>
+        <a asp-page="/Venues/Index" class="btn btn-primary">Find a Court</a>
+    </div>
+}

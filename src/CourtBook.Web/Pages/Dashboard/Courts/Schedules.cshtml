@@ -1,0 +1,74 @@
+@page
+@model CourtBook.Web.Pages.Dashboard.Courts.SchedulesModel
+@{
+    ViewData["Title"] = "Manage Schedule";
+}
+
+<div class="row">
+    <div class="col-md-6">
+        <h3>Manage Schedule - @(Model.Court?.Name)</h3>
+        
+        <div class="card shadow-sm mt-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Current Schedule</h5>
+            </div>
+            <ul class="list-group list-group-flush">
+                @if (Model.Court?.Schedules.Any() == true)
+                {
+                    @foreach (var s in Model.Court.Schedules)
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><strong>@(((DayOfWeek)s.DayOfWeek).ToString()):</strong> @s.OpenTime - @s.CloseTime</span>
+                            <!-- We could add a delete button here -->
+                        </li>
+                    }
+                }
+                else
+                {
+                    <li class="list-group-item text-muted">No schedule defined.</li>
+                }
+            </ul>
+        </div>
+    </div>
+
+    <div class="col-md-6 mt-4 mt-md-0">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h4 class="card-title mb-4">Add Working Hours</h4>
+                @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+                {
+                    <div class="alert alert-danger">@Model.ErrorMessage</div>
+                }
+                <form method="post">
+                    <input type="hidden" asp-for="VenueId" />
+                    <input type="hidden" asp-for="CourtId" />
+                    
+                    <div class="mb-3">
+                        <label>Day of Week</label>
+                        <select asp-for="Input.DayOfWeek" class="form-select" required>
+                            <option value="0">Sunday</option>
+                            <option value="1">Monday</option>
+                            <option value="2">Tuesday</option>
+                            <option value="3">Wednesday</option>
+                            <option value="4">Thursday</option>
+                            <option value="5">Friday</option>
+                            <option value="6">Saturday</option>
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label>Open Time</label>
+                            <input asp-for="Input.OpenTime" class="form-control" type="time" required />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label>Close Time</label>
+                            <input asp-for="Input.CloseTime" class="form-control" type="time" required />
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 mt-3">Add Schedule</button>
+                    <a asp-page="/Dashboard/Index" class="btn btn-outline-secondary w-100 mt-2">Back to Dashboard</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
