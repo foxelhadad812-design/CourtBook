@@ -9,7 +9,7 @@
         <div class="card border-0 shadow-sm p-4">
             <div class="card-body">
                 <div class="text-center mb-4">
-                    <div class="d-inline-flex align-items-center justify-content-center bg-accent text-white rounded-circle mb-3 shadow-sm" style="width: 60px; height: 60px; background-color: var(--accent-color);">
+                    <div class="d-inline-flex align-items-center justify-content-center bg-accent text-white rounded-circle mb-3 shadow-sm" style="width: 60px; height: 60px;">
                         <i class="bi bi-person-plus-fill fs-2"></i>
                     </div>
                     <h3 class="fw-bold">Create Account</h3>
@@ -18,27 +18,53 @@
                 
                 @if (!string.IsNullOrEmpty(Model.ErrorMessage))
                 {
-                    <div class="alert alert-danger border-0 shadow-sm"><i class="bi bi-exclamation-triangle-fill me-2"></i> @Model.ErrorMessage</div>
+                    <div class="alert alert-danger border-0 shadow-sm d-flex align-items-center"><i class="bi bi-exclamation-triangle-fill me-2"></i> @Model.ErrorMessage</div>
                 }
                 
-                <form method="post">
+                <form method="post" id="registerForm">
                     <div class="form-floating mb-3">
                         <input asp-for="Input.Name" class="form-control" placeholder="John Doe" required />
                         <label>Full Name</label>
+                        <span asp-validation-for="Input.Name" class="text-danger small"></span>
                     </div>
                     <div class="form-floating mb-3">
                         <input asp-for="Input.Email" class="form-control" type="email" placeholder="name@example.com" required />
                         <label>Email address</label>
+                        <span asp-validation-for="Input.Email" class="text-danger small"></span>
                     </div>
-                    <div class="form-floating mb-3">
-                        <input asp-for="Input.Phone" class="form-control" placeholder="+123456789" />
-                        <label>Phone Number</label>
+                    
+                    <div class="input-group mb-3">
+                        <span class="input-group-text bg-light text-muted border-end-0 fw-medium">+20</span>
+                        <div class="form-floating flex-grow-1">
+                            <input asp-for="Input.Phone" class="form-control border-start-0" placeholder="100 123 4567" />
+                            <label>Phone Number (Optional)</label>
+                        </div>
                     </div>
-                    <div class="form-floating mb-4">
-                        <input asp-for="Input.Password" class="form-control" type="password" placeholder="Password" required />
+                    
+                    <div class="form-floating mb-2 position-relative">
+                        <input asp-for="Input.Password" class="form-control" type="password" placeholder="Password" required id="regPassword" />
                         <label>Password</label>
+                        <button class="btn btn-link position-absolute top-50 end-0 translate-middle-y text-muted text-decoration-none" type="button" id="togglePassword">
+                            <i class="bi bi-eye-fill"></i>
+                        </button>
                     </div>
-                    <button type="submit" class="btn btn-accent btn-lg w-100 rounded-pill fw-bold shadow-sm">Sign Up</button>
+                    
+                    <!-- Password Strength -->
+                    <div class="progress mb-1" style="height: 5px;">
+                        <div class="progress-bar bg-danger" role="progressbar" id="pwStrengthBar" style="width: 0%"></div>
+                    </div>
+                    <div class="d-flex justify-content-between mb-4">
+                        <small class="text-muted" id="pwStrengthText">Strength</small>
+                    </div>
+
+                    <div class="form-check mb-4">
+                        <input class="form-check-input" type="checkbox" id="termsCheck" required>
+                        <label class="form-check-label text-muted small" for="termsCheck">
+                            I agree to the <a asp-page="/Terms" class="text-primary text-decoration-none fw-medium" target="_blank">Terms & Conditions</a> and <a asp-page="/Privacy" class="text-primary text-decoration-none fw-medium" target="_blank">Privacy Policy</a>
+                        </label>
+                    </div>
+
+                    <button type="submit" class="btn btn-accent btn-lg w-100 rounded-pill fw-bold shadow-sm" id="regBtn">Sign Up</button>
                 </form>
                 
                 <div class="text-center mt-4 pt-3 border-top">
@@ -48,3 +74,52 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const togglePassword = document.querySelector('#togglePassword');
+            const password = document.querySelector('#regPassword');
+            const strengthBar = document.querySelector('#pwStrengthBar');
+            const strengthText = document.querySelector('#pwStrengthText');
+
+            togglePassword.addEventListener('click', function (e) {
+                const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+                password.setAttribute('type', type);
+                this.querySelector('i').classList.toggle('bi-eye-fill');
+                this.querySelector('i').classList.toggle('bi-eye-slash-fill');
+            });
+
+            password.addEventListener('input', function() {
+                const val = password.value;
+                let strength = 0;
+                
+                if(val.length >= 6) strength += 25;
+                if(val.match(/[a-z]+/)) strength += 25;
+                if(val.match(/[A-Z]+/)) strength += 25;
+                if(val.match(/[0-9]+/)) strength += 25;
+                if(val.match(/[$@@#&!]+/)) strength += 25;
+
+                if(val.length === 0) strength = 0;
+                if(strength > 100) strength = 100;
+
+                strengthBar.style.width = strength + '%';
+
+                if(strength < 50) {
+                    strengthBar.className = 'progress-bar bg-danger';
+                    strengthText.textContent = 'Weak';
+                    strengthText.className = 'text-danger small fw-bold';
+                } else if(strength < 75) {
+                    strengthBar.className = 'progress-bar bg-warning';
+                    strengthText.textContent = 'Medium';
+                    strengthText.className = 'text-warning small fw-bold';
+                } else {
+                    strengthBar.className = 'progress-bar bg-success';
+                    strengthText.textContent = 'Strong';
+                    strengthText.className = 'text-success small fw-bold';
+                }
+            });
+        });
+    </script>
+}

@@ -1,0 +1,123 @@
+@page
+@model CourtBook.Web.Pages.Bookings.ConfirmationModel
+@{
+    ViewData["Title"] = "Booking Confirmed";
+}
+
+<div class="container py-5 text-center position-relative overflow-hidden" id="confetti-container">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <!-- Animated Checkmark -->
+            <div class="mb-4 d-flex justify-content-center">
+                <div class="success-checkmark">
+                    <div class="check-icon">
+                        <span class="icon-line line-tip"></span>
+                        <span class="icon-line line-long"></span>
+                        <div class="icon-circle"></div>
+                        <div class="icon-fix"></div>
+                    </div>
+                </div>
+            </div>
+
+            <h1 class="fw-bolder mb-2 text-dark">Booking Confirmed!</h1>
+            <p class="text-muted mb-4 fs-5">Get ready for your match. We've saved your spot.</p>
+
+            <div class="card border-0 shadow-sm rounded-4 text-start mb-4 bg-white">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-3 pb-2 border-bottom">Booking Details</h5>
+                    <div class="mb-2 d-flex justify-content-between">
+                        <span class="text-muted">Court</span>
+                        <span class="fw-bold">@Model.CourtName</span>
+                    </div>
+                    <div class="mb-2 d-flex justify-content-between">
+                        <span class="text-muted">Date</span>
+                        <span class="fw-bold">@Model.StartTime.ToString("MMMM dd, yyyy")</span>
+                    </div>
+                    <div class="mb-2 d-flex justify-content-between">
+                        <span class="text-muted">Time</span>
+                        <span class="fw-bold">@Model.StartTime.ToString("HH:mm") - @Model.EndTime.ToString("HH:mm")</span>
+                    </div>
+                    <div class="mb-2 d-flex justify-content-between">
+                        <span class="text-muted">Duration</span>
+                        <span class="fw-bold">@((Model.EndTime - Model.StartTime).TotalHours) hr</span>
+                    </div>
+                    <div class="d-flex justify-content-between pt-2 mt-3 border-top">
+                        <span class="text-muted fw-bold">Total Paid</span>
+                        <span class="fs-4 fw-bolder text-primary">$@Model.TotalPrice</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-grid gap-3 d-sm-flex justify-content-sm-center">
+                <a asp-page="/Bookings/MyBookings" class="btn btn-primary btn-lg rounded-pill px-4 shadow-sm">View My Bookings</a>
+                <a asp-page="/Venues/Index" class="btn btn-outline-secondary btn-lg rounded-pill px-4 bg-white">Book Another</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var duration = 3 * 1000;
+            var animationEnd = Date.now() + duration;
+            var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+            function randomInRange(min, max) {
+              return Math.random() * (max - min) + min;
+            }
+
+            var interval = setInterval(function() {
+              var timeLeft = animationEnd - Date.now();
+
+              if (timeLeft <= 0) {
+                return clearInterval(interval);
+              }
+
+              var particleCount = 50 * (timeLeft / duration);
+              confetti(Object.assign({}, defaults, { particleCount,
+                origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
+              }));
+              confetti(Object.assign({}, defaults, { particleCount,
+                origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
+              }));
+            }, 250);
+        });
+    </script>
+
+    <style>
+        .success-checkmark {
+            width: 80px; height: 115px; margin: 0 auto;
+        }
+        .success-checkmark .check-icon {
+            width: 80px; height: 80px; position: relative; border-radius: 50%; box-sizing: content-box; border: 4px solid #4CAF50;
+        }
+        .success-checkmark .check-icon::before {
+            top: 3px; left: -2px; width: 30px; transform-origin: 100% 50%; border-radius: 100px 0 0 100px;
+        }
+        .success-checkmark .check-icon::after {
+            top: 0; left: 30px; width: 60px; transform-origin: 0 50%; border-radius: 0 100px 100px 0; animation: rotate-circle 4.25s ease-in;
+        }
+        .success-checkmark .check-icon::before, .success-checkmark .check-icon::after {
+            content: ''; height: 100px; position: absolute; background: var(--bg-color); transform: rotate(-45deg);
+        }
+        .success-checkmark .check-icon .icon-line {
+            height: 5px; background-color: #4CAF50; display: block; border-radius: 2px; position: absolute; z-index: 10;
+        }
+        .success-checkmark .check-icon .icon-line.line-tip {
+            top: 46px; left: 14px; width: 25px; transform: rotate(45deg); animation: icon-line-tip 0.75s;
+        }
+        .success-checkmark .check-icon .icon-line.line-long {
+            top: 38px; right: 8px; width: 47px; transform: rotate(-45deg); animation: icon-line-long 0.75s;
+        }
+        .success-checkmark .check-icon .icon-circle {
+            top: -4px; left: -4px; z-index: 10; width: 80px; height: 80px; border-radius: 50%; position: absolute; box-sizing: content-box; border: 4px solid rgba(76, 175, 80, .5);
+        }
+        .success-checkmark .check-icon .icon-fix {
+            top: 8px; width: 5px; left: 26px; z-index: 1; height: 85px; position: absolute; transform: rotate(-45deg); background-color: var(--bg-color);
+        }
+        @@keyframes icon-line-tip { 0% { width: 0; left: 1px; top: 19px; } 54% { width: 0; left: 1px; top: 19px; } 70% { width: 50px; left: -8px; top: 37px; } 84% { width: 17px; left: 21px; top: 48px; } 100% { width: 25px; left: 14px; top: 46px; } }
+        @@keyframes icon-line-long { 0% { width: 0; right: 46px; top: 54px; } 65% { width: 0; right: 46px; top: 54px; } 84% { width: 55px; right: 0px; top: 35px; } 100% { width: 47px; right: 8px; top: 38px; } }
+    </style>
+}

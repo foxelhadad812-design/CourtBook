@@ -10,19 +10,21 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - CourtBook</title>
-    <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- Bootstrap 5 CDN -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
-    <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- Toastr CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
 <body class="d-flex flex-column min-vh-100">
+    <!-- Page Loading Bar -->
+    <div id="page-loader"></div>
+
     <header>
-        <nav class="navbar navbar-expand-lg navbar-dark pb-3 pt-3" style="background-color: var(--primary-color);">
+        <nav class="navbar navbar-expand-lg navbar-dark pb-3 pt-3 sticky-top shadow-sm" style="background-color: var(--primary-color);">
             <div class="container">
                 <a class="navbar-brand fs-4" asp-area="" asp-page="/Index">
                     <i class="bi bi-dribbble me-2 text-warning"></i>CourtBook
@@ -35,15 +37,18 @@
                         <li class="nav-item">
                             <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString() == "/Venues/Index" ? "active fw-bold text-white" : "")" asp-area="" asp-page="/Venues/Index">Venues</a>
                         </li>
+                        <li class="nav-item d-none d-lg-block ms-3">
+                            <a class="btn btn-outline-light rounded-pill btn-sm mt-1 fw-bold px-3" asp-area="" asp-page="/Venues/Index">Book a Court</a>
+                        </li>
                         @if (isLoggedIn && userRole == "Client")
                         {
-                            <li class="nav-item">
+                            <li class="nav-item ms-2">
                                 <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString() == "/Bookings/MyBookings" ? "active fw-bold text-white" : "")" asp-area="" asp-page="/Bookings/MyBookings">My Bookings</a>
                             </li>
                         }
                         @if (isLoggedIn && userRole == "Owner")
                         {
-                            <li class="nav-item">
+                            <li class="nav-item ms-2">
                                 <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Dashboard") == true ? "active fw-bold text-white" : "")" asp-area="" asp-page="/Dashboard/Index">Dashboard</a>
                             </li>
                         }
@@ -51,6 +56,12 @@
                     <ul class="navbar-nav align-items-center">
                         @if (isLoggedIn)
                         {
+                            <li class="nav-item me-3">
+                                <a href="#" class="text-white position-relative">
+                                    <i class="bi bi-bell fs-5"></i>
+                                    <span class="position-absolute top-0 start-100 translate-middle p-1 bg-accent border border-light rounded-circle"></span>
+                                </a>
+                            </li>
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle text-white fw-medium d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                     <div class="rounded-circle bg-white text-primary d-flex align-items-center justify-content-center me-2 fw-bold" style="width: 32px; height: 32px;">
@@ -71,7 +82,7 @@
                                 <a class="nav-link text-white" asp-area="" asp-page="/Login">Log In</a>
                             </li>
                             <li class="nav-item">
-                                <a class="btn btn-accent px-4" asp-area="" asp-page="/Register">Sign Up</a>
+                                <a class="btn btn-accent px-4 rounded-pill fw-bold" asp-area="" asp-page="/Register">Sign Up</a>
                             </li>
                         }
                     </ul>
@@ -89,43 +100,116 @@
     <footer class="text-white mt-auto py-5" style="background-color: #111;">
         <div class="container">
             <div class="row gy-4">
-                <div class="col-md-4">
+                <div class="col-lg-3 col-md-6">
                     <h5 class="fw-bold mb-3"><i class="bi bi-dribbble me-2 text-warning"></i>CourtBook</h5>
-                    <p class="text-secondary">The easiest way to find and book sports facilities near you. Football, Padel, and Tennis courts available at your fingertips.</p>
+                    <p class="text-secondary small mb-4">Book smarter. Play better. The easiest way to find and book sports facilities near you.</p>
+                    <div class="d-flex gap-3">
+                        <a href="#" class="text-secondary hover-white fs-5"><i class="bi bi-facebook"></i></a>
+                        <a href="#" class="text-secondary hover-white fs-5"><i class="bi bi-instagram"></i></a>
+                        <a href="#" class="text-secondary hover-white fs-5"><i class="bi bi-twitter-x"></i></a>
+                        <a href="#" class="text-secondary hover-white fs-5"><i class="bi bi-whatsapp"></i></a>
+                    </div>
                 </div>
-                <div class="col-md-4">
-                    <h5 class="fw-bold mb-3">Quick Links</h5>
-                    <ul class="list-unstyled text-secondary">
+                <div class="col-lg-3 col-md-6">
+                    <h5 class="fw-bold mb-3">Product</h5>
+                    <ul class="list-unstyled text-secondary small">
                         <li class="mb-2"><a asp-page="/Index" class="text-decoration-none text-secondary hover-white">Home</a></li>
-                        <li class="mb-2"><a asp-page="/Venues/Index" class="text-decoration-none text-secondary hover-white">Find a Court</a></li>
-                        <li class="mb-2"><a asp-page="/Register" class="text-decoration-none text-secondary hover-white">Partner with us</a></li>
+                        <li class="mb-2"><a asp-page="/Venues/Index" class="text-decoration-none text-secondary hover-white">Venues</a></li>
+                        <li class="mb-2"><a asp-page="/Index" fragment="how-it-works" class="text-decoration-none text-secondary hover-white">How it Works</a></li>
+                        <li class="mb-2"><a asp-page="/Register" class="text-decoration-none text-secondary hover-white">Pricing</a></li>
                     </ul>
                 </div>
-                <div class="col-md-4">
-                    <h5 class="fw-bold mb-3">Contact Us</h5>
-                    <ul class="list-unstyled text-secondary">
-                        <li class="mb-2"><i class="bi bi-envelope me-2"></i> hello@courtbook.dev</li>
-                        <li class="mb-2"><i class="bi bi-telephone me-2"></i> +1 (555) 123-4567</li>
-                        <li class="mb-2">
-                            <a href="#" class="text-secondary me-3 fs-5"><i class="bi bi-instagram"></i></a>
-                            <a href="#" class="text-secondary me-3 fs-5"><i class="bi bi-twitter-x"></i></a>
-                            <a href="#" class="text-secondary fs-5"><i class="bi bi-facebook"></i></a>
-                        </li>
+                <div class="col-lg-3 col-md-6">
+                    <h5 class="fw-bold mb-3">Company</h5>
+                    <ul class="list-unstyled text-secondary small">
+                        <li class="mb-2"><a asp-page="/About" class="text-decoration-none text-secondary hover-white">About Us</a></li>
+                        <li class="mb-2"><a href="#" class="text-decoration-none text-secondary hover-white">Careers</a></li>
+                        <li class="mb-2"><a href="#" class="text-decoration-none text-secondary hover-white">Blog</a></li>
+                        <li class="mb-2"><a href="#" class="text-decoration-none text-secondary hover-white">Press</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <h5 class="fw-bold mb-3">Support</h5>
+                    <ul class="list-unstyled text-secondary small">
+                        <li class="mb-2"><a asp-page="/Faq" class="text-decoration-none text-secondary hover-white">FAQ</a></li>
+                        <li class="mb-2"><a asp-page="/Contact" class="text-decoration-none text-secondary hover-white">Contact Us</a></li>
+                        <li class="mb-2"><a asp-page="/Terms" class="text-decoration-none text-secondary hover-white">Terms of Service</a></li>
+                        <li class="mb-2"><a asp-page="/Privacy" class="text-decoration-none text-secondary hover-white">Privacy Policy</a></li>
                     </ul>
                 </div>
             </div>
-            <div class="border-top border-secondary mt-4 pt-4 text-center text-secondary">
-                <small>&copy; @DateTime.Now.Year CourtBook. All rights reserved.</small>
+            <div class="border-top border-secondary mt-5 pt-4 d-flex flex-column flex-md-row justify-content-between align-items-center text-secondary small">
+                <div>&copy; 2026 CourtBook. All rights reserved.</div>
+                <div class="mt-2 mt-md-0 d-flex align-items-center">
+                    <i class="bi bi-globe me-2"></i> English (US)
+                </div>
             </div>
         </div>
     </footer>
 
     <style>
         .hover-white:hover { color: white !important; }
+        .bg-accent { background-color: var(--accent-color); }
     </style>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    
+    <script>
+        // Page Loader
+        document.addEventListener("DOMContentLoaded", function() {
+            let loader = document.getElementById("page-loader");
+            loader.style.width = "30%";
+            setTimeout(() => loader.style.width = "70%", 200);
+            window.onload = function() {
+                loader.style.width = "100%";
+                setTimeout(() => loader.style.opacity = "0", 300);
+            }
+        });
+
+        // Mobile Menu Auto-close
+        document.querySelectorAll('.navbar-nav .nav-link').forEach(link => {
+            link.addEventListener('click', () => {
+                const navbarCollapse = document.getElementById('navbarNav');
+                if (navbarCollapse.classList.contains('show')) {
+                    var bsCollapse = new bootstrap.Collapse(navbarCollapse, { toggle: false });
+                    bsCollapse.hide();
+                }
+            });
+        });
+
+        // Toastr config
+        toastr.options = {
+            "closeButton": true,
+            "progressBar": true,
+            "positionClass": "toast-top-right",
+            "timeOut": "3000"
+        };
+        
+        @if(TempData["SuccessMessage"] != null) {
+            <text>toastr.success('@TempData["SuccessMessage"]');</text>
+        }
+        @if(TempData["ErrorMessage"] != null) {
+            <text>toastr.error('@TempData["ErrorMessage"]');</text>
+        }
+
+        // Global button spinner to prevent double submit
+        document.querySelectorAll('form').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                if(this.checkValidity()) {
+                    const btn = this.querySelector('button[type="submit"]');
+                    if(btn) {
+                        btn.dataset.originalText = btn.innerHTML;
+                        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Processing...';
+                        btn.classList.add('disabled');
+                        btn.setAttribute('disabled', 'disabled');
+                    }
+                }
+            });
+        });
+    </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

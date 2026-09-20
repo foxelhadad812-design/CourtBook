@@ -1,8 +1,44 @@
-﻿@page
-@model PrivacyModel
+@page
 @{
     ViewData["Title"] = "Privacy Policy";
 }
-<h1>@ViewData["Title"]</h1>
 
-<p>Use this page to detail your site's privacy policy.</p>
+<div class="container py-5 my-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm p-4 p-md-5">
+                <div class="text-center mb-5">
+                    <h2 class="fw-bolder">Privacy Policy</h2>
+                    <p class="text-muted">Last updated: September 20, 2026</p>
+                </div>
+                
+                <div class="document-content text-secondary">
+                    <h5 class="fw-bold text-dark mt-4">1. Information We Collect</h5>
+                    <p>When you register for an account, we collect personal information such as your name, email address, and phone number. We also collect data regarding your bookings, search history, and interactions with the platform to improve your experience.</p>
+
+                    <h5 class="fw-bold text-dark mt-4">2. How We Use Your Information</h5>
+                    <p>We use the information we collect to operate, maintain, and provide the features of our platform. This includes processing your bookings, sending confirmation emails, and communicating with you about platform updates or promotional offers.</p>
+
+                    <h5 class="fw-bold text-dark mt-4">3. Data Storage and Security</h5>
+                    <p>Your privacy is important to us. We implement a variety of security measures to maintain the safety of your personal information. Passwords are cryptographically hashed using BCrypt, and all data transfers occur over encrypted TLS connections.</p>
+
+                    <h5 class="fw-bold text-dark mt-4">4. Cookies</h5>
+                    <p>We use cookies to understand and save your preferences for future visits and compile aggregate data about site traffic and site interaction so that we can offer better site experiences and tools in the future. You can choose to have your computer warn you each time a cookie is being sent, or turn them off via your browser settings.</p>
+
+                    <h5 class="fw-bold text-dark mt-4">5. Third-Party Services</h5>
+                    <p>We do not sell, trade, or otherwise transfer to outside parties your personally identifiable information. This does not include trusted third parties who assist us in operating our website, conducting our business, or servicing you, so long as those parties agree to keep this information confidential.</p>
+
+                    <h5 class="fw-bold text-dark mt-4">6. Your Rights</h5>
+                    <p>You have the right to access, update, or delete your personal information at any time. You can do this by logging into your account settings or by contacting our support team directly. You also have the right to opt-out of marketing communications.</p>
+
+                    <h5 class="fw-bold text-dark mt-4">7. Contact Us</h5>
+                    <p>If there are any questions regarding this privacy policy, you may contact our Privacy Officer at privacy@courtbook.dev.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .document-content p { line-height: 1.7; margin-bottom: 1.5rem; }
+</style>

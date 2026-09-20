@@ -18,18 +18,31 @@
                 
                 @if (!string.IsNullOrEmpty(Model.ErrorMessage))
                 {
-                    <div class="alert alert-danger border-0 shadow-sm"><i class="bi bi-exclamation-triangle-fill me-2"></i> @Model.ErrorMessage</div>
+                    <div class="alert alert-danger border-0 shadow-sm d-flex align-items-center"><i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i> <div>@Model.ErrorMessage</div></div>
                 }
                 
                 <form method="post">
                     <div class="form-floating mb-3">
                         <input asp-for="Input.Email" class="form-control" type="email" placeholder="name@example.com" required />
                         <label>Email address</label>
+                        <span asp-validation-for="Input.Email" class="text-danger small"></span>
                     </div>
-                    <div class="form-floating mb-4">
+                    <div class="form-floating mb-3">
                         <input asp-for="Input.Password" class="form-control" type="password" placeholder="Password" required />
                         <label>Password</label>
+                        <span asp-validation-for="Input.Password" class="text-danger small"></span>
                     </div>
+
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="rememberMe">
+                            <label class="form-check-label text-muted small" for="rememberMe">
+                                Remember me
+                            </label>
+                        </div>
+                        <a asp-page="/ForgotPassword" class="text-primary text-decoration-none small fw-medium">Forgot password?</a>
+                    </div>
+
                     <button type="submit" class="btn btn-primary btn-lg w-100 rounded-pill fw-bold shadow-sm">Log In</button>
                 </form>
                 
@@ -40,3 +53,7 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -160,13 +160,11 @@
             }
             else
             {
-                <div class="text-center p-5 bg-white rounded-4 shadow-sm">
-                    <div class="d-inline-flex align-items-center justify-content-center bg-light text-primary rounded-circle mb-4" style="width: 80px; height: 80px;">
-                        <i class="bi bi-building fs-1"></i>
-                    </div>
+                <div class="empty-state bg-white rounded-4 shadow-sm">
+                    <i class="bi bi-building empty-state-icon"></i>
                     <h3 class="fw-bold mb-3">No Venues Found</h3>
                     <p class="lead text-muted mb-4">Start by creating your first venue.</p>
-                    <a asp-page="/Dashboard/Venues/Create" class="btn btn-primary btn-lg rounded-pill px-4 shadow-sm">Create Venue</a>
+                    <a asp-page="/Dashboard/Venues/Create" class="btn btn-primary btn-lg rounded-pill px-4 shadow-sm">Add Your First Venue &rarr;</a>
                 </div>
             }
         </div>

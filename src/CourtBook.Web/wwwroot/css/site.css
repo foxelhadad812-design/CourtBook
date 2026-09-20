@@ -16,108 +16,60 @@ body {
   font-family: 'Inter', sans-serif;
   background-color: var(--bg-color);
   color: var(--text-color);
-  margin-bottom: 0 !important; /* Override bootstrap footer margin */
+  margin-bottom: 0 !important;
+}
+
+/* Page Loader */
+#page-loader {
+  position: fixed;
+  top: 0; left: 0; width: 0%; height: 3px;
+  background-color: var(--accent-color);
+  z-index: 9999;
+  transition: width 0.4s ease;
 }
 
 /* Navbar */
-.navbar-brand {
-  font-weight: 800;
-  letter-spacing: -0.5px;
-}
-.navbar {
-  border-top: 3px solid var(--accent-color);
-}
-.nav-link {
-  font-weight: 500;
-}
+.navbar-brand { font-weight: 800; letter-spacing: -0.5px; }
+.navbar { border-top: 3px solid var(--accent-color); }
+.nav-link { font-weight: 500; transition: color 0.2s; }
+.nav-link:hover { color: var(--accent-color) !important; }
 
 /* Cards */
 .card {
-  border: none;
-  border-radius: var(--card-radius);
-  box-shadow: var(--shadow-sm);
-  transition: var(--transition);
+  border: none; border-radius: var(--card-radius);
+  box-shadow: var(--shadow-sm); transition: var(--transition);
   overflow: hidden;
 }
 .card-hover:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-md);
-}
-.card-header {
-  background-color: transparent;
-  border-bottom: 1px solid rgba(0,0,0,0.05);
+  transform: translateY(-4px); box-shadow: var(--shadow-md);
 }
 
 /* Buttons */
-.btn {
-  border-radius: var(--btn-radius);
-  font-weight: 500;
-  padding: 0.5rem 1.2rem;
-  transition: var(--transition);
-}
-.btn-primary {
-  background-color: var(--primary-color);
-  border-color: var(--primary-color);
-}
-.btn-primary:hover {
-  background-color: var(--primary-hover);
-  border-color: var(--primary-hover);
-}
-.btn-accent {
-  background-color: var(--accent-color);
-  color: white;
-  border: none;
-}
-.btn-accent:hover {
-  background-color: var(--accent-hover);
-  color: white;
-}
+.btn { border-radius: var(--btn-radius); font-weight: 500; padding: 0.5rem 1.2rem; transition: var(--transition); }
+.btn-primary { background-color: var(--primary-color); border-color: var(--primary-color); }
+.btn-primary:hover { background-color: var(--primary-hover); border-color: var(--primary-hover); }
+.btn-accent { background-color: var(--accent-color); color: white; border: none; }
+.btn-accent:hover { background-color: var(--accent-hover); color: white; }
 
-/* Typography */
-.section-title {
-  position: relative;
-  display: inline-block;
-  margin-bottom: 2rem;
-  font-weight: 700;
-}
+/* Sections */
+.section-title { position: relative; display: inline-block; margin-bottom: 2rem; font-weight: 700; }
 .section-title::after {
-  content: '';
-  position: absolute;
-  width: 50px;
-  height: 3px;
-  background-color: var(--accent-color);
-  bottom: -8px;
-  left: 0;
-  border-radius: 2px;
+  content: ''; position: absolute; width: 50px; height: 3px;
+  background-color: var(--accent-color); bottom: -8px; left: 0; border-radius: 2px;
 }
-.section-title.text-center::after {
-  left: 50%;
-  transform: translateX(-50%);
-}
+.section-title.text-center::after { left: 50%; transform: translateX(-50%); }
 
 /* Badges */
 .badge-football { background-color: #28a745; color: white; }
 .badge-padel { background-color: #007bff; color: white; }
 .badge-tennis { background-color: #ffc107; color: #212529; }
 
-/* Dashboard */
-.dashboard-sidebar {
-  background-color: white;
-  border-radius: var(--card-radius);
-  box-shadow: var(--shadow-sm);
-  padding: 1.5rem;
-}
-.dashboard-nav .nav-link {
-  color: var(--text-color);
-  border-radius: var(--btn-radius);
-  margin-bottom: 0.5rem;
-}
-.dashboard-nav .nav-link:hover, .dashboard-nav .nav-link.active {
-  background-color: var(--primary-color);
-  color: white;
-}
+/* Empty States */
+.empty-state { text-align: center; padding: 4rem 2rem; }
+.empty-state-icon { font-size: 4rem; color: #ced4da; margin-bottom: 1.5rem; }
 
-/* Floating labels adjustment */
-.form-floating > label {
-  color: #6c757d;
+/* Confetti */
+.confetti {
+  position: absolute; width: 10px; height: 10px;
+  background-color: #f00; opacity: 0;
 }

@@ -63,14 +63,6 @@
                     <div class="card-body p-5">
                         <h3 class="fw-bold mb-4">Select your time</h3>
                         
-                        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
-                        {
-                            <div class="alert alert-danger border-0 shadow-sm d-flex align-items-center">
-                                <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
-                                <div>@Model.ErrorMessage</div>
-                            </div>
-                        }
-
                         <form method="post" id="bookingForm">
                             <div class="mb-4">
                                 <label class="form-label fw-bold">Date</label>

@@ -50,10 +50,21 @@ public class BookModel : PageModel
         
         if (response.IsSuccessStatusCode)
         {
-            return RedirectToPage("/Bookings/MyBookings", new { success = true });
+            var bookingData = await response.Content.ReadFromJsonAsync<BookingResponse>();
+            if(bookingData != null) 
+            {
+                // Pass booking ID via query or tempdata. TempData is easier for single redirect
+                TempData["BookingId"] = bookingData.Id.ToString();
+                TempData["CourtName"] = Court?.Name;
+                TempData["StartTime"] = bookingData.StartTime.ToString("o");
+                TempData["EndTime"] = bookingData.EndTime.ToString("o");
+                TempData["TotalPrice"] = bookingData.TotalPrice.ToString("0.00");
+                return RedirectToPage("/Bookings/Confirmation");
+            }
+            return RedirectToPage("/Bookings/Confirmation");
         }
 
-        ErrorMessage = await response.Content.ReadAsStringAsync();
+        TempData["ErrorMessage"] = await response.Content.ReadAsStringAsync();
         
         // Reload court data for the view
         var courtRes = await _api.Client.GetAsync($"/api/venues/{venueId}/courts/{id}");

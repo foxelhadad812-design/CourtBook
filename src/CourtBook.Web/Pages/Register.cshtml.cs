@@ -20,6 +20,7 @@ public class RegisterModel : PageModel
         var response = await _api.Client.PostAsJsonAsync("/api/auth/register", Input);
         if (response.IsSuccessStatusCode)
         {
+            TempData["SuccessMessage"] = "Welcome to CourtBook! Your account was created successfully. Please log in.";
             return RedirectToPage("/Login");
         }
         
