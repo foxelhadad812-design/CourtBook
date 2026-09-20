@@ -1,339 +1,401 @@
 @page
 @model IndexModel
 @{
-    ViewData["Title"] = "Home";
+    ViewData["Title"] = "PlaySpot — Egypt's Sports Facility Booking Platform";
 }
 
-<!-- Hero Section -->
-<div class="position-relative py-5 mb-5" style="background: linear-gradient(135deg, rgba(26,122,74,0.9) 0%, rgba(13,74,43,0.9) 100%), url('/images/venue.jpg') center/cover no-repeat; min-height: 450px; display: flex; align-items: center;">
-    <div class="position-absolute top-0 start-0 w-100 h-100" style="background-image: radial-gradient(rgba(255,255,255,0.15) 2px, transparent 2px); background-size: 30px 30px; opacity: 0.2;"></div>
-    
-    <div class="container position-relative z-index-1">
-        <div class="row justify-content-center text-center">
-            <div class="col-lg-8 col-md-10 py-5">
-                <span class="badge bg-accent text-white px-3 py-2 rounded-pill mb-3 shadow-sm">Trusted by 10,000+ players</span>
-                <h1 class="display-3 fw-bolder text-white mb-3" style="letter-spacing: -1px;">Find & Book Your Perfect Court</h1>
-                <p class="lead text-white-50 mb-5 fs-4">Join thousands of players enjoying football, padel, and tennis in seconds.</p>
-                
-                <div class="bg-white p-2 rounded-pill shadow-lg d-flex align-items-center mx-auto" style="max-width: 600px;">
-                    <i class="bi bi-geo-alt-fill text-muted ms-3 fs-5"></i>
-                    <form method="get" class="d-flex w-100 m-0 p-0 align-items-center">
-                        <input asp-for="SearchCity" class="form-control border-0 shadow-none fs-5 py-2 px-3" placeholder="Where do you want to play?" style="background: transparent;" />
-                        <button type="submit" class="btn btn-primary rounded-pill px-4 py-2 fs-5 fw-bold d-flex align-items-center">
-                            Search
-                        </button>
+<!-- ══════════════════════════════════════════════════════════
+     HERO SECTION
+     ══════════════════════════════════════════════════════════ -->
+<section class="position-relative overflow-hidden py-5 py-lg-7" style="background: linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #0F172A 100%); color: white;">
+    <!-- Ambient glow circles -->
+    <div style="position: absolute; top: -100px; right: -50px; width: 450px; height: 450px; background: radial-gradient(circle, rgba(37,99,235,0.25) 0%, transparent 70%); border-radius: 50%; pointer-events: none;"></div>
+    <div style="position: absolute; bottom: -80px; left: -50px; width: 350px; height: 350px; background: radial-gradient(circle, rgba(245,158,11,0.15) 0%, transparent 70%); border-radius: 50%; pointer-events: none;"></div>
+
+    <div class="container position-relative" style="z-index: 2;">
+        <div class="row align-items-center justify-content-center text-center">
+            <div class="col-xl-9 col-lg-10">
+
+                <!-- Badge -->
+                <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-4" style="background: rgba(37,99,235,0.15); border: 1px solid rgba(59,130,246,0.3); color: #60A5FA; font-size: 0.875rem; font-weight: 600;">
+                    <span>⚡ Egypt's Premier Sports Hub</span>
+                    <span style="opacity: 0.4;">|</span>
+                    <span class="text-white fw-normal">Real-Time Court Availability</span>
+                </div>
+
+                <!-- Headline -->
+                <h1 class="display-4 fw-extrabold mb-3" style="letter-spacing: -0.03em; line-height: 1.15;">
+                    Book Top Courts. Join Live Games.<br>
+                    <span style="background: linear-gradient(90deg, #60A5FA 0%, #F59E0B 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                        Play Without Hassle.
+                    </span>
+                </h1>
+
+                <!-- Subtitle -->
+                <p class="lead text-gray-400 mb-5 mx-auto" style="max-width: 650px; font-size: 1.15rem; color: #94A3B8;">
+                    Instant booking for Football, Padel, Tennis, Basketball & more across Cairo, Giza, October, and Fayoum. Zero phone calls, guaranteed slots.
+                </p>
+
+                <!-- Search Widget Bar -->
+                <div class="card border-0 shadow-2xl p-2 p-md-3 mx-auto" style="background: white; border-radius: var(--ps-radius-2xl); max-width: 850px;">
+                    <form action="/venues" method="get" class="row g-2 align-items-center text-start m-0">
+
+                        <!-- Sport Select -->
+                        <div class="col-md-4 col-12">
+                            <div class="px-3 py-2 rounded-3" style="background: var(--ps-gray-50);">
+                                <label class="form-label text-muted text-uppercase fw-bold mb-1" style="font-size: 10px; letter-spacing: 0.05em;">Sport</label>
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="bi bi-trophy text-primary fs-5"></i>
+                                    <select name="sport" class="form-select border-0 bg-transparent p-0 fw-semibold text-dark shadow-none" style="cursor: pointer;">
+                                        <option value="">All Sports</option>
+                                        <option value="Football">⚽ Football</option>
+                                        <option value="Padel">🎾 Padel</option>
+                                        <option value="Tennis">🏸 Tennis</option>
+                                        <option value="Basketball">🏀 Basketball</option>
+                                        <option value="Volleyball">🏐 Volleyball</option>
+                                        <option value="Badminton">🏸 Badminton</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Location Select / Input -->
+                        <div class="col-md-5 col-12">
+                            <div class="px-3 py-2 rounded-3" style="background: var(--ps-gray-50);">
+                                <label class="form-label text-muted text-uppercase fw-bold mb-1" style="font-size: 10px; letter-spacing: 0.05em;">Location</label>
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="bi bi-geo-alt text-primary fs-5"></i>
+                                    <select name="city" class="form-select border-0 bg-transparent p-0 fw-semibold text-dark shadow-none" style="cursor: pointer;">
+                                        <option value="">All Locations (Egypt)</option>
+                                        <option value="Cairo">Cairo (All Areas)</option>
+                                        <option value="Maadi">Maadi, Cairo</option>
+                                        <option value="Zamalek">Zamalek, Cairo</option>
+                                        <option value="Nasr City">Nasr City, Cairo</option>
+                                        <option value="New Cairo">New Cairo (5th Settlement)</option>
+                                        <option value="6th of October">6th of October City</option>
+                                        <option value="الفيوم">الفيوم (Fayoum)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- CTA Submit -->
+                        <div class="col-md-3 col-12">
+                            <button type="submit" class="ps-btn ps-btn-primary w-100 py-3 d-flex align-items-center justify-content-center gap-2 fw-bold" style="border-radius: var(--ps-radius-xl); font-size: 1rem;">
+                                <i class="bi bi-search"></i> Find Courts
+                            </button>
+                        </div>
                     </form>
                 </div>
-            </div>
-        </div>
-    </div>
-</div>
 
-<!-- Stats Bar -->
-<div class="container mb-5 pb-4">
-    <div class="row g-4 text-center">
-        <div class="col-md-4 fade-up">
-            <div class="p-4 bg-white rounded-4 shadow-sm border border-light h-100 card-hover">
-                <div class="d-inline-flex align-items-center justify-content-center bg-light text-primary rounded-circle mb-3" style="width: 60px; height: 60px;">
-                    <i class="bi bi-grid-fill fs-3"></i>
-                </div>
-                <h2 class="fw-bold mb-0">150+</h2>
-                <p class="text-muted mb-0">Active Courts</p>
-            </div>
-        </div>
-        <div class="col-md-4 fade-up" style="transition-delay: 100ms">
-            <div class="p-4 bg-white rounded-4 shadow-sm border border-light h-100 card-hover">
-                <div class="d-inline-flex align-items-center justify-content-center bg-light text-accent rounded-circle mb-3" style="width: 60px; height: 60px;">
-                    <i class="bi bi-map-fill fs-3"></i>
-                </div>
-                <h2 class="fw-bold mb-0">20+</h2>
-                <p class="text-muted mb-0">Cities Covered</p>
-            </div>
-        </div>
-        <div class="col-md-4 fade-up" style="transition-delay: 200ms">
-            <div class="p-4 bg-white rounded-4 shadow-sm border border-light h-100 card-hover">
-                <div class="d-inline-flex align-items-center justify-content-center bg-light text-success rounded-circle mb-3" style="width: 60px; height: 60px;">
-                    <i class="bi bi-emoji-smile-fill fs-3"></i>
-                </div>
-                <h2 class="fw-bold mb-0">10k+</h2>
-                <p class="text-muted mb-0">Happy Players</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Popular Sports -->
-<div class="container mb-5 pb-5">
-    <div class="text-center mb-5">
-        <h2 class="section-title">Popular Sports</h2>
-    </div>
-    <div class="row g-4 text-center">
-        <div class="col-6 col-md-3 fade-up">
-            <a asp-page="/Venues/Index" class="text-decoration-none">
-                <div class="card border-0 shadow-sm card-hover py-4 rounded-4">
-                    <i class="bi bi-record-circle-fill text-success fs-1 mb-2"></i>
-                    <h5 class="fw-bold text-dark mb-0">Football</h5>
-                </div>
-            </a>
-        </div>
-        <div class="col-6 col-md-3 fade-up" style="transition-delay: 100ms">
-            <a asp-page="/Venues/Index" class="text-decoration-none">
-                <div class="card border-0 shadow-sm card-hover py-4 rounded-4">
-                    <i class="bi bi-bullseye text-primary fs-1 mb-2"></i>
-                    <h5 class="fw-bold text-dark mb-0">Padel</h5>
-                </div>
-            </a>
-        </div>
-        <div class="col-6 col-md-3 fade-up" style="transition-delay: 200ms">
-            <a asp-page="/Venues/Index" class="text-decoration-none">
-                <div class="card border-0 shadow-sm card-hover py-4 rounded-4">
-                    <i class="bi bi-circle-fill text-warning fs-1 mb-2"></i>
-                    <h5 class="fw-bold text-dark mb-0">Tennis</h5>
-                </div>
-            </a>
-        </div>
-        <div class="col-6 col-md-3 fade-up" style="transition-delay: 300ms">
-            <a asp-page="/Venues/Index" class="text-decoration-none">
-                <div class="card border-0 shadow-sm card-hover py-4 rounded-4">
-                    <i class="bi bi-dribbble text-danger fs-1 mb-2"></i>
-                    <h5 class="fw-bold text-dark mb-0">Basketball</h5>
-                </div>
-            </a>
-        </div>
-    </div>
-</div>
-
-<!-- How It Works -->
-<div class="bg-light py-5 mb-5" id="how-it-works">
-    <div class="container py-4">
-        <div class="text-center mb-5">
-            <h2 class="section-title">How It Works</h2>
-            <p class="text-muted">Book your next game in three simple steps.</p>
-        </div>
-        <div class="row g-5 position-relative">
-            <!-- Line connecting steps (desktop only) -->
-            <div class="d-none d-md-block position-absolute top-50 start-50 translate-middle w-75" style="height: 2px; background-color: #dee2e6; z-index: 0;"></div>
-            
-            <div class="col-md-4 text-center position-relative z-index-1 fade-up">
-                <div class="bg-white rounded-circle shadow-sm d-inline-flex align-items-center justify-content-center mb-4" style="width: 80px; height: 80px; border: 4px solid var(--primary-color);">
-                    <i class="bi bi-search fs-3 text-primary"></i>
-                </div>
-                <h4 class="fw-bold">1. Find a Court</h4>
-                <p class="text-muted">Search by city or sport to find the perfect facility near you.</p>
-            </div>
-            
-            <div class="col-md-4 text-center position-relative z-index-1 fade-up" style="transition-delay: 150ms">
-                <div class="bg-white rounded-circle shadow-sm d-inline-flex align-items-center justify-content-center mb-4" style="width: 80px; height: 80px; border: 4px solid var(--accent-color);">
-                    <i class="bi bi-calendar-check fs-3 text-accent"></i>
-                </div>
-                <h4 class="fw-bold">2. Book your Slot</h4>
-                <p class="text-muted">Select an available date and time. Confirm your booking instantly.</p>
-            </div>
-            
-            <div class="col-md-4 text-center position-relative z-index-1 fade-up" style="transition-delay: 300ms">
-                <div class="bg-white rounded-circle shadow-sm d-inline-flex align-items-center justify-content-center mb-4" style="width: 80px; height: 80px; border: 4px solid var(--primary-color);">
-                    <i class="bi bi-trophy fs-3 text-primary"></i>
-                </div>
-                <h4 class="fw-bold">3. Play & Enjoy</h4>
-                <p class="text-muted">Show up with your friends and enjoy the game. No waiting in lines.</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Popular Venues Section -->
-<div class="container mb-5 pb-5">
-    <div class="d-flex justify-content-between align-items-end mb-4">
-        <h2 class="section-title mb-0">Popular Venues</h2>
-        <a asp-page="/Venues/Index" class="btn btn-outline-primary rounded-pill">View All <i class="bi bi-arrow-right ms-1"></i></a>
-    </div>
-    
-    @if(Model.Venues.Any())
-    {
-        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-            @foreach (var venue in Model.Venues.Take(6))
-            {
-                <div class="col fade-up">
-                    <div class="card h-100 card-hover border-0 bg-white shadow-sm">
-                        @{
-                            var firstSport = venue.Courts.FirstOrDefault()?.SportType?.ToLower() ?? "venue";
-                            var cardImg = firstSport switch {
-                                "football" => "/images/football.jpg",
-                                "padel" => "/images/padel.jpg",
-                                "tennis" => "/images/tennis.jpg",
-                                "basketball" => "/images/basketball.jpg",
-                                _ => "/images/venue.jpg"
-                            };
-                        }
-                        <div class="position-relative overflow-hidden" style="height: 180px;">
-                            <img src="@cardImg" alt="@venue.Name" class="w-100 h-100 object-fit-cover" style="display: block;">
-                            <div class="position-absolute bottom-0 start-0 w-100 p-3" style="background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);">
-                                <span class="badge bg-primary rounded-pill mb-1"><i class="bi bi-geo-alt me-1"></i> @venue.City</span>
-                            </div>
-                        </div>
-                        <div class="card-body p-4">
-                            <h4 class="card-title fw-bold mb-2">@venue.Name</h4>
-                            <p class="text-muted small mb-3"><i class="bi bi-pin-map"></i> @venue.Address</p>
-                            
-                            <div class="d-flex justify-content-between align-items-center pt-3 border-top border-light">
-                                <span class="text-secondary fw-medium">
-                                    <i class="bi bi-columns-gap text-primary me-1"></i> @venue.Courts.Count Courts
-                                </span>
-                                <a asp-page="/Venues/Details" asp-route-id="@venue.Id" class="btn btn-primary btn-sm rounded-pill px-3">Book <i class="bi bi-chevron-right ms-1 small"></i></a>
-                            </div>
-                        </div>
+                <!-- Trust Stats -->
+                <div class="d-flex flex-wrap align-items-center justify-content-center gap-4 gap-md-6 mt-5 text-gray-400 small" style="color: #94A3B8;">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-check-circle-fill text-primary"></i> Instant Confirmation
                     </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-shield-check text-warning"></i> 100% Verified Venues
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-clock-history text-success"></i> Real-time Slots
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-cash-stack text-info"></i> Pay at Facility or Online
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     QUICK SPORT CATEGORIES
+     ══════════════════════════════════════════════════════════ -->
+<section class="py-5" style="background: white; border-bottom: 1px solid var(--ps-gray-100);">
+    <div class="container">
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div>
+                <h3 class="fw-bold mb-1" style="letter-spacing: -0.02em;">Explore by Sport</h3>
+                <p class="text-muted small mb-0">Select your favorite sport to see available courts</p>
+            </div>
+            <a href="/venues" class="ps-btn ps-btn-ghost ps-btn-sm d-none d-sm-flex">
+                View All <i class="bi bi-arrow-right ms-1"></i>
+            </a>
+        </div>
+
+        <div class="row g-3 g-md-4">
+            @{
+                var sports = new[] {
+                    new { Name = "Football", Arabic = "كرة قدم", Icon = "bi-record-circle-fill", Color = "#10B981", Img = "/images/football.jpg" },
+                    new { Name = "Padel", Arabic = "بادل", Icon = "bi-bullseye", Color = "#2563EB", Img = "/images/padel.jpg" },
+                    new { Name = "Tennis", Arabic = "تنس", Icon = "bi-circle-fill", Color = "#F59E0B", Img = "/images/tennis.jpg" },
+                    new { Name = "Basketball", Arabic = "كرة سلة", Icon = "bi-dribbble", Color = "#EF4444", Img = "/images/basketball.jpg" },
+                    new { Name = "Volleyball", Arabic = "كرة طائرة", Icon = "bi-trophy", Color = "#8B5CF6", Img = "/images/venue.jpg" },
+                    new { Name = "Badminton", Arabic = "ريشة طائرة", Icon = "bi-activity", Color = "#06B6D4", Img = "/images/tennis.jpg" }
+                };
+            }
+
+            @foreach (var s in sports)
+            {
+                <div class="col-6 col-md-4 col-lg-2">
+                    <a href="/venues?sport=@s.Name" class="text-decoration-none">
+                        <div class="card h-100 border-0 text-center p-3 transition-all" style="background: var(--ps-gray-50); border-radius: var(--ps-radius-xl); transition: all 0.2s ease;">
+                            <div class="mx-auto mb-2 d-flex align-items-center justify-content-center rounded-circle" style="width: 48px; height: 48px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.06); color: @s.Color;">
+                                <i class="bi @s.Icon fs-4"></i>
+                            </div>
+                            <span class="fw-bold text-dark d-block mb-0" style="font-size: 0.95rem;">@s.Name</span>
+                            <span class="text-muted" style="font-size: 0.75rem;">@s.Arabic</span>
+                        </div>
+                    </a>
                 </div>
             }
         </div>
-    }
-    else
-    {
-        <div class="empty-state bg-white rounded-4 shadow-sm border border-light mt-4">
-            <i class="bi bi-shop empty-state-icon text-primary opacity-50"></i>
-            <h3 class="fw-bold">No courts available yet</h3>
-            <p class="text-muted mb-4">We are expanding fast. Check back soon for new venues!</p>
-            <button class="btn btn-outline-primary rounded-pill px-4" disabled>Coming Soon</button>
-        </div>
-    }
-</div>
+    </div>
+</section>
 
-<!-- Why CourtBook -->
-<div class="container mb-5 pb-5 fade-up">
-    <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-primary text-white">
-        <div class="row g-0">
-            <div class="col-lg-6 p-5 d-flex flex-column justify-content-center">
-                <span class="text-warning fw-bold tracking-wider text-uppercase mb-2">Why CourtBook?</span>
-                <h2 class="display-6 fw-bolder mb-4">The smartest way to play sports.</h2>
-                
-                <div class="d-flex align-items-center mb-3">
-                    <i class="bi bi-check-circle-fill text-warning me-3 fs-4"></i>
-                    <h5 class="mb-0 fw-medium">Instant Confirmation</h5>
-                </div>
-                <div class="d-flex align-items-center mb-3">
-                    <i class="bi bi-check-circle-fill text-warning me-3 fs-4"></i>
-                    <h5 class="mb-0 fw-medium">Best Price Guarantee</h5>
-                </div>
-                <div class="d-flex align-items-center mb-3">
-                    <i class="bi bi-check-circle-fill text-warning me-3 fs-4"></i>
-                    <h5 class="mb-0 fw-medium">Verified Trusted Venues</h5>
-                </div>
-                <div class="d-flex align-items-center mb-4">
-                    <i class="bi bi-check-circle-fill text-warning me-3 fs-4"></i>
-                    <h5 class="mb-0 fw-medium">Easy Rescheduling & Cancellation</h5>
-                </div>
-                
+<!-- ══════════════════════════════════════════════════════════
+     FEATURED FACILITIES (Real-Time from API)
+     ══════════════════════════════════════════════════════════ -->
+<section class="py-6" style="background: var(--ps-gray-50);">
+    <div class="container">
+        <div class="d-flex flex-column flex-sm-row align-items-sm-end justify-content-between mb-5 gap-2">
+            <div>
+                <span class="badge px-3 py-1 rounded-pill mb-2" style="background: var(--ps-primary-50); color: var(--ps-primary); font-weight: 600; font-size: 12px;">Top Rated Facilities</span>
+                <h2 class="fw-extrabold mb-1" style="letter-spacing: -0.02em;">Popular Sports Venues</h2>
+                <p class="text-muted mb-0">High-grade courts, verified lighting, and certified playing surfaces.</p>
+            </div>
+            <a href="/venues" class="ps-btn ps-btn-secondary">
+                View All Facilities <i class="bi bi-arrow-right ms-1"></i>
+            </a>
+        </div>
+
+        @if (Model.FeaturedVenues.Any())
+        {
+            <div class="row g-4">
+                @foreach (var venue in Model.FeaturedVenues)
+                {
+                    var firstSport = venue.Sports.FirstOrDefault()?.ToLower() ?? "football";
+                    var sportImage = firstSport switch {
+                        "football" => "/images/football.jpg",
+                        "padel" => "/images/padel.jpg",
+                        "tennis" => "/images/tennis.jpg",
+                        "basketball" => "/images/basketball.jpg",
+                        _ => "/images/venue.jpg"
+                    };
+
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card h-100 border-0 bg-white shadow-sm overflow-hidden" style="border-radius: var(--ps-radius-xl); transition: transform 0.2s, box-shadow 0.2s;">
+
+                            <!-- Image Container -->
+                            <div class="position-relative" style="height: 200px;">
+                                <img src="@sportImage" alt="@venue.Name" class="w-100 h-100 object-fit-cover">
+
+                                <!-- Verified Badge -->
+                                @if (venue.IsVerified)
+                                {
+                                    <div class="position-absolute top-0 start-0 m-3">
+                                        <span class="badge bg-white text-dark shadow-sm px-2 py-1 rounded-pill d-flex align-items-center gap-1" style="font-size: 11px; font-weight: 600;">
+                                            <i class="bi bi-patch-check-fill text-primary"></i> Verified
+                                        </span>
+                                    </div>
+                                }
+
+                                <!-- Rating pill -->
+                                <div class="position-absolute top-0 end-0 m-3">
+                                    <span class="badge bg-dark text-white px-2 py-1 rounded-pill d-flex align-items-center gap-1 shadow-sm" style="font-size: 12px; font-weight: 700; background: rgba(15,23,42,0.85) !important; backdrop-filter: blur(4px);">
+                                        <i class="bi bi-star-fill text-warning"></i> @venue.AverageRating.ToString("0.0")
+                                        <span class="text-muted fw-normal" style="font-size: 10px;">(@venue.TotalReviews)</span>
+                                    </span>
+                                </div>
+
+                                <!-- Location Tag -->
+                                <div class="position-absolute bottom-0 start-0 w-100 p-3" style="background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);">
+                                    <span class="text-white small fw-medium d-flex align-items-center gap-1">
+                                        <i class="bi bi-geo-alt-fill text-warning"></i> @venue.City @(!string.IsNullOrEmpty(venue.Area) ? $"• {venue.Area}" : "")
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Body -->
+                            <div class="card-body p-4 d-flex flex-column">
+                                <h5 class="fw-bold mb-1 text-dark">@venue.Name</h5>
+                                <p class="text-muted small mb-3 text-truncate-2" style="font-size: 13px; line-height: 1.4;">
+                                    @venue.Description
+                                </p>
+
+                                <!-- Sport tags -->
+                                <div class="d-flex flex-wrap gap-1 mb-4">
+                                    @foreach (var sp in venue.Sports)
+                                    {
+                                        var badgeClass = sp.ToLower() switch {
+                                            "football" => "badge-football",
+                                            "padel" => "badge-padel",
+                                            "tennis" => "badge-tennis",
+                                            "basketball" => "badge-basketball",
+                                            _ => "bg-light text-dark"
+                                        };
+                                        <span class="badge @badgeClass" style="font-size: 11px; padding: 4px 8px; border-radius: 6px;">@sp</span>
+                                    }
+                                </div>
+
+                                <!-- Footer details & action -->
+                                <div class="mt-auto pt-3 border-top d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <span class="text-muted d-block" style="font-size: 11px;">Starting from</span>
+                                        <div class="d-flex align-items-baseline gap-1">
+                                            <span class="fw-extrabold text-dark fs-5">@venue.StartingPrice.ToString("0")</span>
+                                            <span class="text-muted small">EGP / hr</span>
+                                        </div>
+                                    </div>
+                                    <a href="/venues/details?id=@venue.Id" class="ps-btn ps-btn-primary ps-btn-sm px-3">
+                                        Book Court <i class="bi bi-chevron-right ms-1 small"></i>
+                                    </a>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="ps-empty-state bg-white shadow-sm p-5 text-center" style="border-radius: var(--ps-radius-xl);">
+                <i class="bi bi-building ps-empty-icon text-muted mb-3" style="font-size: 3rem;"></i>
+                <h4 class="fw-bold">No Venues Available Yet</h4>
+                <p class="text-muted mb-4">We are onboarding premium sports venues right now. Check back soon!</p>
+                <a href="/venues" class="ps-btn ps-btn-primary">Browse All Venues</a>
+            </div>
+        }
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     LIVE COMMUNITY MATCHES (Player Matching Preview)
+     ══════════════════════════════════════════════════════════ -->
+@if (Model.UpcomingGames.Any())
+{
+    <section class="py-6" style="background: white; border-top: 1px solid var(--ps-gray-100); border-bottom: 1px solid var(--ps-gray-100);">
+        <div class="container">
+            <div class="d-flex flex-column flex-sm-row align-items-sm-end justify-content-between mb-5 gap-2">
                 <div>
-                    <a asp-page="/Register" class="btn btn-accent btn-lg rounded-pill fw-bold px-4">Join Now</a>
+                    <span class="badge px-3 py-1 rounded-pill mb-2" style="background: rgba(245,158,11,0.1); color: #B45309; font-weight: 600; font-size: 12px;">Community Matches</span>
+                    <h2 class="fw-extrabold mb-1" style="letter-spacing: -0.02em;">Need Players? Join a Game</h2>
+                    <p class="text-muted mb-0">Join an open match near you, meet other athletes, and split court costs.</p>
                 </div>
+                <a href="/venues" class="ps-btn ps-btn-secondary">
+                    View All Games <i class="bi bi-arrow-right ms-1"></i>
+                </a>
             </div>
-            <div class="col-lg-6" style="background: linear-gradient(45deg, #145c38, #0d4a2b); min-height: 300px;">
-                <!-- Abstract visual representation -->
-                <div class="h-100 d-flex align-items-center justify-content-center position-relative overflow-hidden">
-                    <i class="bi bi-dribbble text-white opacity-25" style="font-size: 15rem; position: absolute; right: -20px; bottom: -40px;"></i>
-                    <i class="bi bi-circle text-white opacity-25" style="font-size: 10rem; position: absolute; left: 20px; top: 20px;"></i>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
-<!-- Testimonials -->
-<div class="bg-light py-5 mb-5">
-    <div class="container py-4">
-        <div class="text-center mb-5">
-            <h2 class="section-title">What Players Say</h2>
-        </div>
-        <div class="row g-4">
-            <div class="col-md-4 fade-up">
-                <div class="card border-0 shadow-sm p-4 h-100 rounded-4">
-                    <div class="d-flex text-warning mb-3">
-                        <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
-                    </div>
-                    <p class="text-muted fst-italic mb-4">"CourtBook completely changed how we organize our weekly matches. No more calling venues one by one to find an empty slot."</p>
-                    <div class="d-flex align-items-center mt-auto">
-                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3 fw-bold" style="width: 45px; height: 45px;">AM</div>
-                        <div>
-                            <h6 class="fw-bold mb-0">Ahmed Mostafa</h6>
-                            <small class="text-muted">Cairo, Egypt</small>
+            <div class="row g-4">
+                @foreach (var game in Model.UpcomingGames)
+                {
+                    <div class="col-md-4">
+                        <div class="card h-100 border p-4" style="border-radius: var(--ps-radius-xl); border-color: var(--ps-gray-200) !important;">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <span class="badge bg-primary text-white px-2 py-1 rounded-pill" style="font-size: 11px;">@game.SportType</span>
+                                <span class="badge @(game.Status == "Open" ? "bg-success" : "bg-secondary") text-white px-2 py-1 rounded-pill" style="font-size: 11px;">@game.Status</span>
+                            </div>
+
+                            <h5 class="fw-bold mb-2">@game.Title</h5>
+                            <p class="text-muted small mb-3">
+                                <i class="bi bi-geo-alt text-danger me-1"></i> @game.VenueName • @game.VenueCity
+                            </p>
+
+                            <div class="d-flex gap-3 text-muted small mb-4 py-2 border-top border-bottom">
+                                <div><i class="bi bi-calendar3 me-1"></i> @game.Date.ToString("ddd, MMM dd")</div>
+                                <div><i class="bi bi-clock me-1"></i> @game.StartTime - @game.EndTime</div>
+                            </div>
+
+                            <div class="d-flex align-items-center justify-content-between mt-auto">
+                                <div>
+                                    <div class="fw-bold text-dark">@game.CurrentPlayersCount / @game.MaxPlayers Players</div>
+                                    <small class="text-muted">@game.PricePerPlayer.ToString("0") EGP / player</small>
+                                </div>
+                                <a href="/venues" class="ps-btn ps-btn-primary ps-btn-sm">Join Match</a>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </div>
-            <div class="col-md-4 fade-up" style="transition-delay: 100ms">
-                <div class="card border-0 shadow-sm p-4 h-100 rounded-4">
-                    <div class="d-flex text-warning mb-3">
-                        <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
-                    </div>
-                    <p class="text-muted fst-italic mb-4">"The interface is so clean and easy to use. I booked a padel court in less than 2 minutes. Highly recommend it to all sports lovers!"</p>
-                    <div class="d-flex align-items-center mt-auto">
-                        <div class="bg-accent text-white rounded-circle d-flex align-items-center justify-content-center me-3 fw-bold" style="width: 45px; height: 45px;">SO</div>
-                        <div>
-                            <h6 class="fw-bold mb-0">Sara Osman</h6>
-                            <small class="text-muted">Alexandria, Egypt</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4 fade-up" style="transition-delay: 200ms">
-                <div class="card border-0 shadow-sm p-4 h-100 rounded-4">
-                    <div class="d-flex text-warning mb-3">
-                        <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-half"></i>
-                    </div>
-                    <p class="text-muted fst-italic mb-4">"As a venue owner, this platform is a game-changer. My bookings increased by 40% in the first month. Excellent service."</p>
-                    <div class="d-flex align-items-center mt-auto">
-                        <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center me-3 fw-bold" style="width: 45px; height: 45px;">KH</div>
-                        <div>
-                            <h6 class="fw-bold mb-0">Khaled Hassan</h6>
-                            <small class="text-muted">Venue Owner</small>
-                        </div>
-                    </div>
-                </div>
+                }
             </div>
         </div>
-    </div>
-</div>
-
-<!-- Newsletter -->
-<div class="container mb-5 pb-4 fade-up">
-    <div class="card border-0 shadow-sm rounded-4 overflow-hidden p-5 text-center bg-white border border-light">
-        <h3 class="fw-bold mb-2">Join our Newsletter</h3>
-        <p class="text-muted mb-4">Get exclusive discounts and updates on new venues in your area.</p>
-        
-        <form class="mx-auto" style="max-width: 500px;" onsubmit="event.preventDefault(); toastr.success('Subscribed successfully!'); this.reset();">
-            <div class="input-group input-group-lg">
-                <input type="email" class="form-control border-end-0 shadow-none" placeholder="Enter your email" required>
-                <button class="btn btn-primary px-4 fw-bold" type="submit">Subscribe</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-@section Scripts {
-    <script>
-        // Intersection Observer for scroll animations
-        document.addEventListener("DOMContentLoaded", function() {
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        entry.target.classList.add('visible');
-                    }
-                });
-            }, { threshold: 0.1 });
-
-            document.querySelectorAll('.fade-up').forEach((el) => observer.observe(el));
-        });
-    </script>
-    <style>
-        .fade-up {
-            opacity: 0;
-            transform: translateY(30px);
-            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
-        }
-        .fade-up.visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
-        .z-index-1 { z-index: 1; }
-    </style>
+    </section>
 }
+
+<!-- ══════════════════════════════════════════════════════════
+     VALUE PROPOSITION / WHY PLAYSPOT
+     ══════════════════════════════════════════════════════════ -->
+<section class="py-6" style="background: var(--ps-gray-50);">
+    <div class="container">
+        <div class="text-center max-w-2xl mx-auto mb-5">
+            <h2 class="fw-extrabold mb-2" style="letter-spacing: -0.02em;">Why Players Love PlaySpot</h2>
+            <p class="text-muted">Designed from the ground up for Egyptian sports enthusiasts and facility operators.</p>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 border-0 bg-white p-4 shadow-sm" style="border-radius: var(--ps-radius-xl);">
+                    <div class="d-flex align-items-center justify-content-center rounded-3 mb-3 text-primary" style="width: 48px; height: 48px; background: var(--ps-primary-50);">
+                        <i class="bi bi-lightning-charge-fill fs-4"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">Live Availability</h5>
+                    <p class="text-muted small mb-0">Direct integration with venue operating schedules and live booked slots. No phantom availability.</p>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 border-0 bg-white p-4 shadow-sm" style="border-radius: var(--ps-radius-xl);">
+                    <div class="d-flex align-items-center justify-content-center rounded-3 mb-3 text-warning" style="width: 48px; height: 48px; background: rgba(245,158,11,0.1);">
+                        <i class="bi bi-shield-lock-fill fs-4"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">No Double Bookings</h5>
+                    <p class="text-muted small mb-0">Enterprise-grade transactional locking guarantees your slot is strictly reserved for your squad.</p>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 border-0 bg-white p-4 shadow-sm" style="border-radius: var(--ps-radius-xl);">
+                    <div class="d-flex align-items-center justify-content-center rounded-3 mb-3 text-success" style="width: 48px; height: 48px; background: rgba(16,185,129,0.1);">
+                        <i class="bi bi-star-fill fs-4"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">Verified Reviews</h5>
+                    <p class="text-muted small mb-0">Only players who actually played at the court can review. 100% genuine ratings you can rely on.</p>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 border-0 bg-white p-4 shadow-sm" style="border-radius: var(--ps-radius-xl);">
+                    <div class="d-flex align-items-center justify-content-center rounded-3 mb-3 text-info" style="width: 48px; height: 48px; background: rgba(6,182,212,0.1);">
+                        <i class="bi bi-arrow-repeat fs-4"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">Fair Cancellation</h5>
+                    <p class="text-muted small mb-0">Clear policy per venue. Cancel free up to 24 hours in advance directly from your dashboard.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     FOR FACILITY OWNERS CTA
+     ══════════════════════════════════════════════════════════ -->
+<section class="py-6" style="background: linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%); color: white;">
+    <div class="container">
+        <div class="row align-items-center justify-content-between g-4">
+            <div class="col-lg-7">
+                <span class="badge bg-white text-primary px-3 py-1 rounded-pill mb-3 fw-bold">For Sports Club & Court Owners</span>
+                <h2 class="display-6 fw-extrabold mb-3">Maximize Your Court Bookings With PlaySpot</h2>
+                <p class="text-white-50 lead mb-0" style="font-size: 1.1rem;">
+                    Eliminate phone scheduling chaos, prevent double-bookings, automate player reminders, and access real-time revenue analytics.
+                </p>
+            </div>
+            <div class="col-lg-4 text-lg-end">
+                <a href="/register" class="ps-btn ps-btn-secondary ps-btn-lg fw-bold px-4 py-3 shadow-lg" style="background: white; color: var(--ps-primary);">
+                    List Your Facility <i class="bi bi-arrow-right ms-2"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>

@@ -85,30 +85,36 @@ public class VenueService : IVenueService
 
         var totalCount = await query.CountAsync();
 
-        // Single projected query to avoid N+1 issues
-        var items = await query
+        // Use AsSplitQuery with eager loading to avoid subquery translation issues in SQL Server
+        var venues = await query
+            .Include(v => v.Courts.Where(c => c.IsActive))
+            .Include(v => v.Amenities)
+                .ThenInclude(a => a.Amenity)
+            .Include(v => v.Images.Where(i => i.IsPrimary))
+            .AsSplitQuery()
             .Skip(request.Skip)
             .Take(request.PageSize)
-            .Select(v => new VenueCardDto
-            {
-                Id = v.Id,
-                Name = v.Name,
-                Description = v.Description,
-                City = v.City,
-                Area = v.Area,
-                Address = v.Address,
-                Latitude = v.Latitude,
-                Longitude = v.Longitude,
-                AverageRating = v.AverageRating,
-                TotalReviews = v.TotalReviews,
-                IsVerified = v.IsVerified,
-                CourtsCount = v.Courts.Count(c => c.IsActive),
-                StartingPrice = v.Courts.Where(c => c.IsActive).Min(c => (decimal?)c.PricePerHour) ?? 0,
-                Sports = v.Courts.Where(c => c.IsActive).Select(c => c.SportType.ToString()).Distinct().ToList(),
-                Amenities = v.Amenities.Select(a => a.Amenity.Name).ToList(),
-                PrimaryImageUrl = v.Images.Where(i => i.IsPrimary).Select(i => i.ImageUrl).FirstOrDefault()
-            })
             .ToListAsync();
+
+        var items = venues.Select(v => new VenueCardDto
+        {
+            Id = v.Id,
+            Name = v.Name,
+            Description = v.Description,
+            City = v.City,
+            Area = v.Area,
+            Address = v.Address,
+            Latitude = v.Latitude,
+            Longitude = v.Longitude,
+            AverageRating = v.AverageRating,
+            TotalReviews = v.TotalReviews,
+            IsVerified = v.IsVerified,
+            CourtsCount = v.Courts.Count(c => c.IsActive),
+            StartingPrice = v.Courts.Where(c => c.IsActive).Min(c => (decimal?)c.PricePerHour) ?? 0,
+            Sports = v.Courts.Where(c => c.IsActive).Select(c => c.SportType.ToString()).Distinct().ToList(),
+            Amenities = v.Amenities.Select(a => a.Amenity?.Name ?? "").Where(name => !string.IsNullOrEmpty(name)).ToList(),
+            PrimaryImageUrl = v.Images.FirstOrDefault(i => i.IsPrimary)?.ImageUrl
+        }).ToList();
 
         return PagedResult<VenueCardDto>.From(items, totalCount, request.Page, request.PageSize);
     }

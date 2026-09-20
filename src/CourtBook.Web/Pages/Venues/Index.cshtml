@@ -1,61 +1,317 @@
 @page
 @model CourtBook.Web.Pages.Venues.IndexModel
 @{
-    ViewData["Title"] = "All Venues";
+    ViewData["Title"] = "Discover Sports Facilities — PlaySpot";
 }
 
 <div class="container py-5">
-    <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
-        <h2 class="section-title mb-0">Discover Venues</h2>
-        <span class="text-muted fw-medium">@Model.Venues.Count venues found</span>
+
+    <!-- ══════════════════════════════════════════════════════════
+         HEADER & SEARCH BAR
+         ══════════════════════════════════════════════════════════ -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 pb-3 border-bottom">
+        <div>
+            <h2 class="fw-extrabold mb-1" style="letter-spacing: -0.02em;">Discover Sports Facilities</h2>
+            <p class="text-muted small mb-0">
+                Found <span class="fw-bold text-dark">@Model.SearchResult.TotalCount</span> venues matching your preferences
+            </p>
+        </div>
+
+        <!-- Mobile Filter Button Toggle -->
+        <div class="d-md-none d-flex gap-2">
+            <button class="ps-btn ps-btn-secondary w-100 d-flex align-items-center justify-content-center gap-2" type="button" data-bs-toggle="collapse" data-bs-target="#filterSidebar" aria-expanded="false" aria-controls="filterSidebar">
+                <i class="bi bi-funnel"></i> Filters & Sort
+            </button>
+        </div>
     </div>
 
-    @if (Model.Venues.Any())
-    {
-        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-            @foreach (var venue in Model.Venues)
+    <!-- ══════════════════════════════════════════════════════════
+         MAIN CONTENT: FILTERS SIDEBAR + VENUE GRID
+         ══════════════════════════════════════════════════════════ -->
+    <div class="row g-4">
+
+        <!-- Filters Sidebar -->
+        <div class="col-lg-3 col-md-4">
+            <div class="collapse d-md-block" id="filterSidebar">
+                <div class="card border-0 bg-white shadow-sm p-4 sticky-top" style="top: 90px; border-radius: var(--ps-radius-xl);">
+                    <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+                        <h6 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
+                            <i class="bi bi-sliders text-primary"></i> Filters
+                        </h6>
+                        <a href="/venues" class="text-muted small text-decoration-none">Reset All</a>
+                    </div>
+
+                    <form method="get" action="/venues" id="searchForm">
+
+                        <!-- Keyword Search -->
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-dark mb-2">Keyword Search</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-0"><i class="bi bi-search text-muted"></i></span>
+                                <input type="text" name="search" value="@Model.Search" class="form-control bg-light border-0 shadow-none" placeholder="Venue name, area..." />
+                            </div>
+                        </div>
+
+                        <!-- Sport Filter -->
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-dark mb-2">Sport Type</label>
+                            <select name="sport" class="form-select bg-light border-0 shadow-none fw-medium" onchange="this.form.submit()">
+                                <option value="" selected="@(string.IsNullOrEmpty(Model.Sport))">All Sports</option>
+                                <option value="Football" selected="@(Model.Sport?.Equals("Football", StringComparison.OrdinalIgnoreCase) == true)">⚽ Football</option>
+                                <option value="Padel" selected="@(Model.Sport?.Equals("Padel", StringComparison.OrdinalIgnoreCase) == true)">🎾 Padel</option>
+                                <option value="Tennis" selected="@(Model.Sport?.Equals("Tennis", StringComparison.OrdinalIgnoreCase) == true)">🏸 Tennis</option>
+                                <option value="Basketball" selected="@(Model.Sport?.Equals("Basketball", StringComparison.OrdinalIgnoreCase) == true)">🏀 Basketball</option>
+                                <option value="Volleyball" selected="@(Model.Sport?.Equals("Volleyball", StringComparison.OrdinalIgnoreCase) == true)">🏐 Volleyball</option>
+                                <option value="Badminton" selected="@(Model.Sport?.Equals("Badminton", StringComparison.OrdinalIgnoreCase) == true)">🏸 Badminton</option>
+                            </select>
+                        </div>
+
+                        <!-- City / Location Filter -->
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-dark mb-2">Location (Egypt)</label>
+                            <select name="city" class="form-select bg-light border-0 shadow-none fw-medium" onchange="this.form.submit()">
+                                <option value="" selected="@(string.IsNullOrEmpty(Model.City))">All Locations</option>
+                                <option value="Cairo" selected="@(Model.City == "Cairo")">Cairo (All Areas)</option>
+                                <option value="Maadi" selected="@(Model.City == "Maadi")">Maadi, Cairo</option>
+                                <option value="Zamalek" selected="@(Model.City == "Zamalek")">Zamalek, Cairo</option>
+                                <option value="Nasr City" selected="@(Model.City == "Nasr City")">Nasr City, Cairo</option>
+                                <option value="New Cairo" selected="@(Model.City == "New Cairo")">New Cairo</option>
+                                <option value="6th of October" selected="@(Model.City == "6th of October")">6th of October City</option>
+                                <option value="الفيوم" selected="@(Model.City == "الفيوم")">الفيوم (Fayoum)</option>
+                            </select>
+                        </div>
+
+                        <!-- Price Range Filter -->
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-dark mb-2">Hourly Price (EGP)</label>
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <input type="number" name="minPrice" value="@Model.MinPrice" placeholder="Min" class="form-control bg-light border-0 shadow-none small" />
+                                </div>
+                                <div class="col-6">
+                                    <input type="number" name="maxPrice" value="@Model.MaxPrice" placeholder="Max" class="form-control bg-light border-0 shadow-none small" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Minimum Rating Filter -->
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-dark mb-2">Minimum Rating</label>
+                            <select name="minRating" class="form-select bg-light border-0 shadow-none fw-medium" onchange="this.form.submit()">
+                                <option value="" selected="@(!Model.MinRating.HasValue)">Any Rating</option>
+                                <option value="4.8" selected="@(Model.MinRating == 4.8)">⭐ 4.8 & Above</option>
+                                <option value="4.5" selected="@(Model.MinRating == 4.5)">⭐ 4.5 & Above</option>
+                                <option value="4.0" selected="@(Model.MinRating == 4.0)">⭐ 4.0 & Above</option>
+                            </select>
+                        </div>
+
+                        <!-- Hidden Sorting Field -->
+                        <input type="hidden" name="sortBy" value="@Model.SortBy" />
+
+                        <!-- Submit Button -->
+                        <button type="submit" class="ps-btn ps-btn-primary w-100 py-2 fw-bold">
+                            Apply Filters
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Venue Cards Grid -->
+        <div class="col-lg-9 col-md-8">
+
+            <!-- Sorting Bar -->
+            <div class="d-flex align-items-center justify-content-between mb-4 bg-white p-3 rounded-3 shadow-sm">
+                <span class="text-muted small">
+                    Showing <strong>@Model.SearchResult.Items.Count</strong> of <strong>@Model.SearchResult.TotalCount</strong> venues
+                </span>
+
+                <div class="d-flex align-items-center gap-2">
+                    <label class="text-muted small mb-0 d-none d-sm-inline">Sort by:</label>
+                    <select class="form-select form-select-sm border-0 bg-light fw-medium shadow-none" style="width: auto; cursor: pointer;" onchange="updateSort(this.value)">
+                        <option value="rating_desc" selected="@(Model.SortBy == "rating_desc")">Recommended (Highest Rated)</option>
+                        <option value="price_asc" selected="@(Model.SortBy == "price_asc")">Price: Low to High</option>
+                        <option value="price_desc" selected="@(Model.SortBy == "price_desc")">Price: High to Low</option>
+                        <option value="newest" selected="@(Model.SortBy == "newest")">Newest Facilities</option>
+                        <option value="name" selected="@(Model.SortBy == "name")">Facility Name (A-Z)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Venues Grid -->
+            @if (Model.SearchResult.Items.Any())
             {
-                <div class="col">
-                    <div class="card h-100 card-hover border-0 bg-white">
-                        @{
-                            var fs = venue.Courts.FirstOrDefault()?.SportType?.ToLower() ?? "venue";
-                            var vi = fs switch {
-                                "football" => "/images/football.jpg",
-                                "padel" => "/images/padel.jpg",
-                                "tennis" => "/images/tennis.jpg",
-                                "basketball" => "/images/basketball.jpg",
-                                _ => "/images/venue.jpg"
-                            };
-                        }
-                        <div class="position-relative overflow-hidden" style="height: 180px;">
-                            <img src="@vi" alt="@venue.Name" class="w-100 h-100 object-fit-cover" style="display: block;">
-                            <div class="position-absolute bottom-0 start-0 w-100 p-3" style="background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);">
-                                <span class="badge bg-primary rounded-pill mb-1"><i class="bi bi-geo-alt me-1"></i> @venue.City</span>
+                <div class="row g-4">
+                    @foreach (var venue in Model.SearchResult.Items)
+                    {
+                        var firstSport = venue.Sports.FirstOrDefault()?.ToLower() ?? "football";
+                        var sportImage = firstSport switch {
+                            "football" => "/images/football.jpg",
+                            "padel" => "/images/padel.jpg",
+                            "tennis" => "/images/tennis.jpg",
+                            "basketball" => "/images/basketball.jpg",
+                            _ => "/images/venue.jpg"
+                        };
+
+                        <div class="col-lg-6 col-12">
+                            <div class="card h-100 border-0 bg-white shadow-sm overflow-hidden" style="border-radius: var(--ps-radius-xl); transition: transform 0.2s, box-shadow 0.2s;">
+
+                                <!-- Photo Banner -->
+                                <div class="position-relative" style="height: 190px;">
+                                    <img src="@sportImage" alt="@venue.Name" class="w-100 h-100 object-fit-cover">
+
+                                    <!-- Verified Badge -->
+                                    @if (venue.IsVerified)
+                                    {
+                                        <div class="position-absolute top-0 start-0 m-3">
+                                            <span class="badge bg-white text-dark shadow-sm px-2 py-1 rounded-pill d-flex align-items-center gap-1" style="font-size: 11px; font-weight: 600;">
+                                                <i class="bi bi-patch-check-fill text-primary"></i> Verified
+                                            </span>
+                                        </div>
+                                    }
+
+                                    <!-- Rating pill -->
+                                    <div class="position-absolute top-0 end-0 m-3">
+                                        <span class="badge bg-dark text-white px-2 py-1 rounded-pill d-flex align-items-center gap-1 shadow-sm" style="font-size: 12px; font-weight: 700; background: rgba(15,23,42,0.85) !important; backdrop-filter: blur(4px);">
+                                            <i class="bi bi-star-fill text-warning"></i> @venue.AverageRating.ToString("0.0")
+                                            <span class="text-muted fw-normal" style="font-size: 10px;">(@venue.TotalReviews)</span>
+                                        </span>
+                                    </div>
+
+                                    <!-- Location Tag -->
+                                    <div class="position-absolute bottom-0 start-0 w-100 p-3" style="background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);">
+                                        <span class="text-white small fw-medium d-flex align-items-center gap-1">
+                                            <i class="bi bi-geo-alt-fill text-warning"></i> @venue.City @(!string.IsNullOrEmpty(venue.Area) ? $"• {venue.Area}" : "")
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <!-- Body -->
+                                <div class="card-body p-4 d-flex flex-column">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <h5 class="fw-bold mb-0 text-dark">@venue.Name</h5>
+                                    </div>
+
+                                    <p class="text-muted small mb-3 text-truncate-2" style="font-size: 13px; line-height: 1.4;">
+                                        @venue.Description
+                                    </p>
+
+                                    <!-- Sports Pills -->
+                                    <div class="d-flex flex-wrap gap-1 mb-3">
+                                        @foreach (var sp in venue.Sports)
+                                        {
+                                            var badgeClass = sp.ToLower() switch {
+                                                "football" => "badge-football",
+                                                "padel" => "badge-padel",
+                                                "tennis" => "badge-tennis",
+                                                "basketball" => "badge-basketball",
+                                                _ => "bg-light text-dark"
+                                            };
+                                            <span class="badge @badgeClass" style="font-size: 11px; padding: 4px 8px; border-radius: 6px;">@sp</span>
+                                        }
+                                    </div>
+
+                                    <!-- Amenities row -->
+                                    @if (venue.Amenities.Any())
+                                    {
+                                        <div class="d-flex flex-wrap gap-2 mb-4 text-muted small" style="font-size: 11px;">
+                                            @foreach (var a in venue.Amenities.Take(3))
+                                            {
+                                                <span class="d-flex align-items-center gap-1">
+                                                    <i class="bi bi-check2 text-success"></i> @a
+                                                </span>
+                                            }
+                                        </div>
+                                    }
+
+                                    <!-- Price & CTA -->
+                                    <div class="mt-auto pt-3 border-top d-flex align-items-center justify-content-between">
+                                        <div>
+                                            <span class="text-muted d-block" style="font-size: 11px;">Starting from</span>
+                                            <div class="d-flex align-items-baseline gap-1">
+                                                <span class="fw-extrabold text-dark fs-5">@venue.StartingPrice.ToString("0")</span>
+                                                <span class="text-muted small">EGP / hr</span>
+                                            </div>
+                                        </div>
+                                        <a href="/venues/details?id=@venue.Id" class="ps-btn ps-btn-primary ps-btn-sm px-3">
+                                            View Courts <i class="bi bi-chevron-right ms-1 small"></i>
+                                        </a>
+                                    </div>
+                                </div>
+
                             </div>
                         </div>
-                        <div class="card-body p-4">
-                            <h4 class="card-title fw-bold mb-2">@venue.Name</h4>
-                            <p class="text-muted small mb-3"><i class="bi bi-pin-map"></i> @venue.Address</p>
-                            
-                            <div class="d-flex justify-content-between align-items-center pt-3 border-top border-light">
-                                <span class="text-secondary fw-medium">
-                                    <i class="bi bi-columns-gap text-primary me-1"></i> @venue.Courts.Count Courts
-                                </span>
-                                <a asp-page="/Venues/Details" asp-route-id="@venue.Id" class="btn btn-primary btn-sm rounded-pill px-3">View Courts</a>
-                            </div>
-                        </div>
+                    }
+                </div>
+
+                <!-- ══════════════════════════════════════════════════════════
+                     PAGINATION
+                     ══════════════════════════════════════════════════════════ -->
+                @if (Model.SearchResult.TotalPages > 1)
+                {
+                    <nav class="mt-5 d-flex justify-content-center" aria-label="Venues pagination">
+                        <ul class="pagination gap-1">
+
+                            <!-- Previous -->
+                            <li class="page-item @(!Model.SearchResult.HasPreviousPage ? "disabled" : "")">
+                                <a class="page-link border-0 rounded-3 shadow-none px-3" href="@Url.Page("/Venues/Index", new { currentPage = Model.CurrentPage - 1, sport = Model.Sport, city = Model.City, search = Model.Search, sortBy = Model.SortBy, minPrice = Model.MinPrice, maxPrice = Model.MaxPrice, minRating = Model.MinRating })">
+                                    <i class="bi bi-chevron-left"></i> Previous
+                                </a>
+                            </li>
+
+                            <!-- Page Numbers -->
+                            @for (int p = 1; p <= Model.SearchResult.TotalPages; p++)
+                            {
+                                <li class="page-item @(p == Model.CurrentPage ? "active" : "")">
+                                    <a class="page-link border-0 rounded-3 shadow-none @(p == Model.CurrentPage ? "bg-primary text-white" : "text-dark")" href="@Url.Page("/Venues/Index", new { currentPage = p, sport = Model.Sport, city = Model.City, search = Model.Search, sortBy = Model.SortBy, minPrice = Model.MinPrice, maxPrice = Model.MaxPrice, minRating = Model.MinRating })">
+                                        @p
+                                    </a>
+                                </li>
+                            }
+
+                            <!-- Next -->
+                            <li class="page-item @(!Model.SearchResult.HasNextPage ? "disabled" : "")">
+                                <a class="page-link border-0 rounded-3 shadow-none px-3" href="@Url.Page("/Venues/Index", new { currentPage = Model.CurrentPage + 1, sport = Model.Sport, city = Model.City, search = Model.Search, sortBy = Model.SortBy, minPrice = Model.MinPrice, maxPrice = Model.MaxPrice, minRating = Model.MinRating })">
+                                    Next <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
+
+                        </ul>
+                    </nav>
+                }
+            }
+            else
+            {
+                <!-- Empty State -->
+                <div class="card border-0 bg-white shadow-sm p-5 text-center" style="border-radius: var(--ps-radius-xl);">
+                    <div class="mx-auto mb-3 text-muted" style="font-size: 3.5rem;">
+                        <i class="bi bi-search"></i>
+                    </div>
+                    <h4 class="fw-bold mb-2">No facilities match your filters</h4>
+                    <p class="text-muted mb-4 mx-auto" style="max-width: 450px;">
+                        Try adjusting your price range, choosing a different city or sport, or clearing active filters to see all facilities.
+                    </p>
+                    <div>
+                        <a href="/venues" class="ps-btn ps-btn-primary">
+                            <i class="bi bi-arrow-counterclockwise me-1"></i> Clear All Filters
+                        </a>
                     </div>
                 </div>
             }
+
         </div>
-    }
-    else
-    {
-        <div class="empty-state">
-            <i class="bi bi-search empty-state-icon"></i>
-            <h3 class="fw-bold">No courts found</h3>
-            <p class="text-muted mb-4">We couldn't find any courts matching your criteria.</p>
-            <a asp-page="/Index" class="btn btn-primary rounded-pill px-4">Search Again</a>
-        </div>
-    }
+
+    </div>
+
 </div>
+
+@section Scripts {
+    <script>
+        function updateSort(val) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('sortBy', val);
+            url.searchParams.set('currentPage', '1');
+            window.location.href = url.toString();
+        }
+    </script>
+}
