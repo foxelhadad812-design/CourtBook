@@ -17,7 +17,7 @@ public static class SportIllustrations
     public static string GetVenueHeroSvg() => DefaultVenueSvg;
 
     private const string FootballSvg = @"
-<svg viewBox=""0 0 400 250"" xmlns=""http://www.w3.org/2000/svg"" class=""w-100 h-100 object-fit-cover"">
+<svg viewBox=""0 0 400 250"" width=""100%"" height=""100%"" preserveAspectRatio=""xMidYMid slice"" xmlns=""http://www.w3.org/2000/svg"" class=""w-100 h-100"" style=""display: block; object-fit: cover;"">
   <rect width=""400"" height=""250"" fill=""#2d6a4f""/>
   <!-- Pitch pattern (stripes) -->
   <rect x=""0"" y=""0"" width=""40"" height=""250"" fill=""rgba(0,0,0,0.05)""/>
@@ -48,7 +48,7 @@ public static class SportIllustrations
 </svg>";
 
     private const string PadelSvg = @"
-<svg viewBox=""0 0 400 250"" xmlns=""http://www.w3.org/2000/svg"" class=""w-100 h-100 object-fit-cover"">
+<svg viewBox=""0 0 400 250"" width=""100%"" height=""100%"" preserveAspectRatio=""xMidYMid slice"" xmlns=""http://www.w3.org/2000/svg"" class=""w-100 h-100"" style=""display: block; object-fit: cover;"">
   <rect width=""400"" height=""250"" fill=""#0077b6""/>
   <!-- Glass walls shadow/border -->
   <rect x=""40"" y=""30"" width=""320"" height=""190"" fill=""rgba(255,255,255,0.05)""/>
@@ -67,7 +67,7 @@ public static class SportIllustrations
 </svg>";
 
     private const string TennisSvg = @"
-<svg viewBox=""0 0 400 250"" xmlns=""http://www.w3.org/2000/svg"" class=""w-100 h-100 object-fit-cover"">
+<svg viewBox=""0 0 400 250"" width=""100%"" height=""100%"" preserveAspectRatio=""xMidYMid slice"" xmlns=""http://www.w3.org/2000/svg"" class=""w-100 h-100"" style=""display: block; object-fit: cover;"">
   <!-- Outer surface (darker clay or green) -->
   <rect width=""400"" height=""250"" fill=""#297345""/>
   <!-- Inner court (Clay color) -->
@@ -91,7 +91,7 @@ public static class SportIllustrations
 </svg>";
 
     private const string BasketballSvg = @"
-<svg viewBox=""0 0 400 250"" xmlns=""http://www.w3.org/2000/svg"" class=""w-100 h-100 object-fit-cover"">
+<svg viewBox=""0 0 400 250"" width=""100%"" height=""100%"" preserveAspectRatio=""xMidYMid slice"" xmlns=""http://www.w3.org/2000/svg"" class=""w-100 h-100"" style=""display: block; object-fit: cover;"">
   <rect width=""400"" height=""250"" fill=""#d4a373""/>
   <!-- Wood planks -->
   <line x1=""0"" y1=""20"" x2=""400"" y2=""20"" stroke=""rgba(0,0,0,0.05)"" stroke-width=""1""/>
@@ -135,7 +135,7 @@ public static class SportIllustrations
 </svg>";
 
     private const string DefaultVenueSvg = @"
-<svg viewBox=""0 0 400 250"" xmlns=""http://www.w3.org/2000/svg"" class=""w-100 h-100 object-fit-cover"">
+<svg viewBox=""0 0 400 250"" width=""100%"" height=""100%"" preserveAspectRatio=""xMidYMid slice"" xmlns=""http://www.w3.org/2000/svg"" class=""w-100 h-100"" style=""display: block; object-fit: cover;"">
   <rect width=""400"" height=""250"" fill=""#1a7a4a""/>
   <!-- Abstract geometric sports shapes -->
   <circle cx=""100"" cy=""100"" r=""150"" fill=""rgba(255,255,255,0.05)"" />
