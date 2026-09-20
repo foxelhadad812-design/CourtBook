@@ -40,8 +40,17 @@
 
                 <div class="col">
                     <div class="card h-100 card-hover border-0 overflow-hidden">
+                        @{
+                            var courtImgPath = court.SportType?.ToLower() switch {
+                                "football" => "/images/football.jpg",
+                                "padel" => "/images/padel.jpg",
+                                "tennis" => "/images/tennis.jpg",
+                                "basketball" => "/images/basketball.jpg",
+                                _ => "/images/venue.jpg"
+                            };
+                        }
                         <div class="position-relative" style="height: 160px;">
-                            @Html.Raw(CourtBook.Web.Helpers.SportIllustrations.GetSvgForSport(court.SportType))
+                            <img src="@courtImgPath" alt="@court.SportType court" class="w-100 h-100 object-fit-cover" style="display: block;">
                             <div class="position-absolute top-0 end-0 p-3">
                                 <span class="badge @badgeClass rounded-pill px-3 py-2 shadow-sm">@court.SportType</span>
                             </div>

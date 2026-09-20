@@ -23,9 +23,17 @@
                             "tennis" => "badge-tennis",
                             _ => "bg-secondary"
                         };
+                        var courtBookImg = Model.Court.SportType.ToLower() switch
+                        {
+                            "football" => "/images/football.jpg",
+                            "padel" => "/images/padel.jpg",
+                            "tennis" => "/images/tennis.jpg",
+                            "basketball" => "/images/basketball.jpg",
+                            _ => "/images/venue.jpg"
+                        };
                     }
                     <div class="position-relative" style="height: 180px;">
-                        @Html.Raw(CourtBook.Web.Helpers.SportIllustrations.GetSvgForSport(Model.Court.SportType))
+                        <img src="@courtBookImg" alt="@Model.Court.SportType court" class="w-100 h-100 object-fit-cover" style="display: block;">
                         <div class="position-absolute top-0 end-0 p-3">
                             <span class="badge @badgeClass rounded-pill px-3 py-2 shadow-sm">@Model.Court.SportType</span>
                         </div>

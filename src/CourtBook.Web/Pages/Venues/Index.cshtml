@@ -17,8 +17,18 @@
             {
                 <div class="col">
                     <div class="card h-100 card-hover border-0 bg-white">
+                        @{
+                            var fs = venue.Courts.FirstOrDefault()?.SportType?.ToLower() ?? "venue";
+                            var vi = fs switch {
+                                "football" => "/images/football.jpg",
+                                "padel" => "/images/padel.jpg",
+                                "tennis" => "/images/tennis.jpg",
+                                "basketball" => "/images/basketball.jpg",
+                                _ => "/images/venue.jpg"
+                            };
+                        }
                         <div class="position-relative overflow-hidden" style="height: 180px;">
-                            @Html.Raw(CourtBook.Web.Helpers.SportIllustrations.GetVenueHeroSvg())
+                            <img src="@vi" alt="@venue.Name" class="w-100 h-100 object-fit-cover" style="display: block;">
                             <div class="position-absolute bottom-0 start-0 w-100 p-3" style="background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);">
                                 <span class="badge bg-primary rounded-pill mb-1"><i class="bi bi-geo-alt me-1"></i> @venue.City</span>
                             </div>
