@@ -23,12 +23,16 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"),
         sql => sql.EnableRetryOnFailure(maxRetryCount: 3)));
 
-// ── Application Services ─────────────────────────────────────────────────────
-builder.Services.AddScoped<ITokenService,   TokenService>();
-builder.Services.AddScoped<IAuthService,    AuthService>();
-builder.Services.AddScoped<IVenueService,   VenueService>();
-builder.Services.AddScoped<ICourtService,   CourtService>();
-builder.Services.AddScoped<IBookingService, BookingService>();
+builder.Services.AddScoped<ITokenService,        TokenService>();
+builder.Services.AddScoped<IAuthService,         AuthService>();
+builder.Services.AddScoped<IVenueService,        VenueService>();
+builder.Services.AddScoped<ICourtService,        CourtService>();
+builder.Services.AddScoped<IBookingService,      BookingService>();
+builder.Services.AddScoped<IAvailabilityService, AvailabilityService>();
+builder.Services.AddScoped<IReviewService,       ReviewService>();
+builder.Services.AddScoped<IFavoriteService,     FavoriteService>();
+builder.Services.AddScoped<IGameService,         GameService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 
 // ── FluentValidation ──────────────────────────────────────────────────────────
 // Registers all validators from the Application assembly automatically.

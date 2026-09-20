@@ -1,4 +1,5 @@
 using CourtBook.API.Extensions;
+using CourtBook.Application.Common;
 using CourtBook.Application.DTOs;
 using CourtBook.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -15,6 +16,18 @@ public class VenuesController : ControllerBase
     public VenuesController(IVenueService venueService)
     {
         _venueService = venueService;
+    }
+
+    /// <summary>
+    /// Advanced search and discovery for sports facilities with multi-criteria filtering, sorting, and pagination.
+    /// </summary>
+    [HttpGet("search")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(PagedResult<VenueCardDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Search([FromQuery] VenueSearchRequest request)
+    {
+        var result = await _venueService.SearchAsync(request);
+        return Ok(result);
     }
 
     [HttpGet]

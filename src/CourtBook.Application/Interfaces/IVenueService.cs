@@ -1,9 +1,11 @@
+using CourtBook.Application.Common;
 using CourtBook.Application.DTOs;
 
 namespace CourtBook.Application.Interfaces;
 
 public interface IVenueService
 {
+    Task<PagedResult<VenueCardDto>> SearchAsync(VenueSearchRequest request);
     Task<List<VenueResponse>> GetAllAsync();
     Task<VenueResponse?> GetByIdAsync(Guid id);
     Task<VenueResponse> CreateAsync(Guid ownerId, CreateVenueRequest request);

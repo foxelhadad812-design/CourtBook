@@ -1,9 +1,11 @@
+using System.Data;
 using CourtBook.Application.DTOs;
 using CourtBook.Application.Interfaces;
 using CourtBook.Domain.Entities;
 using CourtBook.Domain.Enums;
 using CourtBook.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace CourtBook.Infrastructure.Services;
 
@@ -24,69 +26,116 @@ public class BookingService : IBookingService
         if (request.StartTime < DateTime.UtcNow.AddMinutes(-5))
             throw new ArgumentException("Cannot book in the past.");
 
-        var court = await _db.Courts
-            .Include(c => c.Schedules)
-            .Include(c => c.Venue)
-            .FirstOrDefaultAsync(c => c.Id == request.CourtId && c.IsActive);
+        var executionStrategy = _db.Database.CreateExecutionStrategy();
 
-        if (court is null)
-            throw new ArgumentException("Court not found or inactive.");
-
-        // Check schedule
-        var dayOfWeek = request.StartTime.DayOfWeek;
-        var schedule = court.Schedules.FirstOrDefault(s => s.DayOfWeek == dayOfWeek);
-        if (schedule is null)
-            throw new ArgumentException("Court is closed on this day.");
-
-        var requestStartTime = TimeOnly.FromDateTime(request.StartTime);
-        var requestEndTime = TimeOnly.FromDateTime(request.EndTime);
-
-        if (requestStartTime < schedule.OpenTime || requestEndTime > schedule.CloseTime)
-            throw new ArgumentException("Booking time is outside court working hours.");
-
-        // Concurrency-safe check for overlapping bookings
-        var hasOverlap = await _db.Bookings
-            .AnyAsync(b => b.CourtId == request.CourtId
-                && b.Status != BookingStatus.Cancelled
-                && b.StartTime < request.EndTime
-                && b.EndTime > request.StartTime);
-
-        if (hasOverlap)
-            throw new InvalidOperationException("Court is not available for the selected time slot.");
-
-        var durationHours = (request.EndTime - request.StartTime).TotalHours;
-        var totalPrice = (decimal)durationHours * court.PricePerHour;
-
-        var reference = $"PS-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString()[..6].ToUpper()}";
-
-        var booking = new Booking
+        return await executionStrategy.ExecuteAsync(async () =>
         {
-            Id = Guid.NewGuid(),
-            BookingReference = reference,
-            CourtId = request.CourtId,
-            UserId = userId,
-            StartTime = request.StartTime,
-            EndTime = request.EndTime,
-            Status = BookingStatus.Confirmed,
-            PaymentStatus = PaymentStatus.Pending,
-            TotalPrice = totalPrice,
-            Notes = request.Notes,
-            Court = court,
-            CreatedAt = DateTime.UtcNow
-        };
+            IDbContextTransaction? transaction = null;
+            if (_db.Database.IsRelational())
+            {
+                transaction = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            }
 
-        _db.Bookings.Add(booking);
-        await _db.SaveChangesAsync();
+            try
+            {
+                var court = await _db.Courts
+                    .Include(c => c.Schedules)
+                    .Include(c => c.Venue)
+                    .Include(c => c.PriceRules.Where(pr => pr.IsActive))
+                    .FirstOrDefaultAsync(c => c.Id == request.CourtId && c.IsActive);
 
-        var user = await _db.Users.FindAsync(userId);
-        booking.User = user!;
+                if (court is null)
+                    throw new ArgumentException("Court not found or inactive.");
 
-        return MapToResponse(booking);
+                // Re-validate working schedule
+                var dayOfWeek = request.StartTime.DayOfWeek;
+                var schedule = court.Schedules.FirstOrDefault(s => s.DayOfWeek == dayOfWeek);
+                if (schedule is null)
+                    throw new ArgumentException("Court is closed on this day.");
+
+                var requestStartTime = TimeOnly.FromDateTime(request.StartTime);
+                var requestEndTime = TimeOnly.FromDateTime(request.EndTime);
+
+                if (requestStartTime < schedule.OpenTime || requestEndTime > schedule.CloseTime)
+                    throw new ArgumentException("Booking time is outside court working hours.");
+
+                // Concurrency-safe overlap check executed inside the serializable transaction
+                var hasOverlap = await _db.Bookings
+                    .AnyAsync(b => b.CourtId == request.CourtId
+                        && b.Status != BookingStatus.Cancelled
+                        && b.StartTime < request.EndTime
+                        && b.EndTime > request.StartTime);
+
+                if (hasOverlap)
+                    throw new InvalidOperationException("Court is not available for the selected time slot.");
+
+                // Calculate price with potential PriceRules
+                var durationHours = (decimal)(request.EndTime - request.StartTime).TotalHours;
+                var basePrice = court.PricePerHour * durationHours;
+                var totalPrice = basePrice;
+
+                var matchingRule = court.PriceRules.FirstOrDefault(pr =>
+                    (pr.DayOfWeek == null || pr.DayOfWeek == dayOfWeek) &&
+                    requestStartTime >= pr.StartTime && requestEndTime <= pr.EndTime);
+
+                if (matchingRule is not null)
+                {
+                    totalPrice = matchingRule.FixedPrice ?? (basePrice * matchingRule.PriceMultiplier);
+                }
+
+                var reference = $"PS-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString()[..6].ToUpper()}";
+
+                var booking = new Booking
+                {
+                    Id = Guid.NewGuid(),
+                    BookingReference = reference,
+                    CourtId = request.CourtId,
+                    UserId = userId,
+                    StartTime = request.StartTime,
+                    EndTime = request.EndTime,
+                    Status = BookingStatus.Confirmed,
+                    PaymentStatus = PaymentStatus.Pending,
+                    TotalPrice = Math.Round(totalPrice, 2),
+                    Notes = request.Notes,
+                    Court = court,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _db.Bookings.Add(booking);
+                await _db.SaveChangesAsync();
+
+                if (transaction is not null)
+                {
+                    await transaction.CommitAsync();
+                }
+
+                var user = await _db.Users.FindAsync(userId);
+                booking.User = user!;
+
+                return MapToResponse(booking);
+            }
+            catch
+            {
+                if (transaction is not null)
+                {
+                    await transaction.RollbackAsync();
+                }
+                throw;
+            }
+            finally
+            {
+                if (transaction is not null)
+                {
+                    await transaction.DisposeAsync();
+                }
+            }
+        });
     }
 
     public async Task<List<BookingResponse>> GetMyBookingsAsync(Guid userId)
     {
         var bookings = await _db.Bookings
+            .AsNoTracking()
             .Include(b => b.Court)
                 .ThenInclude(c => c.Venue)
             .Include(b => b.User)
@@ -100,6 +149,7 @@ public class BookingService : IBookingService
     public async Task<BookingResponse?> GetByIdAsync(Guid userId, string userRole, Guid id)
     {
         var booking = await _db.Bookings
+            .AsNoTracking()
             .Include(b => b.Court)
                 .ThenInclude(c => c.Venue)
             .Include(b => b.User)
