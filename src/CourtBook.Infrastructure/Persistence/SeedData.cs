@@ -30,12 +30,13 @@ public static class SeedData
         var admin = new User { Id = Guid.NewGuid(), Name = "Admin", Email = "admin@courtbook.eg", PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123"), Phone = "01000000001", Role = Role.Admin };
         var ahmed = new User { Id = Guid.NewGuid(), Name = "Ahmed Mostafa", Email = "ahmed.owner@courtbook.eg", PasswordHash = BCrypt.Net.BCrypt.HashPassword("Owner@123"), Phone = "01000000002", Role = Role.Owner };
         var sara = new User { Id = Guid.NewGuid(), Name = "Sara Ibrahim", Email = "sara.owner@courtbook.eg", PasswordHash = BCrypt.Net.BCrypt.HashPassword("Owner@123"), Phone = "01000000003", Role = Role.Owner };
+        var mohamed = new User { Id = Guid.NewGuid(), Name = "محمد الحداد", Email = "mohamed.owner@courtbook.eg", PasswordHash = BCrypt.Net.BCrypt.HashPassword("Owner@123"), Phone = "01000000007", Role = Role.Owner };
         
         var omar = new User { Id = Guid.NewGuid(), Name = "Omar Hassan", Email = "omar@gmail.com", PasswordHash = BCrypt.Net.BCrypt.HashPassword("Client@123"), Phone = "01000000004", Role = Role.Client };
         var nada = new User { Id = Guid.NewGuid(), Name = "Nada Youssef", Email = "nada@gmail.com", PasswordHash = BCrypt.Net.BCrypt.HashPassword("Client@123"), Phone = "01000000005", Role = Role.Client };
         var karim = new User { Id = Guid.NewGuid(), Name = "Karim Adel", Email = "karim@gmail.com", PasswordHash = BCrypt.Net.BCrypt.HashPassword("Client@123"), Phone = "01000000006", Role = Role.Client };
 
-        await db.Users.AddRangeAsync(admin, ahmed, sara, omar, nada, karim);
+        await db.Users.AddRangeAsync(admin, ahmed, sara, mohamed, omar, nada, karim);
 
         // ── Venues ─────────────────────────────────────────────────────────────
         var venues = new List<Venue>
@@ -45,7 +46,7 @@ public static class SeedData
             new Venue { Id = Guid.NewGuid(), OwnerId = sara.Id, Name = "سنتر البطولة", City = "Nasr City, Cairo", Address = "Makram Ebeid St, Nasr City" },
             new Venue { Id = Guid.NewGuid(), OwnerId = sara.Id, Name = "ملاعب الزمالك الرياضية", City = "Zamalek, Cairo", Address = "Gezira Club St, Zamalek" },
             new Venue { Id = Guid.NewGuid(), OwnerId = ahmed.Id, Name = "نادي المستقبل", City = "New Cairo", Address = "90th Street, 5th Settlement" },
-            new Venue { Id = Guid.NewGuid(), OwnerId = sara.Id, Name = "ملعب Elshikh Sayed", City = "Giza", Address = "Haram Street, Giza" }
+            new Venue { Id = Guid.NewGuid(), OwnerId = mohamed.Id, Name = "ملعب Elshikh Sayed", City = "الفيوم", Address = "Haram Street, Fayoum" }
         };
 
         await db.Venues.AddRangeAsync(venues);
