@@ -46,7 +46,7 @@ public static class SeedData
             new Venue { Id = Guid.NewGuid(), OwnerId = sara.Id, Name = "سنتر البطولة", City = "Nasr City, Cairo", Address = "Makram Ebeid St, Nasr City" },
             new Venue { Id = Guid.NewGuid(), OwnerId = sara.Id, Name = "ملاعب الزمالك الرياضية", City = "Zamalek, Cairo", Address = "Gezira Club St, Zamalek" },
             new Venue { Id = Guid.NewGuid(), OwnerId = ahmed.Id, Name = "نادي المستقبل", City = "New Cairo", Address = "90th Street, 5th Settlement" },
-            new Venue { Id = Guid.NewGuid(), OwnerId = mohamed.Id, Name = "ملعب Elshikh Sayed", City = "الفيوم", Address = "Haram Street, Fayoum" }
+            new Venue { Id = Guid.NewGuid(), OwnerId = mohamed.Id, Name = "ملعب الشيخ سيد", City = "الفيوم", Address = "Elhawatem" }
         };
 
         await db.Venues.AddRangeAsync(venues);
