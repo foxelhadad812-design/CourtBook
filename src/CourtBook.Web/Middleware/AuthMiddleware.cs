@@ -22,7 +22,7 @@ public class AuthMiddleware
         // my-bookings -> Client only
 
         var isProtected = false;
-        if (path.StartsWith("/dashboard") || path.StartsWith("/bookings/mybookings") || path.StartsWith("/courts/book"))
+        if (path.StartsWith("/dashboard") || path.StartsWith("/bookings/mybookings"))
         {
             isProtected = true;
         }

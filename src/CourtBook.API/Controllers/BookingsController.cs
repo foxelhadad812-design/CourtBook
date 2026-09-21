@@ -19,7 +19,7 @@ public class BookingsController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Client")]
+    [Authorize(Roles = "Client,Owner,Admin")]
     public async Task<IActionResult> Create([FromBody] CreateBookingRequest request)
     {
         try

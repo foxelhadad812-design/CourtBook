@@ -35,6 +35,16 @@ public class CourtService : ICourtService
         return court is null ? null : MapToResponse(court);
     }
 
+    public async Task<CourtResponse?> GetByIdAsync(Guid id)
+    {
+        var court = await _db.Courts
+            .Include(c => c.Schedules)
+            .Include(c => c.Venue)
+            .FirstOrDefaultAsync(c => c.Id == id);
+
+        return court is null ? null : MapToResponse(court);
+    }
+
     public async Task<CourtResponse?> CreateAsync(Guid ownerId, Guid venueId, CreateCourtRequest request)
     {
         var venue = await _db.Venues.FindAsync(venueId);
@@ -144,8 +154,12 @@ public class CourtService : ICourtService
             Id = court.Id,
             VenueId = court.VenueId,
             Name = court.Name,
+            Description = court.Description,
             SportType = court.SportType.ToString(),
             PricePerHour = court.PricePerHour,
+            SurfaceType = court.SurfaceType,
+            IsIndoor = court.IsIndoor,
+            Capacity = court.Capacity,
             IsActive = court.IsActive,
             Schedules = court.Schedules?.Select(s => new ScheduleResponse
             {

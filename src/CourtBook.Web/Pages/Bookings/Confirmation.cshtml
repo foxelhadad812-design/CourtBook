@@ -1,57 +1,114 @@
-@page
+@page "{id:guid?}"
 @model CourtBook.Web.Pages.Bookings.ConfirmationModel
 @{
     ViewData["Title"] = "Booking Confirmed";
+    var durationHours = (Model.EndTime - Model.StartTime).TotalHours;
 }
 
-<div class="container py-5 text-center position-relative overflow-hidden" id="confetti-container">
+<div class="container py-5 text-center position-relative overflow-hidden" id="confetti-container" style="min-height: 80vh;">
     <div class="row justify-content-center">
-        <div class="col-md-6 col-lg-5">
-            <!-- Animated Checkmark -->
+        <div class="col-md-7 col-lg-6">
+            
+            <!-- Animated Success Icon -->
             <div class="mb-4 d-flex justify-content-center">
-                <div class="success-checkmark">
-                    <div class="check-icon">
-                        <span class="icon-line line-tip"></span>
-                        <span class="icon-line line-long"></span>
-                        <div class="icon-circle"></div>
-                        <div class="icon-fix"></div>
+                <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-success text-white shadow-lg" style="width: 80px; height: 80px; font-size: 2.75rem;">
+                    <i class="bi bi-check-lg"></i>
+                </div>
+            </div>
+
+            <!-- Header -->
+            <h1 class="fw-extrabold text-dark mb-2" style="font-size: 2.25rem; letter-spacing: -0.02em;">
+                Booking Confirmed!
+            </h1>
+            <p class="text-muted mb-4 fs-5">
+                Your court has been successfully reserved. Get ready for your match!
+            </p>
+
+            <!-- Booking Reference Badge -->
+            <div class="d-inline-flex align-items-center gap-2 bg-light border px-4 py-2 rounded-pill mb-4 shadow-xs">
+                <span class="text-muted small">Booking Reference:</span>
+                <strong class="text-primary font-monospace fs-6">@Model.BookingReference</strong>
+            </div>
+
+            <!-- Booking Details Card -->
+            <div class="card border-0 shadow-sm rounded-4 text-start mb-4 bg-white overflow-hidden" style="border-radius: var(--ps-radius-xl);">
+                <div class="card-body p-4 p-md-5">
+                    <h5 class="fw-bold text-dark mb-4 pb-2 border-bottom d-flex align-items-center justify-content-between">
+                        <span>Reservation Summary</span>
+                        <span class="badge bg-success-subtle text-success small">
+                            <i class="bi bi-patch-check-fill me-1"></i> Confirmed
+                        </span>
+                    </h5>
+
+                    <!-- Venue & Court -->
+                    <div class="mb-3 d-flex justify-content-between align-items-baseline">
+                        <span class="text-muted small">Facility</span>
+                        <div class="text-end">
+                            <strong class="text-dark d-block">@Model.VenueName</strong>
+                            <span class="text-muted small">@Model.VenueCity</span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3 d-flex justify-content-between align-items-baseline">
+                        <span class="text-muted small">Pitch / Court</span>
+                        <div class="text-end">
+                            <strong class="text-dark">@Model.CourtName</strong>
+                            <span class="badge bg-light text-dark border ms-1" style="font-size: 11px;">@Model.SportType</span>
+                        </div>
+                    </div>
+
+                    <!-- Date & Time -->
+                    <div class="mb-3 d-flex justify-content-between align-items-baseline">
+                        <span class="text-muted small">Date</span>
+                        <strong class="text-dark">@Model.StartTime.ToString("dddd, MMMM dd, yyyy")</strong>
+                    </div>
+
+                    <div class="mb-3 d-flex justify-content-between align-items-baseline">
+                        <span class="text-muted small">Time Slot</span>
+                        <strong class="text-dark">@Model.StartTime.ToString("hh:mm tt") &mdash; @Model.EndTime.ToString("hh:mm tt")</strong>
+                    </div>
+
+                    <div class="mb-3 d-flex justify-content-between align-items-baseline">
+                        <span class="text-muted small">Duration</span>
+                        <strong class="text-dark">@(durationHours >= 1 ? $"{durationHours:0.#} hr" : $"{durationHours * 60:0} min")</strong>
+                    </div>
+
+                    <div class="mb-3 d-flex justify-content-between align-items-baseline">
+                        <span class="text-muted small">Payment Status</span>
+                        <span class="badge bg-warning-subtle text-warning-emphasis fw-bold">
+                            @Model.PaymentStatus (Pay at Venue)
+                        </span>
+                    </div>
+
+                    <hr class="my-3 text-muted-subtle">
+
+                    <!-- Total Price -->
+                    <div class="d-flex justify-content-between align-items-baseline">
+                        <span class="text-muted fw-bold">Total Amount</span>
+                        <div>
+                            <span class="fs-2 fw-extrabold text-primary">@Model.TotalPrice</span>
+                            <span class="text-muted small fw-medium">EGP</span>
+                        </div>
+                    </div>
+
+                    <!-- Cancellation Policy Note -->
+                    <div class="p-3 bg-light rounded-3 mt-4 text-muted small" style="font-size: 12px; line-height: 1.5;">
+                        <i class="bi bi-info-circle text-primary me-1"></i>
+                        <strong>Cancellation Policy:</strong> Free cancellation up to 24 hours before your match. You can manage or cancel this reservation from your account dashboard.
                     </div>
                 </div>
             </div>
 
-            <h1 class="fw-bolder mb-2 text-dark">Booking Confirmed!</h1>
-            <p class="text-muted mb-4 fs-5">Get ready for your match. We've saved your spot.</p>
-
-            <div class="card border-0 shadow-sm rounded-4 text-start mb-4 bg-white">
-                <div class="card-body p-4">
-                    <h5 class="fw-bold mb-3 pb-2 border-bottom">Booking Details</h5>
-                    <div class="mb-2 d-flex justify-content-between">
-                        <span class="text-muted">Court</span>
-                        <span class="fw-bold">@Model.CourtName</span>
-                    </div>
-                    <div class="mb-2 d-flex justify-content-between">
-                        <span class="text-muted">Date</span>
-                        <span class="fw-bold">@Model.StartTime.ToString("MMMM dd, yyyy")</span>
-                    </div>
-                    <div class="mb-2 d-flex justify-content-between">
-                        <span class="text-muted">Time</span>
-                        <span class="fw-bold">@Model.StartTime.ToString("HH:mm") - @Model.EndTime.ToString("HH:mm")</span>
-                    </div>
-                    <div class="mb-2 d-flex justify-content-between">
-                        <span class="text-muted">Duration</span>
-                        <span class="fw-bold">@((Model.EndTime - Model.StartTime).TotalHours) hr</span>
-                    </div>
-                    <div class="d-flex justify-content-between pt-2 mt-3 border-top">
-                        <span class="text-muted fw-bold">Total Paid</span>
-                        <span class="fs-4 fw-bolder text-primary">$@Model.TotalPrice</span>
-                    </div>
-                </div>
+            <!-- Action Buttons -->
+            <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center">
+                <a href="/Bookings/MyBookings" class="ps-btn ps-btn-primary px-4 py-3 fw-bold">
+                    <i class="bi bi-journal-text me-1"></i> View My Bookings
+                </a>
+                <a href="/venues" class="ps-btn ps-btn-outline px-4 py-3 bg-white">
+                    <i class="bi bi-compass me-1"></i> Browse More Venues
+                </a>
             </div>
 
-            <div class="d-grid gap-3 d-sm-flex justify-content-sm-center">
-                <a asp-page="/Bookings/MyBookings" class="btn btn-primary btn-lg rounded-pill px-4 shadow-sm">View My Bookings</a>
-                <a asp-page="/Venues/Index" class="btn btn-outline-secondary btn-lg rounded-pill px-4 bg-white">Book Another</a>
-            </div>
         </div>
     </div>
 </div>
@@ -60,64 +117,13 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            var duration = 3 * 1000;
-            var animationEnd = Date.now() + duration;
-            var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
-
-            function randomInRange(min, max) {
-              return Math.random() * (max - min) + min;
+            if (typeof confetti === 'function') {
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
             }
-
-            var interval = setInterval(function() {
-              var timeLeft = animationEnd - Date.now();
-
-              if (timeLeft <= 0) {
-                return clearInterval(interval);
-              }
-
-              var particleCount = 50 * (timeLeft / duration);
-              confetti(Object.assign({}, defaults, { particleCount,
-                origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
-              }));
-              confetti(Object.assign({}, defaults, { particleCount,
-                origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
-              }));
-            }, 250);
         });
     </script>
-
-    <style>
-        .success-checkmark {
-            width: 80px; height: 115px; margin: 0 auto;
-        }
-        .success-checkmark .check-icon {
-            width: 80px; height: 80px; position: relative; border-radius: 50%; box-sizing: content-box; border: 4px solid #4CAF50;
-        }
-        .success-checkmark .check-icon::before {
-            top: 3px; left: -2px; width: 30px; transform-origin: 100% 50%; border-radius: 100px 0 0 100px;
-        }
-        .success-checkmark .check-icon::after {
-            top: 0; left: 30px; width: 60px; transform-origin: 0 50%; border-radius: 0 100px 100px 0; animation: rotate-circle 4.25s ease-in;
-        }
-        .success-checkmark .check-icon::before, .success-checkmark .check-icon::after {
-            content: ''; height: 100px; position: absolute; background: var(--bg-color); transform: rotate(-45deg);
-        }
-        .success-checkmark .check-icon .icon-line {
-            height: 5px; background-color: #4CAF50; display: block; border-radius: 2px; position: absolute; z-index: 10;
-        }
-        .success-checkmark .check-icon .icon-line.line-tip {
-            top: 46px; left: 14px; width: 25px; transform: rotate(45deg); animation: icon-line-tip 0.75s;
-        }
-        .success-checkmark .check-icon .icon-line.line-long {
-            top: 38px; right: 8px; width: 47px; transform: rotate(-45deg); animation: icon-line-long 0.75s;
-        }
-        .success-checkmark .check-icon .icon-circle {
-            top: -4px; left: -4px; z-index: 10; width: 80px; height: 80px; border-radius: 50%; position: absolute; box-sizing: content-box; border: 4px solid rgba(76, 175, 80, .5);
-        }
-        .success-checkmark .check-icon .icon-fix {
-            top: 8px; width: 5px; left: 26px; z-index: 1; height: 85px; position: absolute; transform: rotate(-45deg); background-color: var(--bg-color);
-        }
-        @@keyframes icon-line-tip { 0% { width: 0; left: 1px; top: 19px; } 54% { width: 0; left: 1px; top: 19px; } 70% { width: 50px; left: -8px; top: 37px; } 84% { width: 17px; left: 21px; top: 48px; } 100% { width: 25px; left: 14px; top: 46px; } }
-        @@keyframes icon-line-long { 0% { width: 0; right: 46px; top: 54px; } 65% { width: 0; right: 46px; top: 54px; } 84% { width: 55px; right: 0px; top: 35px; } 100% { width: 47px; right: 8px; top: 38px; } }
-    </style>
 }

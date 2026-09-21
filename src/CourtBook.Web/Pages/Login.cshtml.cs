@@ -11,6 +11,7 @@ public class LoginModel : PageModel
     public LoginModel(ApiClient api) => _api = api;
 
     [BindProperty] public LoginRequest Input { get; set; } = new();
+    [BindProperty(SupportsGet = true)] public string? ReturnUrl { get; set; }
     public string? ErrorMessage { get; set; }
 
     public void OnGet() { }
@@ -25,9 +26,13 @@ public class LoginModel : PageModel
             {
                 HttpContext.Session.SetString("JwtToken", result.Token);
                 HttpContext.Session.SetString("UserRole", result.Role);
-                // In a real app we'd decode JWT for Name. For now we just query or set a dummy
                 HttpContext.Session.SetString("UserName", Input.Email);
                 
+                if (!string.IsNullOrEmpty(ReturnUrl) && Url.IsLocalUrl(ReturnUrl))
+                {
+                    return LocalRedirect(ReturnUrl);
+                }
+
                 if (result.Role == "Owner") return RedirectToPage("/Dashboard/Index");
                 return RedirectToPage("/Venues/Index");
             }

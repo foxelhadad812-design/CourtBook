@@ -32,6 +32,14 @@ public class CourtsController : ControllerBase
         return court is null ? NotFound() : Ok(court);
     }
 
+    [HttpGet("/api/courts/{id}")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetDirectById(Guid id)
+    {
+        var court = await _courtService.GetByIdAsync(id);
+        return court is null ? NotFound() : Ok(court);
+    }
+
     [HttpPost]
     [Authorize(Roles = "Owner")]
     public async Task<IActionResult> Create(Guid venueId, [FromBody] CreateCourtRequest request)
