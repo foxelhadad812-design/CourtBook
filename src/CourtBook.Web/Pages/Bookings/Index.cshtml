@@ -1,0 +1,494 @@
+@page "/Bookings"
+@model CourtBook.Web.Pages.Bookings.IndexModel
+@{
+    ViewData["Title"] = "My Bookings";
+    var activeStatus = (Model.Status ?? "upcoming").ToLowerInvariant();
+}
+
+<div class="container py-4 py-md-5">
+    <!-- Page Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4 pb-3 border-bottom border-dark-subtle">
+        <div>
+            <h1 class="h2 fw-bold mb-1 text-light">
+                <i class="bi bi-calendar2-check text-primary me-2"></i>My Bookings
+            </h1>
+            <p class="text-muted mb-0 small">Manage your court reservations, track match status, and view booking history.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="/Venues" class="ps-btn ps-btn-primary ps-btn-sm">
+                <i class="bi bi-search me-1"></i> Book New Court
+            </a>
+        </div>
+    </div>
+
+    <!-- Feedback Alerts -->
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm d-flex align-items-center mb-4" role="alert">
+            <i class="bi bi-check-circle-fill text-success fs-5 me-2"></i>
+            <div>@Model.SuccessMessage</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm d-flex align-items-center mb-4" role="alert">
+            <i class="bi bi-exclamation-triangle-fill text-danger fs-5 me-2"></i>
+            <div>@Model.ErrorMessage</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Tabs & Filter Bar -->
+    <div class="card bg-dark border-secondary border-opacity-25 shadow-sm mb-4">
+        <div class="card-body p-3">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-stretch align-items-md-center gap-3">
+                <!-- Status Navigation Pills -->
+                <div class="nav nav-pills gap-1 flex-nowrap overflow-x-auto pb-1 pb-md-0" role="tablist">
+                    <a href="/Bookings?status=upcoming&sport=@Model.Sport" 
+                       class="nav-link @(activeStatus == "upcoming" ? "active bg-primary" : "text-muted") py-1 px-3 rounded-pill text-nowrap fw-semibold small">
+                        <i class="bi bi-clock me-1"></i> Upcoming
+                    </a>
+                    <a href="/Bookings?status=completed&sport=@Model.Sport" 
+                       class="nav-link @(activeStatus == "completed" ? "active bg-primary" : "text-muted") py-1 px-3 rounded-pill text-nowrap fw-semibold small">
+                        <i class="bi bi-check2-circle me-1"></i> Completed
+                    </a>
+                    <a href="/Bookings?status=cancelled&sport=@Model.Sport" 
+                       class="nav-link @(activeStatus == "cancelled" ? "active bg-primary" : "text-muted") py-1 px-3 rounded-pill text-nowrap fw-semibold small">
+                        <i class="bi bi-x-circle me-1"></i> Cancelled
+                    </a>
+                    <a href="/Bookings?status=all&sport=@Model.Sport" 
+                       class="nav-link @(activeStatus == "all" ? "active bg-primary" : "text-muted") py-1 px-3 rounded-pill text-nowrap fw-semibold small">
+                        <i class="bi bi-grid me-1"></i> All
+                    </a>
+                </div>
+
+                <!-- Sport Filter -->
+                <div class="d-flex align-items-center gap-2">
+                    <label for="sportFilter" class="small text-muted text-nowrap mb-0 d-none d-sm-inline">Sport:</label>
+                    <select id="sportFilter" class="form-select form-select-sm bg-dark text-light border-secondary border-opacity-50"
+                            style="width: 160px;"
+                            onchange="window.location.href='/Bookings?status=@activeStatus&sport=' + encodeURIComponent(this.value)">
+                        <option value="">All Sports</option>
+                        <option value="Football" selected="@(Model.Sport == "Football")">⚽ Football</option>
+                        <option value="Padel" selected="@(Model.Sport == "Padel")">🎾 Padel</option>
+                        <option value="Tennis" selected="@(Model.Sport == "Tennis")">🎾 Tennis</option>
+                        <option value="Basketball" selected="@(Model.Sport == "Basketball")">🏀 Basketball</option>
+                        <option value="Squash" selected="@(Model.Sport == "Squash")">🏸 Squash</option>
+                        <option value="Swimming" selected="@(Model.Sport == "Swimming")">🏊 Swimming</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bookings Cards Feed -->
+    @if (Model.PagedBookings.Items.Any())
+    {
+        <div class="row g-4 mb-4">
+            @foreach (var b in Model.PagedBookings.Items)
+            {
+                var isCancelled = b.Status.Equals("Cancelled", StringComparison.OrdinalIgnoreCase);
+                var isCompleted = b.Status.Equals("Completed", StringComparison.OrdinalIgnoreCase);
+                var isConfirmed = b.Status.Equals("Confirmed", StringComparison.OrdinalIgnoreCase);
+
+                <div class="col-12 col-md-6 col-lg-4">
+                    <div class="card h-100 bg-dark border-secondary border-opacity-25 shadow-sm rounded-3 overflow-hidden position-relative hover-lift">
+                        <!-- Top Accent Line -->
+                        <div class="position-absolute top-0 start-0 end-0" style="height: 3px; background: @(isConfirmed ? "var(--ps-primary, #00e5ff)" : (isCompleted ? "#3b82f6" : "#ef4444"));"></div>
+
+                        <!-- Card Header -->
+                        <div class="card-header bg-dark bg-opacity-50 border-secondary border-opacity-10 py-3 px-4 d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="badge bg-secondary bg-opacity-25 text-light font-monospace small px-2 py-1">
+                                    @b.BookingReference
+                                </span>
+                            </div>
+                            <div>
+                                @if (isConfirmed)
+                                {
+                                    <span class="badge bg-success bg-opacity-20 text-success border border-success border-opacity-25 rounded-pill px-2 py-1 small">
+                                        <i class="bi bi-check-circle me-1"></i>Confirmed
+                                    </span>
+                                }
+                                else if (isCompleted)
+                                {
+                                    <span class="badge bg-info bg-opacity-20 text-info border border-info border-opacity-25 rounded-pill px-2 py-1 small">
+                                        <i class="bi bi-flag me-1"></i>Completed
+                                    </span>
+                                }
+                                else if (isCancelled)
+                                {
+                                    <span class="badge bg-danger bg-opacity-20 text-danger border border-danger border-opacity-25 rounded-pill px-2 py-1 small">
+                                        <i class="bi bi-x-circle me-1"></i>Cancelled
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning bg-opacity-20 text-warning border border-warning border-opacity-25 rounded-pill px-2 py-1 small">
+                                        @b.Status
+                                    </span>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Card Body -->
+                        <div class="card-body p-4">
+                            <!-- Venue & Court Title -->
+                            <div class="mb-3">
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-0-5 rounded-pill small">
+                                        @b.SportType
+                                    </span>
+                                    <span class="text-muted small"><i class="bi bi-geo-alt me-1"></i>@b.VenueCity</span>
+                                </div>
+                                <h5 class="card-title fw-bold text-light mb-0 text-truncate" title="@b.VenueName">
+                                    @b.VenueName
+                                </h5>
+                                <div class="text-muted small fw-medium mt-1">
+                                    <i class="bi bi-layout-text-window-reverse me-1 text-primary"></i>@b.CourtName
+                                </div>
+                            </div>
+
+                            <!-- Schedule Info -->
+                            <div class="bg-black bg-opacity-25 rounded-3 p-3 mb-3 border border-secondary border-opacity-10">
+                                <div class="d-flex align-items-center gap-2 text-light mb-2">
+                                    <i class="bi bi-calendar3 text-primary"></i>
+                                    <span class="fw-semibold">@b.StartTime.ToString("dddd, MMM dd, yyyy")</span>
+                                </div>
+                                <div class="d-flex align-items-center justify-content-between text-muted small">
+                                    <div>
+                                        <i class="bi bi-clock me-1 text-primary"></i>
+                                        <span>@b.StartTime.ToString("HH:mm") - @b.EndTime.ToString("HH:mm")</span>
+                                    </div>
+                                    <div class="badge bg-secondary bg-opacity-20 text-light px-2 py-1">
+                                        @((int)(b.EndTime - b.StartTime).TotalMinutes) mins
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Price & Payment State -->
+                            <div class="d-flex justify-content-between align-items-center pt-2 border-top border-secondary border-opacity-10">
+                                <div>
+                                    <div class="text-muted small">Total Paid/Due</div>
+                                    <div class="fw-bold fs-5 text-primary">EGP @b.TotalPrice.ToString("0.00")</div>
+                                </div>
+                                <div>
+                                    <span class="badge bg-secondary bg-opacity-25 text-light border border-secondary border-opacity-25 px-2 py-1 small">
+                                        <i class="bi bi-credit-card me-1"></i>@b.PaymentStatus
+                                    </span>
+                                </div>
+                            </div>
+
+                            @if (isCancelled && !string.IsNullOrWhiteSpace(b.CancellationReason))
+                            {
+                                <div class="mt-3 p-2 rounded bg-danger bg-opacity-10 border border-danger border-opacity-25 small text-danger">
+                                    <i class="bi bi-info-circle me-1"></i><strong>Cancelled:</strong> @b.CancellationReason
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Card Footer Actions -->
+                        <div class="card-footer bg-dark bg-opacity-75 border-secondary border-opacity-10 p-3 d-flex gap-2">
+                            <a href="/Bookings/Details?id=@b.Id" class="btn btn-sm btn-outline-light flex-grow-1 rounded-pill">
+                                <i class="bi bi-info-circle me-1"></i> Details
+                            </a>
+
+                            @if (b.CanCancel)
+                            {
+                                <button type="button" 
+                                        class="btn btn-sm btn-outline-danger rounded-pill px-3"
+                                        onclick="openCancelModal('@b.Id', '@b.BookingReference')">
+                                    <i class="bi bi-x me-1"></i> Cancel
+                                </button>
+                            }
+                            else if (b.IsEligibleForReview)
+                            {
+                                <a href="/Venues/Details?id=@b.VenueId#reviews" class="btn btn-sm btn-warning rounded-pill px-3 text-dark fw-medium">
+                                    <i class="bi bi-star-fill me-1"></i> Review
+                                </a>
+                            }
+                            else if (b.HasReviewed)
+                            {
+                                <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 d-flex align-items-center px-3 rounded-pill small">
+                                    <i class="bi bi-star-fill me-1"></i> Reviewed
+                                </span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Pagination Controls -->
+        @if (Model.PagedBookings.TotalPages > 1)
+        {
+            <nav aria-label="Bookings navigation" class="mt-4">
+                <ul class="pagination justify-content-center gap-1">
+                    <li class="page-item @(!Model.PagedBookings.HasPreviousPage ? "disabled" : "")">
+                        <a class="page-link bg-dark text-light border-secondary border-opacity-25 rounded-pill px-3" 
+                           href="/Bookings?status=@activeStatus&sport=@Model.Sport&p=@(Model.P - 1)">
+                            <i class="bi bi-chevron-left"></i> Prev
+                        </a>
+                    </li>
+
+                    @for (int pageIdx = 1; pageIdx <= Model.PagedBookings.TotalPages; pageIdx++)
+                    {
+                        <li class="page-item @(pageIdx == Model.P ? "active" : "")">
+                            <a class="page-link @(pageIdx == Model.P ? "bg-primary text-black fw-bold" : "bg-dark text-light") border-secondary border-opacity-25 rounded-circle text-center mx-1"
+                               style="width: 38px; height: 38px; line-height: 22px;"
+                               href="/Bookings?status=@activeStatus&sport=@Model.Sport&p=@pageIdx">
+                                @pageIdx
+                            </a>
+                        </li>
+                    }
+
+                    <li class="page-item @(!Model.PagedBookings.HasNextPage ? "disabled" : "")">
+                        <a class="page-link bg-dark text-light border-secondary border-opacity-25 rounded-pill px-3" 
+                           href="/Bookings?status=@activeStatus&sport=@Model.Sport&p=@(Model.P + 1)">
+                            Next <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        }
+    }
+    else
+    {
+        <!-- Empty States -->
+        <div class="card bg-dark border-secondary border-opacity-25 shadow-sm rounded-4 p-5 text-center my-4">
+            <div class="card-body py-4">
+                <div class="display-4 text-muted mb-3">
+                    @if (activeStatus == "upcoming")
+                    {
+                        <i class="bi bi-calendar2-x text-primary opacity-50"></i>
+                    }
+                    else if (activeStatus == "completed")
+                    {
+                        <i class="bi bi-trophy text-warning opacity-50"></i>
+                    }
+                    else if (activeStatus == "cancelled")
+                    {
+                        <i class="bi bi-slash-circle text-danger opacity-50"></i>
+                    }
+                    else
+                    {
+                        <i class="bi bi-inbox text-muted opacity-50"></i>
+                    }
+                </div>
+
+                <h4 class="fw-bold text-light mb-2">
+                    @if (activeStatus == "upcoming")
+                    {
+                        <span>No Upcoming Bookings</span>
+                    }
+                    else if (activeStatus == "completed")
+                    {
+                        <span>No Completed Bookings</span>
+                    }
+                    else if (activeStatus == "cancelled")
+                    {
+                        <span>No Cancelled Bookings</span>
+                    }
+                    else
+                    {
+                        <span>No Bookings Found</span>
+                    }
+                </h4>
+
+                <p class="text-muted mx-auto mb-4" style="max-width: 480px;">
+                    @if (activeStatus == "upcoming")
+                    {
+                        <span>You don't have any scheduled matches right now. Ready to play? Explore top courts and reserve your next game today!</span>
+                    }
+                    else if (activeStatus == "completed")
+                    {
+                        <span>You have not completed any bookings yet. Book a court and track your match history here.</span>
+                    }
+                    else if (activeStatus == "cancelled")
+                    {
+                        <span>You do not have any cancelled reservations. All your bookings are on schedule!</span>
+                    }
+                    else
+                    {
+                        <span>No reservations match your current filters. Try changing your sport or status filters.</span>
+                    }
+                </p>
+
+                <a href="/Venues" class="ps-btn ps-btn-primary ps-btn-md rounded-pill px-4">
+                    <i class="bi bi-search me-1"></i> Explore Facilities
+                </a>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Dynamic Cancellation Preview & Confirmation Modal -->
+<div class="modal fade" id="cancelBookingModal" tabindex="-1" aria-labelledby="cancelBookingModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-light border-secondary border-opacity-50 shadow-lg rounded-4">
+            <div class="modal-header border-secondary border-opacity-25 pb-3">
+                <h5 class="modal-title fw-bold text-danger d-flex align-items-center" id="cancelBookingModalLabel">
+                    <i class="bi bi-exclamation-octagon-fill me-2"></i> Cancel Reservation
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body py-4" id="cancelModalBody">
+                <!-- Dynamic Loading Spinner -->
+                <div id="cancelModalLoading" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading policy...</span>
+                    </div>
+                    <div class="text-muted small mt-2">Checking cancellation policy...</div>
+                </div>
+
+                <!-- Dynamic Content Container -->
+                <div id="cancelModalContent" class="d-none">
+                    <div class="mb-3">
+                        <div class="text-muted small">Reservation Reference:</div>
+                        <div class="fw-bold font-monospace text-light fs-5" id="previewRef"></div>
+                        <div class="text-light small mt-1" id="previewVenueCourt"></div>
+                    </div>
+
+                    <!-- Policy Banner -->
+                    <div id="previewPolicyAlert" class="alert mb-3 border-0 rounded-3 p-3">
+                        <div class="d-flex align-items-start">
+                            <i id="previewPolicyIcon" class="fs-4 me-2"></i>
+                            <div>
+                                <strong id="previewPolicyHeadline"></strong>
+                                <div id="previewPolicyMessage" class="small mt-1"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Financial Breakdown -->
+                    <div class="bg-black bg-opacity-30 rounded-3 p-3 mb-3 border border-secondary border-opacity-10 small">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Total Booking Price:</span>
+                            <span class="fw-bold" id="previewTotalPrice"></span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1 text-danger">
+                            <span>Cancellation Fee:</span>
+                            <span class="fw-bold" id="previewFee"></span>
+                        </div>
+                        <div class="d-flex justify-content-between pt-2 border-top border-secondary border-opacity-15 fs-6 text-success fw-bold">
+                            <span>Estimated Refund:</span>
+                            <span id="previewRefund"></span>
+                        </div>
+                    </div>
+
+                    <form method="post" asp-page-handler="Cancel" id="confirmCancelForm">
+                        <input type="hidden" name="id" id="cancelBookingIdInput" />
+                        <div class="mb-3">
+                            <label for="cancelReasonInput" class="form-label small text-muted">Reason for cancellation (optional):</label>
+                            <textarea name="reason" id="cancelReasonInput" class="form-control bg-dark text-light border-secondary border-opacity-50 small" rows="2" placeholder="e.g. Schedule conflict, weather, injury..."></textarea>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2 pt-2 border-top border-secondary border-opacity-15">
+                            <button type="button" class="btn btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Keep Booking</button>
+                            <button type="submit" id="btnConfirmCancel" class="btn btn-danger rounded-pill px-4 fw-semibold">
+                                Confirm Cancellation
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Error Container -->
+                <div id="cancelModalError" class="alert alert-danger d-none mb-0 small"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let cancelModalInstance = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const modalEl = document.getElementById('cancelBookingModal');
+        if (modalEl) {
+            cancelModalInstance = new bootstrap.Modal(modalEl);
+        }
+
+        const confirmForm = document.getElementById('confirmCancelForm');
+        if (confirmForm) {
+            confirmForm.addEventListener('submit', () => {
+                const btn = document.getElementById('btnConfirmCancel');
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Cancelling...';
+                }
+            });
+        }
+    });
+
+    async function openCancelModal(bookingId, reference) {
+        if (!cancelModalInstance) return;
+
+        document.getElementById('cancelModalLoading').classList.remove('d-none');
+        document.getElementById('cancelModalContent').classList.add('d-none');
+        document.getElementById('cancelModalError').classList.add('d-none');
+        document.getElementById('cancelBookingIdInput').value = bookingId;
+
+        cancelModalInstance.show();
+
+        try {
+            const resp = await fetch(`/Bookings?handler=CancellationPreview&id=${bookingId}`);
+            if (!resp.ok) {
+                const err = await resp.json().catch(() => ({ error: 'Failed to fetch policy' }));
+                throw new Error(err.error || 'Unable to check cancellation eligibility.');
+            }
+
+            const preview = await resp.json();
+            renderCancellationPreview(preview);
+        } catch (err) {
+            document.getElementById('cancelModalLoading').classList.add('d-none');
+            const errDiv = document.getElementById('cancelModalError');
+            errDiv.textContent = err.message || 'An error occurred checking cancellation rules.';
+            errDiv.classList.remove('d-none');
+        }
+    }
+
+    function renderCancellationPreview(p) {
+        document.getElementById('cancelModalLoading').classList.add('d-none');
+        document.getElementById('cancelModalContent').classList.remove('d-none');
+
+        document.getElementById('previewRef').textContent = p.bookingReference;
+        document.getElementById('previewVenueCourt').textContent = `${p.venueName} • ${p.courtName}`;
+
+        document.getElementById('previewTotalPrice').textContent = `EGP ${p.totalPrice.toFixed(2)}`;
+        document.getElementById('previewFee').textContent = `EGP ${p.cancellationFee.toFixed(2)}`;
+        document.getElementById('previewRefund').textContent = `EGP ${p.refundAmount.toFixed(2)}`;
+
+        const alertBox = document.getElementById('previewPolicyAlert');
+        const icon = document.getElementById('previewPolicyIcon');
+        const headline = document.getElementById('previewPolicyHeadline');
+        const message = document.getElementById('previewPolicyMessage');
+        const confirmBtn = document.getElementById('btnConfirmCancel');
+
+        if (!p.canCancel) {
+            alertBox.className = 'alert alert-danger mb-3 border-0 rounded-3 p-3';
+            icon.className = 'bi bi-x-octagon-fill text-danger fs-4 me-2';
+            headline.textContent = 'Cancellation Not Allowed';
+            message.textContent = p.reasonIfNotAllowed || 'This reservation cannot be cancelled.';
+            confirmBtn.disabled = true;
+            return;
+        }
+
+        confirmBtn.disabled = false;
+        if (p.isFreeCancellation) {
+            alertBox.className = 'alert alert-success mb-3 border-0 rounded-3 p-3';
+            icon.className = 'bi bi-shield-check text-success fs-4 me-2';
+            headline.textContent = 'Free Cancellation Available';
+            message.textContent = `You are cancelling ${p.hoursUntilStart} hours before match time (within the ${p.freeCancellationHours}h free window). You will receive a 100% refund.`;
+        } else {
+            alertBox.className = 'alert alert-warning mb-3 border-0 rounded-3 p-3';
+            icon.className = 'bi bi-exclamation-triangle-fill text-warning fs-4 me-2';
+            headline.textContent = `Late Cancellation Fee Applies (${p.lateCancellationFeePercent}%)`;
+            message.textContent = `You are cancelling less than ${p.freeCancellationHours} hours before match time. A late fee of EGP ${p.cancellationFee.toFixed(2)} applies.`;
+        }
+    }
+</script>
+}

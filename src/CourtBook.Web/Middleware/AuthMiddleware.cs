@@ -22,7 +22,9 @@ public class AuthMiddleware
         // my-bookings -> Client only
 
         var isProtected = false;
-        if (path.StartsWith("/dashboard") || path.StartsWith("/bookings/mybookings"))
+        if (path.StartsWith("/dashboard") || 
+            path.StartsWith("/profile") || 
+            (path.StartsWith("/bookings") && !path.StartsWith("/bookings/confirmation")))
         {
             isProtected = true;
         }
@@ -32,7 +34,8 @@ public class AuthMiddleware
             var token = context.Session.GetString("JwtToken");
             if (string.IsNullOrEmpty(token))
             {
-                context.Response.Redirect("/Login");
+                var returnUrl = Uri.EscapeDataString(context.Request.Path + context.Request.QueryString);
+                context.Response.Redirect($"/Login?returnUrl={returnUrl}");
                 return;
             }
         }

@@ -38,9 +38,10 @@ public class BookingsController : ControllerBase
     }
 
     [HttpGet("my")]
-    public async Task<IActionResult> GetMyBookings()
+    public async Task<IActionResult> GetMyBookings([FromQuery] BookingQueryRequest request)
     {
-        return Ok(await _bookingService.GetMyBookingsAsync(User.GetUserId()));
+        var result = await _bookingService.GetMyBookingsPagedAsync(User.GetUserId(), request);
+        return Ok(result);
     }
 
     [HttpGet("{id}")]
@@ -53,21 +54,48 @@ public class BookingsController : ControllerBase
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return StatusCode(403, new { error = ex.Message });
         }
     }
 
-    [HttpPut("{id}/cancel")]
-    public async Task<IActionResult> Cancel(Guid id)
+    [HttpGet("{id}/cancellation-preview")]
+    public async Task<IActionResult> GetCancellationPreview(Guid id)
     {
         try
         {
-            var success = await _bookingService.CancelAsync(User.GetUserId(), User.GetUserRole(), id);
-            return success ? NoContent() : NotFound();
+            var preview = await _bookingService.GetCancellationPreviewAsync(User.GetUserId(), User.GetUserRole(), id);
+            return Ok(preview);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return StatusCode(403, new { error = ex.Message });
+        }
+    }
+
+    [HttpPost("{id}/cancel")]
+    [HttpPut("{id}/cancel")]
+    public async Task<IActionResult> Cancel(Guid id, [FromBody] CancelBookingRequest? request = null)
+    {
+        try
+        {
+            var result = await _bookingService.CancelWithPolicyAsync(User.GetUserId(), User.GetUserRole(), id, request);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { error = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
         }
     }
 }

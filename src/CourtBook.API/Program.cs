@@ -33,6 +33,7 @@ builder.Services.AddScoped<IReviewService,       ReviewService>();
 builder.Services.AddScoped<IFavoriteService,     FavoriteService>();
 builder.Services.AddScoped<IGameService,         GameService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IProfileService,      ProfileService>();
 
 // ── FluentValidation ──────────────────────────────────────────────────────────
 // Registers all validators from the Application assembly automatically.
