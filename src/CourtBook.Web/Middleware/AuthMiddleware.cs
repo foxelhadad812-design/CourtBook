@@ -23,6 +23,7 @@ public class AuthMiddleware
 
         var isProtected = false;
         if (path.StartsWith("/dashboard") || 
+            path.StartsWith("/owner") ||
             path.StartsWith("/profile") || 
             (path.StartsWith("/bookings") && !path.StartsWith("/bookings/confirmation")))
         {

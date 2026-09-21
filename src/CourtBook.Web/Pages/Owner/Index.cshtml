@@ -1,0 +1,444 @@
+@page "/Owner"
+@model CourtBook.Web.Pages.Owner.IndexModel
+@{
+    ViewData["Title"] = "Facility Owner Dashboard";
+    var d = Model.Dashboard;
+    var activeStatus = (Model.Status ?? "all").ToLowerInvariant();
+}
+
+<div class="container py-4 py-md-5">
+    @if (Model.IsForbidden)
+    {
+        <div class="card bg-dark border-secondary border-opacity-25 shadow-sm rounded-4 p-5 text-center my-4">
+            <div class="card-body py-4">
+                <i class="bi bi-shield-lock display-3 text-warning mb-3"></i>
+                <h3 class="fw-bold text-light mb-2">Facility Owner Access Required</h3>
+                <p class="text-muted mx-auto mb-4" style="max-width: 480px;">
+                    This dashboard is restricted to registered sports facility owners and administrators. If you are an owner, please sign in with your facility credentials.
+                </p>
+                <div class="d-flex justify-content-center gap-2">
+                    <a href="/Venues" class="ps-btn ps-btn-primary ps-btn-md rounded-pill px-4">
+                        <i class="bi bi-search me-1"></i> Browse Facilities
+                    </a>
+                    <a href="/Logout" class="btn btn-outline-light rounded-pill px-4">
+                        Sign Out
+                    </a>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- Header -->
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4 pb-3 border-bottom border-dark-subtle">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <span class="badge bg-primary bg-opacity-15 text-primary border border-primary border-opacity-25 px-2 py-1 rounded-pill small">
+                        <i class="bi bi-shield-check me-1"></i>Owner Portal
+                    </span>
+                    <span class="text-muted small">@DateTime.UtcNow.ToString("dddd, MMMM dd, yyyy")</span>
+                </div>
+                <h1 class="h2 fw-bold mb-0 text-light">Facility Owner Dashboard</h1>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="/Venues" class="btn btn-outline-light btn-sm rounded-pill px-3">
+                    <i class="bi bi-eye me-1"></i> View Public Site
+                </a>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm d-flex align-items-center mb-4" role="alert">
+                <i class="bi bi-exclamation-triangle-fill text-danger fs-5 me-2"></i>
+                <div>@Model.ErrorMessage</div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        @if (d != null)
+        {
+            <!-- TOP METRICS: 6 CARDS -->
+            <div class="row g-3 mb-4">
+                <!-- Total Venues -->
+                <div class="col-6 col-md-4 col-xl-2">
+                    <div class="card bg-dark border-secondary border-opacity-25 shadow-sm rounded-4 p-3 h-100">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="text-muted small">Total Venues</span>
+                            <span class="badge bg-primary bg-opacity-15 text-primary p-2 rounded-circle">
+                                <i class="bi bi-buildings"></i>
+                            </span>
+                        </div>
+                        <div class="fw-bold fs-3 text-light">@d.TotalVenues</div>
+                        <div class="text-muted small mt-1">Managed facilities</div>
+                    </div>
+                </div>
+
+                <!-- Total Courts -->
+                <div class="col-6 col-md-4 col-xl-2">
+                    <div class="card bg-dark border-secondary border-opacity-25 shadow-sm rounded-4 p-3 h-100">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="text-muted small">Total Courts</span>
+                            <span class="badge bg-info bg-opacity-15 text-info p-2 rounded-circle">
+                                <i class="bi bi-grid-3x3"></i>
+                            </span>
+                        </div>
+                        <div class="fw-bold fs-3 text-light">@d.TotalCourts</div>
+                        <div class="text-muted small mt-1">Active courts</div>
+                    </div>
+                </div>
+
+                <!-- Upcoming Bookings -->
+                <div class="col-6 col-md-4 col-xl-2">
+                    <div class="card bg-dark border-secondary border-opacity-25 shadow-sm rounded-4 p-3 h-100">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="text-muted small">Upcoming</span>
+                            <span class="badge bg-success bg-opacity-15 text-success p-2 rounded-circle">
+                                <i class="bi bi-calendar2-week"></i>
+                            </span>
+                        </div>
+                        <div class="fw-bold fs-3 text-success">@d.UpcomingBookingsCount</div>
+                        <div class="text-muted small mt-1">Confirmed matches</div>
+                    </div>
+                </div>
+
+                <!-- Completed Matches -->
+                <div class="col-6 col-md-4 col-xl-2">
+                    <div class="card bg-dark border-secondary border-opacity-25 shadow-sm rounded-4 p-3 h-100">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="text-muted small">Completed</span>
+                            <span class="badge bg-secondary bg-opacity-25 text-light p-2 rounded-circle">
+                                <i class="bi bi-check2-circle"></i>
+                            </span>
+                        </div>
+                        <div class="fw-bold fs-3 text-light">@d.CompletedBookingsCount</div>
+                        <div class="text-muted small mt-1">Historical games</div>
+                    </div>
+                </div>
+
+                <!-- Cancelled Bookings -->
+                <div class="col-6 col-md-4 col-xl-2">
+                    <div class="card bg-dark border-secondary border-opacity-25 shadow-sm rounded-4 p-3 h-100">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="text-muted small">Cancelled</span>
+                            <span class="badge bg-danger bg-opacity-15 text-danger p-2 rounded-circle">
+                                <i class="bi bi-x-circle"></i>
+                            </span>
+                        </div>
+                        <div class="fw-bold fs-3 text-danger">@d.CancelledBookingsCount</div>
+                        <div class="text-muted small mt-1">Refunded / Late fee</div>
+                    </div>
+                </div>
+
+                <!-- Total Revenue -->
+                <div class="col-6 col-md-4 col-xl-2">
+                    <div class="card bg-dark border-secondary border-opacity-25 shadow-sm rounded-4 p-3 h-100 border-start border-3 border-start-success">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="text-muted small">Total Revenue</span>
+                            <span class="badge bg-success bg-opacity-15 text-success p-2 rounded-circle">
+                                <i class="bi bi-cash-coin"></i>
+                            </span>
+                        </div>
+                        <div class="fw-bold fs-4 text-success text-truncate" title="EGP @d.TotalRevenue.ToString("0.00")">
+                            EGP @d.TotalRevenue.ToString("N0")
+                        </div>
+                        <div class="text-muted small mt-1">All-time revenue</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ANALYTICS WIDGETS ROW (4 CARDS) -->
+            <div class="row g-3 mb-5">
+                <div class="col-12 col-md-6 col-xl-3">
+                    <div class="card bg-dark border-secondary border-opacity-25 rounded-4 p-3 h-100">
+                        <div class="text-muted small mb-1"><i class="bi bi-calendar-month me-1 text-primary"></i>Revenue This Month</div>
+                        <div class="fw-bold fs-4 text-light">EGP @d.RevenueThisMonth.ToString("N2")</div>
+                        <div class="text-muted small mt-1">Current calendar month</div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-6 col-xl-3">
+                    <div class="card bg-dark border-secondary border-opacity-25 rounded-4 p-3 h-100">
+                        <div class="text-muted small mb-1"><i class="bi bi-graph-up me-1 text-info"></i>Revenue This Week</div>
+                        <div class="fw-bold fs-4 text-light">EGP @d.RevenueThisWeek.ToString("N2")</div>
+                        <div class="text-muted small mt-1">From Sunday to Saturday</div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-6 col-xl-3">
+                    <div class="card bg-dark border-secondary border-opacity-25 rounded-4 p-3 h-100">
+                        <div class="text-muted small mb-1"><i class="bi bi-clock me-1 text-warning"></i>Matches Scheduled Today</div>
+                        <div class="fw-bold fs-4 text-light">@d.BookingsToday</div>
+                        <div class="text-muted small mt-1">Active match slots today</div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-6 col-xl-3">
+                    <div class="card bg-dark border-secondary border-opacity-25 rounded-4 p-3 h-100">
+                        <div class="text-muted small mb-1"><i class="bi bi-trophy me-1 text-warning"></i>Top Booked Court</div>
+                        <div class="fw-bold fs-5 text-light text-truncate" title="@d.MostBookedCourtName">
+                            @(string.IsNullOrWhiteSpace(d.MostBookedCourtName) ? "None" : d.MostBookedCourtName)
+                        </div>
+                        <div class="text-muted small mt-1">@d.MostBookedCourtCount total bookings</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VENUES OVERVIEW SECTION -->
+            <div class="mb-5">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h3 class="h4 fw-bold text-light mb-0">Managed Facilities</h3>
+                        <p class="text-muted small mb-0">Your registered sports centers and courts</p>
+                    </div>
+                    <span class="badge bg-secondary bg-opacity-25 text-light px-3 py-2 rounded-pill">
+                        @d.Venues.Count @(d.Venues.Count == 1 ? "Venue" : "Venues")
+                    </span>
+                </div>
+
+                @if (d.Venues.Any())
+                {
+                    <div class="row g-4">
+                        @foreach (var v in d.Venues)
+                        {
+                            <div class="col-12 col-md-6 col-lg-4">
+                                <div class="card bg-dark border-secondary border-opacity-25 shadow-sm rounded-4 h-100 overflow-hidden">
+                                    <div class="card-body p-4">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <h5 class="fw-bold text-light mb-0 text-truncate" title="@v.Name">@v.Name</h5>
+                                            @if (v.IsActive)
+                                            {
+                                                <span class="badge bg-success bg-opacity-15 text-success border border-success border-opacity-25 rounded-pill px-2 py-1 small">Active</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary bg-opacity-25 text-muted rounded-pill px-2 py-1 small">Inactive</span>
+                                            }
+                                        </div>
+
+                                        <div class="text-muted small mb-3">
+                                            <i class="bi bi-geo-alt text-primary me-1"></i>@v.Address, @v.City
+                                        </div>
+
+                                        <div class="d-flex flex-wrap gap-1 mb-3">
+                                            @foreach (var s in v.Sports)
+                                            {
+                                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill small px-2 py-0-5">@s</span>
+                                            }
+                                        </div>
+
+                                        <div class="bg-black bg-opacity-25 rounded-3 p-3 mb-3 border border-secondary border-opacity-10 small">
+                                            <div class="d-flex justify-content-between mb-1">
+                                                <span class="text-muted">Courts:</span>
+                                                <span class="fw-bold text-light">@v.TotalCourts</span>
+                                            </div>
+                                            <div class="d-flex justify-content-between mb-1">
+                                                <span class="text-muted">Rating:</span>
+                                                <span class="text-warning fw-bold">@v.AverageRating.ToString("0.0") ★ (@v.TotalReviews reviews)</span>
+                                            </div>
+                                            <div class="d-flex justify-content-between">
+                                                <span class="text-muted">Upcoming Games:</span>
+                                                <span class="text-success fw-bold">@v.UpcomingBookingsCount</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="d-flex gap-2">
+                                            <a href="/Venues/Details?id=@v.Id" class="btn btn-sm btn-outline-light flex-grow-1 rounded-pill">
+                                                <i class="bi bi-box-arrow-up-right me-1"></i> Public Page
+                                            </a>
+                                            <a href="/Owner?venueId=@v.Id" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                                                <i class="bi bi-filter me-1"></i> Filter Bookings
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="card bg-dark border-secondary border-opacity-25 rounded-4 p-4 text-center">
+                        <p class="text-muted mb-0">You have not registered any sports facilities yet.</p>
+                    </div>
+                }
+            </div>
+
+            <!-- BOOKINGS OVERVIEW SECTION -->
+            <div class="mb-4">
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-3">
+                    <div>
+                        <h3 class="h4 fw-bold text-light mb-0">Court Reservations</h3>
+                        <p class="text-muted small mb-0">Live bookings for your managed courts</p>
+                    </div>
+
+                    <!-- Filter Controls -->
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <!-- Status Navigation Pills -->
+                        <div class="nav nav-pills gap-1" role="tablist">
+                            <a href="/Owner?status=all@(Model.VenueId.HasValue ? $"&venueId={Model.VenueId}" : "")"
+                               class="nav-link @(activeStatus == "all" ? "active bg-primary text-black fw-bold" : "text-muted") py-1 px-3 rounded-pill small">
+                                All
+                            </a>
+                            <a href="/Owner?status=upcoming@(Model.VenueId.HasValue ? $"&venueId={Model.VenueId}" : "")"
+                               class="nav-link @(activeStatus == "upcoming" ? "active bg-primary text-black fw-bold" : "text-muted") py-1 px-3 rounded-pill small">
+                                Upcoming
+                            </a>
+                            <a href="/Owner?status=completed@(Model.VenueId.HasValue ? $"&venueId={Model.VenueId}" : "")"
+                               class="nav-link @(activeStatus == "completed" ? "active bg-primary text-black fw-bold" : "text-muted") py-1 px-3 rounded-pill small">
+                                Completed
+                            </a>
+                            <a href="/Owner?status=cancelled@(Model.VenueId.HasValue ? $"&venueId={Model.VenueId}" : "")"
+                               class="nav-link @(activeStatus == "cancelled" ? "active bg-primary text-black fw-bold" : "text-muted") py-1 px-3 rounded-pill small">
+                                Cancelled
+                            </a>
+                        </div>
+
+                        <!-- Venue Filter Dropdown -->
+                        @if (d.Venues.Count > 1)
+                        {
+                            <select class="form-select form-select-sm bg-dark text-light border-secondary border-opacity-50 rounded-pill"
+                                    style="width: 180px;"
+                                    onchange="window.location.href='/Owner?status=@activeStatus&venueId=' + this.value">
+                                <option value="">All Venues</option>
+                                @foreach (var ven in d.Venues)
+                                {
+                                    <option value="@ven.Id" selected="@(Model.VenueId == ven.Id)">@ven.Name</option>
+                                }
+                            </select>
+                        }
+                    </div>
+                </div>
+
+                @if (Model.PagedBookings.Items.Any())
+                {
+                    <div class="card bg-dark border-secondary border-opacity-25 shadow-sm rounded-4 overflow-hidden mb-4">
+                        <div class="table-responsive">
+                            <table class="table table-dark table-hover align-middle mb-0">
+                                <thead class="table-black border-secondary border-opacity-25 small text-muted">
+                                    <tr>
+                                        <th class="ps-4 py-3">Reference</th>
+                                        <th class="py-3">Facility / Court</th>
+                                        <th class="py-3">Customer / Player</th>
+                                        <th class="py-3">Date & Time</th>
+                                        <th class="py-3">Price</th>
+                                        <th class="py-3">Payment</th>
+                                        <th class="pe-4 py-3 text-end">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var b in Model.PagedBookings.Items)
+                                    {
+                                        var isConf = b.BookingStatus.Equals("Confirmed", StringComparison.OrdinalIgnoreCase);
+                                        var isComp = b.BookingStatus.Equals("Completed", StringComparison.OrdinalIgnoreCase);
+                                        var isCanc = b.BookingStatus.Equals("Cancelled", StringComparison.OrdinalIgnoreCase);
+
+                                        <tr>
+                                            <td class="ps-4 py-3">
+                                                <span class="font-monospace small text-primary fw-semibold">@b.BookingReference</span>
+                                            </td>
+                                            <td class="py-3">
+                                                <div class="fw-bold text-light">@b.CourtName</div>
+                                                <div class="text-muted small">@b.VenueName • <span class="badge bg-secondary bg-opacity-25 text-light px-1 py-0-5 font-size-11">@b.SportType</span></div>
+                                            </td>
+                                            <td class="py-3">
+                                                <div class="text-light fw-medium">@b.PlayerName</div>
+                                                @if (!string.IsNullOrWhiteSpace(b.PlayerPhone))
+                                                {
+                                                    <div class="small">
+                                                        <a href="tel:@b.PlayerPhone" class="text-muted text-decoration-none">
+                                                            <i class="bi bi-telephone text-primary me-1"></i>@b.PlayerPhone
+                                                        </a>
+                                                    </div>
+                                                }
+                                            </td>
+                                            <td class="py-3">
+                                                <div class="text-light fw-medium">@b.StartTime.ToString("MMM dd, yyyy")</div>
+                                                <div class="text-muted small">@b.StartTime.ToString("HH:mm") - @b.EndTime.ToString("HH:mm") (@b.DurationMinutes mins)</div>
+                                            </td>
+                                            <td class="py-3 fw-bold text-primary">
+                                                EGP @b.TotalPrice.ToString("0.00")
+                                            </td>
+                                            <td class="py-3">
+                                                <span class="badge bg-secondary bg-opacity-25 text-light small px-2 py-1">
+                                                    @b.PaymentStatus
+                                                </span>
+                                            </td>
+                                            <td class="pe-4 py-3 text-end">
+                                                @if (isConf)
+                                                {
+                                                    <span class="badge bg-success bg-opacity-20 text-success border border-success border-opacity-25 rounded-pill px-3 py-1 small">
+                                                        Confirmed
+                                                    </span>
+                                                }
+                                                else if (isComp)
+                                                {
+                                                    <span class="badge bg-info bg-opacity-20 text-info border border-info border-opacity-25 rounded-pill px-3 py-1 small">
+                                                        Completed
+                                                    </span>
+                                                }
+                                                else if (isCanc)
+                                                {
+                                                    <span class="badge bg-danger bg-opacity-20 text-danger border border-danger border-opacity-25 rounded-pill px-3 py-1 small">
+                                                        Cancelled
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-warning bg-opacity-20 text-warning rounded-pill px-3 py-1 small">
+                                                        @b.BookingStatus
+                                                    </span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Pagination -->
+                    @if (Model.PagedBookings.TotalPages > 1)
+                    {
+                        <nav aria-label="Owner Bookings navigation" class="mt-3">
+                            <ul class="pagination justify-content-center gap-1">
+                                <li class="page-item @(!Model.PagedBookings.HasPreviousPage ? "disabled" : "")">
+                                    <a class="page-link bg-dark text-light border-secondary border-opacity-25 rounded-pill px-3"
+                                       href="/Owner?status=@activeStatus@(Model.VenueId.HasValue ? $"&venueId={Model.VenueId}" : "")&p=@(Model.P - 1)">
+                                        <i class="bi bi-chevron-left"></i> Prev
+                                    </a>
+                                </li>
+
+                                @for (int pIdx = 1; pIdx <= Model.PagedBookings.TotalPages; pIdx++)
+                                {
+                                    <li class="page-item @(pIdx == Model.P ? "active" : "")">
+                                        <a class="page-link @(pIdx == Model.P ? "bg-primary text-black fw-bold" : "bg-dark text-light") border-secondary border-opacity-25 rounded-circle text-center mx-1"
+                                           style="width: 38px; height: 38px; line-height: 22px;"
+                                           href="/Owner?status=@activeStatus@(Model.VenueId.HasValue ? $"&venueId={Model.VenueId}" : "")&p=@pIdx">
+                                            @pIdx
+                                        </a>
+                                    </li>
+                                }
+
+                                <li class="page-item @(!Model.PagedBookings.HasNextPage ? "disabled" : "")">
+                                    <a class="page-link bg-dark text-light border-secondary border-opacity-25 rounded-pill px-3"
+                                       href="/Owner?status=@activeStatus@(Model.VenueId.HasValue ? $"&venueId={Model.VenueId}" : "")&p=@(Model.P + 1)">
+                                        Next <i class="bi bi-chevron-right"></i>
+                                    </a>
+                                </li>
+                            </ul>
+                        </nav>
+                    }
+                }
+                else
+                {
+                    <div class="card bg-dark border-secondary border-opacity-25 rounded-4 p-5 text-center">
+                        <i class="bi bi-inbox display-4 text-muted mb-3 opacity-50"></i>
+                        <h5 class="fw-bold text-light mb-1">No Bookings Recorded</h5>
+                        <p class="text-muted small mb-0">No reservations currently match your selected status or facility filters.</p>
+                    </div>
+                }
+            </div>
+        }
+    }
+</div>

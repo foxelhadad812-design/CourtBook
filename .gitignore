@@ -10,6 +10,7 @@ obj/
 
 # Development-only secrets / connection strings – never commit these
 appsettings.Development.json
+scratch/
 # ─────────────────────────────────────────────────────────────────────────────
 
 # dotenv files
