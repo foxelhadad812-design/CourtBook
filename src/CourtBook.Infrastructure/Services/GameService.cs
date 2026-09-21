@@ -44,6 +44,22 @@ public class GameService : IGameService
         if (!Enum.TryParse<SkillLevel>(request.SkillLevel, true, out var skillLevel))
             skillLevel = SkillLevel.AllLevels;
 
+        if (!Enum.TryParse<AgeGroup>(request.AgeGroup, true, out var ageGroup))
+            ageGroup = AgeGroup.AllAges;
+
+        int? minAge = request.MinAge;
+        int? maxAge = request.MaxAge;
+
+        if (ageGroup == AgeGroup.Kids) { minAge ??= 6; maxAge ??= 12; }
+        else if (ageGroup == AgeGroup.Juniors) { minAge ??= 13; maxAge ??= 15; }
+        else if (ageGroup == AgeGroup.Teens) { minAge ??= 16; maxAge ??= 17; }
+        else if (ageGroup == AgeGroup.Adults) { minAge ??= 18; maxAge = null; }
+        else if (ageGroup == AgeGroup.Custom)
+        {
+            if (minAge.HasValue && maxAge.HasValue && minAge.Value > maxAge.Value)
+                return Error.Validation("MinAge cannot be greater than MaxAge.");
+        }
+
         var game = new Game
         {
             Id = Guid.NewGuid(),
@@ -56,6 +72,9 @@ public class GameService : IGameService
             StartTime = startTime,
             EndTime = endTime,
             SkillLevel = skillLevel,
+            AgeGroup = ageGroup,
+            MinAge = minAge,
+            MaxAge = maxAge,
             MaxPlayers = request.MaxPlayers,
             MinPlayers = Math.Min(request.MinPlayers, request.MaxPlayers),
             PricePerPlayer = request.PricePerPlayer,
@@ -109,6 +128,11 @@ public class GameService : IGameService
         if (request.Date.HasValue)
         {
             query = query.Where(g => g.Date == request.Date.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.AgeGroup) && Enum.TryParse<AgeGroup>(request.AgeGroup, true, out var ageFilter))
+        {
+            query = query.Where(g => g.AgeGroup == ageFilter);
         }
 
         if (!string.IsNullOrWhiteSpace(request.Status) && Enum.TryParse<GameStatus>(request.Status, true, out var status))
@@ -171,6 +195,57 @@ public class GameService : IGameService
         var alreadyJoined = await _db.GameParticipants.AnyAsync(p => p.GameId == gameId && p.UserId == userId);
         if (alreadyJoined)
             return Error.Conflict("You have already joined this match.");
+
+        var user = await _db.Users.FindAsync(userId);
+        if (user is null)
+            return Error.NotFound("User");
+
+        // Age eligibility verification
+        if (game.AgeGroup != AgeGroup.AllAges || game.MinAge.HasValue || game.MaxAge.HasValue)
+        {
+            if (!user.DateOfBirth.HasValue)
+            {
+                return Error.BadRequest("Please update your profile with your date of birth to join age-restricted community games.");
+            }
+
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            var playerAge = today.Year - user.DateOfBirth.Value.Year;
+            if (user.DateOfBirth.Value > today.AddYears(-playerAge))
+                playerAge--;
+
+            int? effectiveMinAge = game.MinAge;
+            int? effectiveMaxAge = game.MaxAge;
+
+            switch (game.AgeGroup)
+            {
+                case AgeGroup.Kids:
+                    effectiveMinAge ??= 6;
+                    effectiveMaxAge ??= 12;
+                    break;
+                case AgeGroup.Juniors:
+                    effectiveMinAge ??= 13;
+                    effectiveMaxAge ??= 15;
+                    break;
+                case AgeGroup.Teens:
+                    effectiveMinAge ??= 16;
+                    effectiveMaxAge ??= 17;
+                    break;
+                case AgeGroup.Adults:
+                    effectiveMinAge ??= 18;
+                    break;
+            }
+
+            bool isEligible = true;
+            if (effectiveMinAge.HasValue && playerAge < effectiveMinAge.Value)
+                isEligible = false;
+            if (effectiveMaxAge.HasValue && playerAge > effectiveMaxAge.Value)
+                isEligible = false;
+
+            if (!isEligible)
+            {
+                return Error.BadRequest("You can't join this game because your age does not meet the game's eligibility requirements.");
+            }
+        }
 
         var participant = new GameParticipant
         {
@@ -235,6 +310,20 @@ public class GameService : IGameService
 
     private static GameResponse MapToResponse(Game g)
     {
+        string ageDisplay = g.AgeGroup switch
+        {
+            AgeGroup.Kids => "Kids (6–12 yrs)",
+            AgeGroup.Juniors => "Juniors (13–15 yrs)",
+            AgeGroup.Teens => "Teens (16–17 yrs)",
+            AgeGroup.Adults => "Adults (18+)",
+            AgeGroup.Custom => (g.MinAge.HasValue && g.MaxAge.HasValue)
+                ? $"{g.MinAge}–{g.MaxAge} yrs"
+                : g.MinAge.HasValue ? $"{g.MinAge}+ yrs"
+                : g.MaxAge.HasValue ? $"Up to {g.MaxAge} yrs"
+                : "All Ages",
+            _ => "All Ages"
+        };
+
         return new GameResponse
         {
             Id = g.Id,
@@ -251,6 +340,10 @@ public class GameService : IGameService
             StartTime = g.StartTime.ToString("HH:mm"),
             EndTime = g.EndTime.ToString("HH:mm"),
             SkillLevel = g.SkillLevel.ToString(),
+            AgeGroup = g.AgeGroup.ToString(),
+            MinAge = g.MinAge,
+            MaxAge = g.MaxAge,
+            AgeDisplay = ageDisplay,
             MaxPlayers = g.MaxPlayers,
             MinPlayers = g.MinPlayers,
             CurrentPlayersCount = g.Participants?.Count ?? 0,

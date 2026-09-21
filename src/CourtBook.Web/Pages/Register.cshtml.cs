@@ -17,6 +17,7 @@ public class RegisterModel : PageModel
     }
 
     [BindProperty] public RegisterRequest Input { get; set; } = new();
+    [BindProperty(SupportsGet = true)] public string? ReturnUrl { get; set; }
     public string? ErrorMessage { get; set; }
 
     public void OnGet() { }
@@ -29,6 +30,14 @@ public class RegisterModel : PageModel
             return Page();
         }
 
+        if (string.Equals(Input.Role, "Client", StringComparison.OrdinalIgnoreCase) && !Input.DateOfBirth.HasValue)
+        {
+            ErrorMessage = _loc.IsArabic 
+                ? "تاريخ الميلاد مطلوب لحسابات اللاعبين للمطابقة العمرية وضمان السلامة."
+                : "Date of birth is required for player accounts to ensure age-appropriate games.";
+            return Page();
+        }
+
         Input.TermsVersion = "1.0";
         var response = await _api.Client.PostAsJsonAsync("/api/auth/register", Input);
         if (response.IsSuccessStatusCode)
@@ -36,7 +45,7 @@ public class RegisterModel : PageModel
             TempData["SuccessMessage"] = _loc.IsArabic 
                 ? "أهلاً بك في بلاي سبوت! تم إنشاء حسابك بنجاح، يمكنك تسجيل الدخول الآن."
                 : "Welcome to PlaySpot! Your account was created successfully. Please log in.";
-            return RedirectToPage("/Login");
+            return RedirectToPage("/Login", new { returnUrl = ReturnUrl });
         }
         
         var errorContent = await response.Content.ReadAsStringAsync();

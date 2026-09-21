@@ -53,6 +53,18 @@ public class AuthService : IAuthService
             }
         }
 
+        if (request.DateOfBirth.HasValue)
+        {
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            if (request.DateOfBirth.Value > today)
+                throw new InvalidOperationException("Date of birth cannot be in the future.");
+
+            var age = today.Year - request.DateOfBirth.Value.Year;
+            if (request.DateOfBirth.Value > today.AddYears(-age)) age--;
+            if (age < 6)
+                throw new InvalidOperationException("You must be at least 6 years old to register.");
+        }
+
         var user = new User
         {
             Id           = Guid.NewGuid(),
@@ -60,7 +72,8 @@ public class AuthService : IAuthService
             Email        = request.Email,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
             Phone        = request.Phone,
-            Role         = assignedRole
+            Role         = assignedRole,
+            DateOfBirth  = request.DateOfBirth
         };
 
         _db.Users.Add(user);

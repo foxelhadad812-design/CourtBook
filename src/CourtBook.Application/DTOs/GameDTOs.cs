@@ -12,6 +12,9 @@ public class CreateGameRequest
     public string StartTime { get; set; } = "18:00"; // HH:mm
     public string EndTime { get; set; } = "19:30";   // HH:mm
     public string SkillLevel { get; set; } = "AllLevels";
+    public string AgeGroup { get; set; } = "AllAges";
+    public int? MinAge { get; set; }
+    public int? MaxAge { get; set; }
     public int MaxPlayers { get; set; } = 10;
     public int MinPlayers { get; set; } = 2;
     public decimal PricePerPlayer { get; set; } = 0;
@@ -23,6 +26,7 @@ public class GameSearchRequest : PagedRequest
     public string? Sport { get; set; }
     public string? City { get; set; }
     public string? SkillLevel { get; set; }
+    public string? AgeGroup { get; set; }
     public DateOnly? Date { get; set; }
     public string? Status { get; set; }
 }
@@ -50,6 +54,10 @@ public class GameResponse
     public string StartTime { get; set; } = string.Empty;
     public string EndTime { get; set; } = string.Empty;
     public string SkillLevel { get; set; } = string.Empty;
+    public string AgeGroup { get; set; } = "AllAges";
+    public int? MinAge { get; set; }
+    public int? MaxAge { get; set; }
+    public string AgeDisplay { get; set; } = "All Ages";
     public int MaxPlayers { get; set; }
     public int MinPlayers { get; set; }
     public int CurrentPlayersCount { get; set; }

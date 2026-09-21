@@ -371,6 +371,289 @@
   };
 
   /* ─────────────────────────────────────────────────────
+     SMART PLAYSPOT ASSISTANT
+     ───────────────────────────────────────────────────── */
+  PlaySpot.Assistant = {
+    _panel: null,
+    _trigger: null,
+    _body: null,
+    _role: 'Guest',
+    _name: '',
+    _isAr: false,
+    _state: {
+      sport: null,
+      city: null,
+      budget: null
+    },
+
+    init() {
+      this._panel = document.getElementById('ps-assistant-panel');
+      this._trigger = document.getElementById('ps-assistant-btn');
+      this._body = document.getElementById('ps-assistant-body');
+      if (!this._panel || !this._trigger || !this._body) return;
+
+      this._role = this._panel.getAttribute('data-role') || 'Guest';
+      this._name = this._panel.getAttribute('data-name') || '';
+      this._isAr = document.documentElement.getAttribute('dir') === 'rtl' || 
+                   document.documentElement.lang === 'ar' || 
+                   window.location.search.includes('culture=ar');
+
+      this._trigger.addEventListener('click', () => this.toggle());
+      const closeBtn = document.getElementById('ps-assistant-close');
+      if (closeBtn) closeBtn.addEventListener('click', () => this.close());
+
+      this.renderWelcome();
+    },
+
+    toggle() {
+      if (this._panel.classList.contains('open')) {
+        this.close();
+      } else {
+        this.open();
+      }
+    },
+
+    open() {
+      this._panel.classList.add('open');
+      const badge = this._trigger.querySelector('.pulse-badge');
+      if (badge) badge.style.display = 'none';
+      this.scrollToBottom();
+    },
+
+    close() {
+      this._panel.classList.remove('open');
+    },
+
+    scrollToBottom() {
+      setTimeout(() => {
+        if (this._body) this._body.scrollTop = this._body.scrollHeight;
+      }, 50);
+    },
+
+    reset() {
+      this._state = { sport: null, city: null, budget: null };
+      this._body.innerHTML = '';
+      this.renderWelcome();
+    },
+
+    renderWelcome() {
+      let welcomeMsg = '';
+      const chips = [];
+
+      if (this._role === 'Owner') {
+        const greeting = this._name ? (this._isAr ? `مرحباً بك يا ${this._name}! 👋` : `Welcome, ${this._name}! 👋`) : (this._isAr ? 'مرحباً بك يا صاحب المنشأة! 👋' : 'Welcome, Facility Owner! 👋');
+        welcomeMsg = this._isAr 
+          ? `${greeting} أنت في بوابة إدارة ومتابعة منشأتك الرياضية. كيف أساعدك اليوم؟`
+          : `${greeting} You are logged into your facility management portal. How can I assist you today?`;
+
+        chips.push({ label: this._isAr ? '📊 لوحة الإحصائيات' : '📊 Owner Dashboard', action: () => window.location.href = '/Owner' });
+        chips.push({ label: this._isAr ? '➕ إضافة ملعب جديد' : '➕ Add New Court', action: () => window.location.href = '/Owner/Venues/Create' });
+        chips.push({ label: this._isAr ? '🏢 منشآتي الرياضية' : '🏢 My Venues', action: () => window.location.href = '/Owner/Venues' });
+        chips.push({ label: this._isAr ? '🔍 البحث في الملاعب' : '🔍 Browse Venues', action: () => this.startDiscovery() });
+      } else if (this._role === 'Client' || this._role === 'Player') {
+        const greeting = this._name ? (this._isAr ? `أهلاً بك مجدداً، ${this._name}! 👋` : `Welcome back, ${this._name}! 👋`) : (this._isAr ? 'أهلاً بك يا بطل! 👋' : 'Welcome back, Champion! 👋');
+        welcomeMsg = this._isAr
+          ? `${greeting} جاهز لمباراتك القادمة؟ دعني أساعدك في حجز أفضل ملعب أو العثور على مباراة تناسبك.`
+          : `${greeting} Ready for your next game? Let me help you find the best venue or match right now.`;
+
+        chips.push({ label: this._isAr ? '⚡ احجز ملعباً (بحث سريع)' : '⚡ Quick Court Finder', action: () => this.startDiscovery() });
+        chips.push({ label: this._isAr ? '👥 مباريات المجتمع' : '👥 Community Games', action: () => window.location.href = '/Games' });
+        chips.push({ label: this._isAr ? '📅 حجوزاتي' : '📅 My Bookings', action: () => window.location.href = '/my-bookings' });
+        chips.push({ label: this._isAr ? '⭐ أعلى الملاعب تقييماً' : '⭐ Top Rated Courts', action: () => window.location.href = '/Venues?sortBy=rating_desc' });
+      } else {
+        welcomeMsg = this._isAr
+          ? 'مرحباً بك في بلاي سبوت! ⚡ أنا مساعدك الذكي لاستكشاف وحجز الملاعب الرياضية في مصر ومطابقة المباريات. بم تبدأ اليوم؟'
+          : 'Welcome to PlaySpot! ⚡ I am your sports guide to discovering venues and joining community matches across Egypt. How can I help?';
+
+        chips.push({ label: this._isAr ? '🔍 ابحث عن ملعب مناسب' : '🔍 Find a Court', action: () => this.startDiscovery() });
+        chips.push({ label: this._isAr ? '👥 مباريات مفتوحة' : '👥 Open Matches', action: () => window.location.href = '/Games' });
+        chips.push({ label: this._isAr ? '🔑 تسجيل الدخول' : '🔑 Sign In', action: () => window.location.href = '/Login' });
+        chips.push({ label: this._isAr ? '📝 إنشاء حساب لاعب' : '📝 Register', action: () => window.location.href = '/Register' });
+      }
+
+      this.addBotMessage(welcomeMsg, chips);
+    },
+
+    startDiscovery() {
+      this.addUserMessage(this._isAr ? 'أريد العثور على ملعب مناسب 🏟️' : 'I want to find a court 🏟️');
+      
+      const sportsMsg = this._isAr 
+        ? 'ممتاز! ما هي الرياضة التي ترغب بممارستها؟' 
+        : 'Awesome! Which sport would you like to play?';
+
+      const sports = [
+        { key: 'Football', label: '⚽ ' + (this._isAr ? 'كرة قدم' : 'Football') },
+        { key: 'Padel', label: '🎾 ' + (this._isAr ? 'بادل' : 'Padel') },
+        { key: 'Tennis', label: '🏸 ' + (this._isAr ? 'تنس' : 'Tennis') },
+        { key: 'Basketball', label: '🏀 ' + (this._isAr ? 'كرة سلة' : 'Basketball') },
+        { key: 'Volleyball', label: '🏐 ' + (this._isAr ? 'كرة طائرة' : 'Volleyball') },
+        { key: 'Badminton', label: '🏸 ' + (this._isAr ? 'تنس ريشة' : 'Badminton') }
+      ];
+
+      const chips = sports.map(s => ({
+        label: s.label,
+        action: () => this.selectSport(s.key, s.label)
+      }));
+
+      this.addBotMessage(sportsMsg, chips);
+    },
+
+    selectSport(sportKey, sportLabel) {
+      this._state.sport = sportKey;
+      this.addUserMessage(sportLabel);
+
+      const cityMsg = this._isAr 
+        ? `رائع! في أي منطقة أو مدينة تفضل حجز ملعب ${sportLabel}؟` 
+        : `Great choice! In which area or city are you looking to play?`;
+
+      const cities = [
+        { key: '', label: this._isAr ? '📍 جميع المناطق' : '📍 All Areas' },
+        { key: 'Cairo', label: '📍 ' + (this._isAr ? 'القاهرة' : 'Cairo') },
+        { key: 'New Cairo', label: '📍 ' + (this._isAr ? 'التجمع الخامس' : 'New Cairo') },
+        { key: 'Maadi', label: '📍 ' + (this._isAr ? 'المعادي' : 'Maadi') },
+        { key: 'Zayed', label: '📍 ' + (this._isAr ? 'الشيخ زايد' : 'Sheikh Zayed') },
+        { key: 'Alexandria', label: '📍 ' + (this._isAr ? 'الإسكندرية' : 'Alexandria') }
+      ];
+
+      const chips = cities.map(c => ({
+        label: c.label,
+        action: () => this.selectCity(c.key, c.label)
+      }));
+
+      this.addBotMessage(cityMsg, chips);
+    },
+
+    selectCity(cityKey, cityLabel) {
+      this._state.city = cityKey;
+      this.addUserMessage(cityLabel);
+
+      const budgetMsg = this._isAr
+        ? 'ما هي ميزانيتك المفضلة لسعر الساعة؟'
+        : 'What is your preferred budget per hour?';
+
+      const budgets = [
+        { max: null, label: this._isAr ? '💰 أي ميزانية' : '💰 Any Budget' },
+        { max: 200, label: this._isAr ? '💰 أقل من 200 ج.م' : '💰 Under 200 EGP' },
+        { max: 350, label: this._isAr ? '💰 حتى 350 ج.م' : '💰 Up to 350 EGP' },
+        { max: 500, label: this._isAr ? '💰 حتى 500 ج.م' : '💰 Up to 500 EGP' }
+      ];
+
+      const chips = budgets.map(b => ({
+        label: b.label,
+        action: () => this.selectBudget(b.max, b.label)
+      }));
+
+      this.addBotMessage(budgetMsg, chips);
+    },
+
+    async selectBudget(maxBudget, budgetLabel) {
+      this._state.budget = maxBudget;
+      this.addUserMessage(budgetLabel);
+
+      this.addBotMessage(this._isAr 
+        ? '⏳ جاري استخراج أفضل الملاعب المتاحة المتطابقة...' 
+        : '⏳ Searching for the best matching facilities...');
+
+      try {
+        let url = `/api/venues/search?pageSize=4`;
+        if (this._state.sport) url += `&sport=${encodeURIComponent(this._state.sport)}`;
+        if (this._state.city) url += `&city=${encodeURIComponent(this._state.city)}`;
+        if (this._state.budget) url += `&maxPrice=${this._state.budget}`;
+
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('Search failed');
+        const data = await res.json();
+        const items = data.items || [];
+
+        if (items.length === 0) {
+          const noMatchMsg = this._isAr
+            ? 'لم أعثر على منشآت مطابقة تماماً للميزانية المحددة في هذه المنطقة. يمكنك استعراض كافة الملاعب في المنصة:'
+            : 'No facilities matched these exact budget filters. You can browse all available venues here:';
+
+          this.addBotMessage(noMatchMsg, [
+            { label: this._isAr ? '🏟️ استعراض جميع الملاعب' : '🏟️ View All Venues', action: () => window.location.href = '/Venues' },
+            { label: this._isAr ? '🔄 بحث جديد' : '🔄 Search Again', action: () => this.reset() }
+          ]);
+          return;
+        }
+
+        const foundMsg = this._isAr
+          ? `وجدت لك ${items.length} منشآت رياضية متميزة مطابقة لطلبك! 🎯 اضغط على المنشأة للتفاصيل والحجز:`
+          : `Found ${items.length} great sports facilities matching your search! 🎯 Click to view and book:`;
+
+        const cardsContainer = document.createElement('div');
+        cardsContainer.className = 'd-flex flex-column gap-2 mt-2 w-100';
+
+        items.forEach(v => {
+          const card = document.createElement('div');
+          card.className = 'ps-assistant-venue-card p-2 d-flex gap-2 align-items-center cursor-pointer';
+          card.style.cursor = 'pointer';
+          card.innerHTML = `
+            <img src="${v.primaryImageUrl || '/images/venues/fallbacks/venue.jpg'}" alt="${v.name}" style="width: 55px; height: 55px; object-fit: cover; border-radius: 8px;" onerror="this.src='/images/venues/fallbacks/venue.jpg'">
+            <div class="flex-grow-1 overflow-hidden" style="font-size: 12px; line-height: 1.3;">
+              <div class="fw-bold text-truncate text-dark">${v.name}</div>
+              <div class="text-muted small">${v.city || ''} &bull; ⭐ ${v.averageRating ? v.averageRating.toFixed(1) : '5.0'}</div>
+              <div class="text-primary fw-semibold">${v.startingPricePerHour ? v.startingPricePerHour + ' EGP/hr' : ''}</div>
+            </div>
+            <a href="/Venues/Details?id=${v.id}" class="ps-btn ps-btn-primary btn-sm py-1 px-2 rounded-pill" style="font-size: 11px;">
+              ${this._isAr ? 'عرض' : 'View'}
+            </a>
+          `;
+          cardsContainer.appendChild(card);
+        });
+
+        const actionChips = [
+          { label: this._isAr ? '🏟️ استعراض المزيد بالبحث' : '🏟️ More Venues', action: () => window.location.href = `/Venues?sport=${this._state.sport || ''}&city=${this._state.city || ''}` },
+          { label: this._isAr ? '🔄 ابدأ من جديد' : '🔄 Restart Search', action: () => this.reset() }
+        ];
+
+        this.addBotMessage(foundMsg, actionChips, cardsContainer);
+      } catch (err) {
+        this.addBotMessage(this._isAr
+          ? 'عذراً، حدث خطأ أثناء جلب الملاعب. يرجى المحاولة مرة أخرى.'
+          : 'Sorry, an error occurred while searching. Please try again.', [
+          { label: this._isAr ? '🔄 إعادة المحاولة' : '🔄 Retry', action: () => this.reset() }
+        ]);
+      }
+    },
+
+    addBotMessage(text, chips = [], extraNode = null) {
+      const bubble = document.createElement('div');
+      bubble.className = 'ps-assistant-bubble bot shadow-xs';
+      bubble.innerHTML = `<div>${text}</div>`;
+
+      if (extraNode) {
+        bubble.appendChild(extraNode);
+      }
+
+      if (chips && chips.length > 0) {
+        const chipsContainer = document.createElement('div');
+        chipsContainer.className = 'ps-assistant-chips';
+        chips.forEach(c => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'ps-assistant-chip';
+          btn.textContent = c.label;
+          btn.addEventListener('click', c.action);
+          chipsContainer.appendChild(btn);
+        });
+        bubble.appendChild(chipsContainer);
+      }
+
+      this._body.appendChild(bubble);
+      this.scrollToBottom();
+    },
+
+    addUserMessage(text) {
+      const bubble = document.createElement('div');
+      bubble.className = 'ps-assistant-bubble user shadow-xs';
+      bubble.textContent = text;
+      this._body.appendChild(bubble);
+      this.scrollToBottom();
+    }
+  };
+
+  /* ─────────────────────────────────────────────────────
      INIT ON DOM READY
      ───────────────────────────────────────────────────── */
   document.addEventListener('DOMContentLoaded', function () {
@@ -381,6 +664,7 @@
     PlaySpot.Alerts.autoHide();
     PlaySpot.LoadingBtn.autoBindForms();
     PlaySpot.ImageFallback.init();
+    PlaySpot.Assistant.init();
 
     // Finish loading bar on full load
     window.addEventListener('load', () => PlaySpot.LoadingBar.finish());

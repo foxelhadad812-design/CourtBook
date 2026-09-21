@@ -7,8 +7,8 @@
 <!-- ══════════════════════════════════════════════════════════
      HERO SECTION
      ══════════════════════════════════════════════════════════ -->
-<section class="position-relative overflow-hidden py-5 py-lg-7" style="background: linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #0F172A 100%); color: white;">
-    <div style="position: absolute; top: -100px; right: -50px; width: 450px; height: 450px; background: radial-gradient(circle, rgba(37,99,235,0.25) 0%, transparent 70%); border-radius: 50%; pointer-events: none;"></div>
+<section class="position-relative overflow-hidden py-5 py-lg-7" style="background: var(--ps-hero-gradient, linear-gradient(135deg, #090B0E 0%, #13171F 50%, #090B0E 100%)); color: white;">
+    <div style="position: absolute; top: -100px; right: -50px; width: 450px; height: 450px; background: radial-gradient(circle, rgba(16,185,129,0.20) 0%, transparent 70%); border-radius: 50%; pointer-events: none;"></div>
     <div style="position: absolute; bottom: -80px; left: -50px; width: 350px; height: 350px; background: radial-gradient(circle, rgba(245,158,11,0.15) 0%, transparent 70%); border-radius: 50%; pointer-events: none;"></div>
 
     <div class="container position-relative" style="z-index: 2;">
@@ -16,22 +16,52 @@
             <div class="col-xl-9 col-lg-10">
 
                 <!-- Badge -->
-                <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-4" style="background: rgba(37,99,235,0.2); border: 1px solid rgba(59,130,246,0.35); color: #93C5FD; font-size: 0.875rem; font-weight: 600;">
+                <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-4" style="background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.35); color: #6EE7B7; font-size: 0.875rem; font-weight: 600;">
                     <span>@Loc["Home.Hero.Badge"]</span>
                 </div>
 
                 <!-- Headline -->
                 <h1 class="display-4 fw-extrabold mb-3" style="letter-spacing: -0.03em; line-height: 1.15;">
                     @Loc["Home.Hero.Title1"]<br>
-                    <span style="background: linear-gradient(90deg, #60A5FA 0%, #F59E0B 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                    <span style="background: linear-gradient(90deg, #34D399 0%, #FBBF24 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
                         @Loc["Home.Hero.Title2"]
                     </span>
                 </h1>
 
                 <!-- Subtitle -->
-                <p class="lead mb-5 mx-auto" style="max-width: 680px; font-size: 1.15rem; color: #94A3B8;">
+                <p class="lead mb-4 mx-auto" style="max-width: 680px; font-size: 1.15rem; color: #94A3B8;">
                     @Loc["Home.Hero.Subtitle"]
                 </p>
+
+                @{
+                    var homeUser = HttpContext.Session.GetString("UserName");
+                    var homeRole = HttpContext.Session.GetString("UserRole");
+                }
+                @if (!string.IsNullOrEmpty(homeUser))
+                {
+                    <div class="d-inline-flex flex-wrap align-items-center justify-content-center gap-2 px-4 py-2 rounded-pill mb-4 shadow-sm" style="background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.15);">
+                        <span class="fw-bold text-white">
+                            @(Loc.IsArabic ? $"أهلاً بك مجدداً، {homeUser}! 👋" : $"Welcome back, {homeUser}! 👋")
+                        </span>
+                        @if (homeRole == "Owner" || homeRole == "Admin")
+                        {
+                            <span class="text-white-50 small">@(Loc.IsArabic ? "جاهز لمتابعة منشأتك اليوم؟" : "Ready to manage your venues?")</span>
+                            <a href="/Owner" class="badge bg-warning text-dark text-decoration-none px-3 py-1 rounded-pill ms-1 fw-semibold">
+                                <i class="bi bi-speedometer2 me-1"></i>@(Loc.IsArabic ? "لوحة المالك" : "Owner Portal")
+                            </a>
+                        }
+                        else
+                        {
+                            <span class="text-white-50 small">@(Loc.IsArabic ? "جاهز لمباراتك القادمة؟" : "Ready for your next game?")</span>
+                            <a href="/bookings" class="badge bg-primary text-white text-decoration-none px-3 py-1 rounded-pill ms-1 fw-semibold">
+                                <i class="bi bi-calendar-check me-1"></i>@(Loc.IsArabic ? "حجوزاتي" : "My Bookings")
+                            </a>
+                            <a href="/games" class="badge bg-success text-white text-decoration-none px-3 py-1 rounded-pill fw-semibold">
+                                <i class="bi bi-people me-1"></i>@(Loc.IsArabic ? "المباريات" : "Games")
+                            </a>
+                        }
+                    </div>
+                }
 
                 <!-- Search Widget Bar -->
                 <div class="card border-0 shadow-2xl p-2 p-md-3 mx-auto text-start" style="background: var(--ps-white); border-radius: var(--ps-radius-2xl); max-width: 850px;">
@@ -124,12 +154,12 @@
         <div class="row g-3 g-md-4">
             @{
                 var sportsList = new[] {
-                    new { Key = "Football", Icon = "bi-record-circle-fill", Color = "#10B981" },
-                    new { Key = "Padel", Icon = "bi-bullseye", Color = "#2563EB" },
-                    new { Key = "Tennis", Icon = "bi-circle-fill", Color = "#F59E0B" },
-                    new { Key = "Basketball", Icon = "bi-dribbble", Color = "#EF4444" },
-                    new { Key = "Volleyball", Icon = "bi-trophy-fill", Color = "#8B5CF6" },
-                    new { Key = "Badminton", Icon = "bi-activity", Color = "#06B6D4" }
+                    new { Key = "Football", Icon = "bi-record-circle-fill", Color = "var(--ps-football, #10B981)" },
+                    new { Key = "Padel", Icon = "bi-bullseye", Color = "var(--ps-padel, #06B6D4)" },
+                    new { Key = "Tennis", Icon = "bi-circle-fill", Color = "var(--ps-tennis, #EAB308)" },
+                    new { Key = "Basketball", Icon = "bi-dribbble", Color = "var(--ps-basketball, #F97316)" },
+                    new { Key = "Volleyball", Icon = "bi-trophy-fill", Color = "var(--ps-volleyball, #8B5CF6)" },
+                    new { Key = "Badminton", Icon = "bi-activity", Color = "var(--ps-badminton, #EC4899)" }
                 };
             }
 
@@ -274,9 +304,70 @@
 </section>
 
 <!-- ══════════════════════════════════════════════════════════
+     COMMUNITY GAMES SHOWCASE
+     ══════════════════════════════════════════════════════════ -->
+@if (Model.UpcomingGames.Any())
+{
+    <section class="py-6" style="background: var(--ps-white); border-top: 1px solid var(--ps-gray-200);">
+        <div class="container">
+            <div class="d-flex flex-column flex-sm-row align-items-sm-end justify-content-between mb-4 gap-2">
+                <div>
+                    <span class="badge px-3 py-1 rounded-pill mb-2" style="background: var(--ps-accent-50); color: var(--ps-accent); font-weight: 600; font-size: 12px;">
+                        <i class="bi bi-people-fill me-1"></i>@(Loc.IsArabic ? "مباريات مجتمعية مفتوحة" : "Open Community Games")
+                    </span>
+                    <h2 class="fw-extrabold mb-1" style="letter-spacing: -0.02em;">@(Loc.IsArabic ? "انضم لمباراة اليوم ولا تبحث عن فريق" : "Join a Game Today — No Team Needed")</h2>
+                    <p class="text-muted mb-0">@(Loc.IsArabic ? "مباريات تناسب فئتك العمرية ومستواك في مختلف المنشآت والملاعب." : "Matches tailored to your age group and skill level across top sports facilities.")</p>
+                </div>
+                <a href="/games" class="ps-btn ps-btn-secondary">
+                    @(Loc.IsArabic ? "استعراض كل المباريات" : "Explore All Games") <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            </div>
+
+            <div class="row g-4">
+                @foreach (var game in Model.UpcomingGames)
+                {
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card h-100 border shadow-sm p-4 d-flex flex-column" style="border-radius: var(--ps-radius-xl); border-color: var(--ps-gray-200) !important; background: var(--ps-white);">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="badge bg-primary-subtle text-primary fw-bold px-3 py-1 rounded-pill">
+                                    @Loc.Sport(game.SportType)
+                                </span>
+                                <span class="badge bg-light text-dark border px-2 py-1 rounded-pill small">
+                                    <i class="bi bi-shield-check text-success me-1"></i>@game.AgeDisplay
+                                </span>
+                            </div>
+
+                            <h5 class="fw-bold mb-1 text-dark">@game.Title</h5>
+                            <div class="text-muted small mb-3">
+                                <i class="bi bi-geo-alt me-1 text-primary"></i>@game.VenueName &bull; @game.CourtName
+                            </div>
+
+                            <div class="d-flex align-items-center gap-3 text-muted small mb-3">
+                                <div><i class="bi bi-calendar-event me-1 text-primary"></i>@game.Date.ToString("MMM dd, yyyy")</div>
+                                <div><i class="bi bi-clock me-1 text-primary"></i>@game.StartTime</div>
+                            </div>
+
+                            <div class="mt-auto pt-3 border-top d-flex align-items-center justify-content-between">
+                                <div>
+                                    <span class="text-muted small d-block">@(Loc.IsArabic ? "المقاعد" : "Spots")</span>
+                                    <span class="fw-bold text-dark">@game.CurrentPlayersCount / @game.MaxPlayers</span>
+                                </div>
+                                <a href="/games" class="ps-btn ps-btn-primary ps-btn-sm rounded-pill px-3">
+                                    @(Loc.IsArabic ? "تفاصيل المباراة" : "View Game")
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+}
+
+<!-- ══════════════════════════════════════════════════════════
      FOR FACILITY OWNERS CTA
      ══════════════════════════════════════════════════════════ -->
-<section class="py-6" style="background: linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%); color: white;">
+<section class="py-6" style="background: var(--ps-cta-gradient, linear-gradient(135deg, #065F46 0%, #059669 100%)); color: white;">
     <div class="container">
         <div class="row align-items-center justify-content-between g-4">
             <div class="col-lg-7">

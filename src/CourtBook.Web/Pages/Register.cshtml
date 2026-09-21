@@ -25,6 +25,7 @@
                 }
                 
                 <form method="post" id="registerForm">
+                    <input type="hidden" asp-for="ReturnUrl" />
                     <!-- Account Type Selection (Player vs Owner) -->
                     <div class="mb-4">
                         <label class="form-label text-dark fw-bold small mb-2">@Loc["Auth.Register.RoleTitle"] <span class="text-danger">*</span></label>
@@ -82,6 +83,20 @@
                         <input asp-for="Input.Phone" class="form-control bg-light border-0 shadow-none py-2 rounded-3" placeholder="@Loc["Profile.Field.Phone.Example"]" />
                         <span asp-validation-for="Input.Phone" class="text-danger small"></span>
                     </div>
+
+                    <!-- Date of Birth (for Age-Aware Community Games & Safety) -->
+                    <div class="mb-3" id="dobContainer">
+                        <label asp-for="Input.DateOfBirth" class="form-label text-dark fw-semibold small mb-1">
+                            @(Loc.IsArabic ? "تاريخ الميلاد" : "Date of Birth")
+                            <span class="text-danger" id="dobRequiredStar">*</span>
+                        </label>
+                        <span class="ps-form-helper mb-1 d-block text-muted" style="font-size: 11px;">
+                            <i class="bi bi-shield-lock-fill text-success me-1"></i>
+                            @(Loc.IsArabic ? "يُستخدم فقط لمطابقتك مع المباريات المناسبة لفئتك العمرية وضمان السلامة. يبقى سرياً تماماً ولا يُعرض علناً." : "Used only to match you with age-appropriate games and ensure safety. Kept strictly private.")
+                        </span>
+                        <input asp-for="Input.DateOfBirth" class="form-control bg-light border-0 shadow-none py-2 rounded-3" type="date" max="@DateTime.UtcNow.AddYears(-6).ToString("yyyy-MM-dd")" min="@DateTime.UtcNow.AddYears(-120).ToString("yyyy-MM-dd")" id="inputDob" />
+                        <span asp-validation-for="Input.DateOfBirth" class="text-danger small"></span>
+                    </div>
                     
                     <!-- Password -->
                     <div class="mb-2 position-relative">
@@ -128,7 +143,7 @@
                 
                 <div class="text-center mt-4 pt-3 border-top">
                     <p class="text-muted mb-0 small">
-                        @Loc["Auth.Register.HaveAccount"] <a asp-page="/Login" class="text-primary text-decoration-none fw-bold">@Loc["Nav.SignIn"]</a>
+                        @Loc["Auth.Register.HaveAccount"] <a asp-page="/Login" asp-route-returnUrl="@Model.ReturnUrl" class="text-primary text-decoration-none fw-bold">@Loc["Nav.SignIn"]</a>
                     </p>
                 </div>
             </div>
@@ -152,7 +167,7 @@
             </div>
             <div class="modal-footer border-0 pt-0">
                 <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">@Loc["Auth.Register.CloseModal"]</button>
-                <button type="button" class="ps-btn ps-btn-primary rounded-pill px-4" onclick="acceptAndCloseTerms()">@Loc["Auth.Register.AcceptModal"]</button>
+                <button type="button" class="ps-btn ps-btn-primary rounded-pill px-4" id="termsAcceptModalBtn" onclick="acceptAndCloseTerms()" disabled>@Loc["Auth.Register.AcceptModal"]</button>
             </div>
         </div>
     </div>
@@ -163,6 +178,7 @@
     <script>
         let currentRole = "Client";
         let termsModalInstance = null;
+        let termsLoadedSuccessfully = false;
 
         function handleRoleChange(role) {
             currentRole = role;
@@ -194,21 +210,36 @@
             const loading = document.getElementById('termsLoading');
             const content = document.getElementById('termsContent');
             const modalTitle = document.getElementById('termsModalLabel');
+            const acceptBtn = document.getElementById('termsAcceptModalBtn');
+            const isAr = @(Loc.IsArabic ? "true" : "false");
+
             loading.style.display = 'block';
             content.style.display = 'none';
+            if (acceptBtn) acceptBtn.disabled = true;
+            termsLoadedSuccessfully = false;
 
             const typeName = currentRole === 'Owner' ? 'FacilityOwner' : 'Player';
             try {
                 const res = await fetch(`/api/terms/${typeName}`);
                 if (res.ok) {
                     const data = await res.json();
-                    modalTitle.textContent = data.title;
-                    content.textContent = data.content;
+                    modalTitle.textContent = isAr && data.titleAr ? data.titleAr : data.title;
+                    content.textContent = isAr && data.contentAr ? data.contentAr : data.content;
+                    termsLoadedSuccessfully = true;
+                    if (acceptBtn) acceptBtn.disabled = false;
                 } else {
-                    content.textContent = "Terms and conditions are currently unavailable. Please check back later.";
+                    content.textContent = isAr 
+                        ? "شروط الخدمة غير متاحة حالياً. يرجى التحقق لاحقاً." 
+                        : "Terms and conditions are currently unavailable. Please check back later.";
+                    termsLoadedSuccessfully = false;
+                    if (acceptBtn) acceptBtn.disabled = true;
                 }
             } catch (err) {
-                content.textContent = "Unable to load terms at this moment. Please verify your connection.";
+                content.textContent = isAr 
+                    ? "تعذر تحميل الشروط في الوقت الحالي. يرجى التحقق من الاتصال بالإنترنت." 
+                    : "Unable to load terms at this moment. Please verify your connection.";
+                termsLoadedSuccessfully = false;
+                if (acceptBtn) acceptBtn.disabled = true;
             } finally {
                 loading.style.display = 'none';
                 content.style.display = 'block';
@@ -216,6 +247,7 @@
         }
 
         function acceptAndCloseTerms() {
+            if (!termsLoadedSuccessfully) return;
             const check = document.getElementById('acceptTermsCheck');
             if (check) check.checked = true;
             if (termsModalInstance) termsModalInstance.hide();

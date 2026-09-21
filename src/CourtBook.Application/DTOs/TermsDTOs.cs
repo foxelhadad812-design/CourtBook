@@ -9,5 +9,7 @@ public class TermsDocumentDto
     public string Version { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
     public string Content { get; set; } = string.Empty;
+    public string? TitleAr { get; set; }
+    public string? ContentAr { get; set; }
     public DateTime PublishedAt { get; set; }
 }

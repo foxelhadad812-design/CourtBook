@@ -1,20 +1,17 @@
 @page "{id:guid?}"
 @model CourtBook.Web.Pages.Courts.BookModel
+@using CourtBook.Web.Helpers
 @{
     ViewData["Title"] = Model.Court != null ? $"{Loc["Book.Title"]} — {Model.Court.Name} ({Model.Venue?.Name})" : Loc["Venues.Empty.Title"];
     var court = Model.Court;
     var venue = Model.Venue;
     var sportKey = court?.SportType.ToLowerInvariant() ?? "football";
-    var sportImg = sportKey switch {
-        "football" => "/images/venues/football/football-pitch-01.jpg",
-        "padel" => "/images/venues/padel/padel-court-01.jpg",
-        "tennis" => "/images/venues/tennis/tennis-clay-01.jpg",
-        "basketball" => "/images/venues/basketball/basketball-indoor-01.jpg",
-        "volleyball" => "/images/venues/volleyball/volleyball-indoor-01.jpg",
-        "badminton" => "/images/venues/badminton/badminton-court-01.jpg",
-        _ => "/images/venues/fallbacks/venue-fallback.jpg"
-    };
-    var fallbackImg = $"/images/venues/fallbacks/{sportKey}-fallback.jpg";
+    var sportImg = court != null 
+        ? CourtImageHelper.GetCourtImageUrl(court.Name, court.SportType, court.IsIndoor, court.SurfaceType, court.Capacity) 
+        : "/images/venues/fallbacks/venue-fallback.jpg";
+    var fallbackImg = court != null 
+        ? CourtImageHelper.GetFallbackImageUrl(court.SportType) 
+        : "/images/venues/fallbacks/venue-fallback.jpg";
 
     var badgeCls = sportKey switch {
         "football" => "badge-football",
@@ -240,7 +237,7 @@ else
                                     <span class="rounded-circle" style="width: 10px; height: 10px; background: #10B981;"></span> @Loc["Book.Legend.Available"]
                                 </span>
                                 <span class="d-flex align-items-center gap-1">
-                                    <span class="rounded-circle" style="width: 10px; height: 10px; background: #2563EB;"></span> @Loc["Book.Legend.Selected"]
+                                    <span class="rounded-circle" style="width: 10px; height: 10px; background: var(--ps-primary);"></span> @Loc["Book.Legend.Selected"]
                                 </span>
                                 <span class="d-flex align-items-center gap-1">
                                     <span class="rounded-circle bg-secondary" style="width: 10px; height: 10px;"></span> @Loc["Book.Legend.Booked"]

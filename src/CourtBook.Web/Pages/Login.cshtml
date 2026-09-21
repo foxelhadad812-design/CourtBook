@@ -71,7 +71,7 @@
                 
                 <div class="text-center mt-4 pt-3 border-top">
                     <p class="text-muted mb-0 small">
-                        @Loc["Auth.Login.NoAccount"] <a asp-page="/Register" class="text-primary text-decoration-none fw-bold">@Loc["Auth.Login.SignUpLink"]</a>
+                        @Loc["Auth.Login.NoAccount"] <a asp-page="/Register" asp-route-returnUrl="@Model.ReturnUrl" class="text-primary text-decoration-none fw-bold">@Loc["Auth.Login.SignUpLink"]</a>
                     </p>
                 </div>
             </div>

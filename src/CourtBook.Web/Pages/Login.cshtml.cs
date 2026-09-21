@@ -26,7 +26,7 @@ public class LoginModel : PageModel
             {
                 HttpContext.Session.SetString("JwtToken", result.Token);
                 HttpContext.Session.SetString("UserRole", result.Role);
-                HttpContext.Session.SetString("UserName", Input.Email);
+                HttpContext.Session.SetString("UserName", !string.IsNullOrWhiteSpace(result.Name) ? result.Name : Input.Email);
                 
                 if (!string.IsNullOrEmpty(ReturnUrl) && Url.IsLocalUrl(ReturnUrl))
                 {

@@ -1,0 +1,231 @@
+@page
+@model CourtBook.Web.Pages.Games.IndexModel
+@using CourtBook.Web.Helpers
+@{
+    ViewData["Title"] = Loc.IsArabic ? "مباريات المجتمع — بلاي سبوت" : "Community Games — PlaySpot";
+    var currentUserName = HttpContext.Session.GetString("UserName");
+    var isLoggedIn = !string.IsNullOrEmpty(currentUserName);
+}
+
+<div class="container py-4 py-md-5">
+
+    <!-- ── Hero Banner ──────────────────────────────────────────────────────── -->
+    <div class="card border-0 shadow-sm p-4 p-md-5 mb-4 text-white overflow-hidden position-relative" 
+         style="background: linear-gradient(135deg, #0A0D12 0%, #13171F 50%, #064E3B 100%); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: var(--ps-radius-2xl);">
+        <div class="row align-items-center position-relative" style="z-index: 2;">
+            <div class="col-lg-8">
+                <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-3" 
+                     style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.35); color: #34D399; font-size: 0.85rem; font-weight: 600;">
+                    <i class="bi bi-people-fill"></i>
+                    <span>@(Loc.IsArabic ? "مباريات مجتمعية تنافسية وممتعة" : "Active Community Matches")</span>
+                </div>
+                <h1 class="display-6 fw-extrabold mb-2 text-white">
+                    @(Loc.IsArabic ? "انضم إلى مباراة مفتوحة بالقرب منك" : "Join an Open Match Near You")
+                </h1>
+                <p class="text-white-50 mb-0 lead small" style="max-width: 600px;">
+                    @(Loc.IsArabic ? "لا تمتلك فريقاً كاملاً؟ استكشف المباريات المفتوحة حسب الفئة العمرية ونوع الرياضة ومستواك، وانضم إلى لاعبين شغوفين في دقائق." : "Missing players for your game? Explore open community matches matched by age group, sport, and skill level. Join fellow passionate athletes in minutes.")
+                </p>
+            </div>
+            <div class="col-lg-4 text-lg-end mt-4 mt-lg-0">
+                <a href="#games-list" class="ps-btn ps-btn-primary px-4 py-3 fw-bold rounded-pill">
+                    <i class="bi bi-compass me-1"></i> @(Loc.IsArabic ? "تصفح المباريات المتاحة" : "Browse Matches")
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Alerts ───────────────────────────────────────────────────────────── -->
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger border-0 shadow-sm d-flex align-items-center gap-3 p-3 mb-4 rounded-4" role="alert">
+            <i class="bi bi-exclamation-triangle-fill fs-4 text-danger flex-shrink-0"></i>
+            <div>
+                <strong>@(Loc.IsArabic ? "تنبيه الأهلية:" : "Eligibility Notice:")</strong> @Model.ErrorMessage
+            </div>
+        </div>
+    }
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success border-0 shadow-sm d-flex align-items-center gap-3 p-3 mb-4 rounded-4" role="alert">
+            <i class="bi bi-check-circle-fill fs-4 text-success flex-shrink-0"></i>
+            <div>@TempData["SuccessMessage"]</div>
+        </div>
+    }
+
+    <!-- ── Filter & Search Bar ─────────────────────────────────────────────── -->
+    <div class="card border-0 shadow-sm p-3 p-md-4 mb-4" style="border-radius: var(--ps-radius-xl);">
+        <form method="get" class="row g-3 align-items-end">
+            <!-- Sport Filter -->
+            <div class="col-6 col-md-3">
+                <label class="form-label text-muted small fw-bold text-uppercase mb-1">@Loc["Venues.Filter.SportLabel"]</label>
+                <select name="sport" class="form-select bg-light border-0 shadow-none py-2 rounded-3">
+                    <option value="">@(Loc.IsArabic ? "جميع الرياضات" : "All Sports")</option>
+                    <option value="Football" selected="@(Model.Sport == "Football" ? "selected" : null)">⚽ @Loc.Sport("Football")</option>
+                    <option value="Padel" selected="@(Model.Sport == "Padel" ? "selected" : null)">🎾 @Loc.Sport("Padel")</option>
+                    <option value="Tennis" selected="@(Model.Sport == "Tennis" ? "selected" : null)">🏸 @Loc.Sport("Tennis")</option>
+                    <option value="Basketball" selected="@(Model.Sport == "Basketball" ? "selected" : null)">🏀 @Loc.Sport("Basketball")</option>
+                    <option value="Volleyball" selected="@(Model.Sport == "Volleyball" ? "selected" : null)">🏐 @Loc.Sport("Volleyball")</option>
+                    <option value="Badminton" selected="@(Model.Sport == "Badminton" ? "selected" : null)">🏸 @Loc.Sport("Badminton")</option>
+                </select>
+            </div>
+
+            <!-- City Filter -->
+            <div class="col-6 col-md-3">
+                <label class="form-label text-muted small fw-bold text-uppercase mb-1">@Loc["Venues.Filter.CityLabel"]</label>
+                <select name="city" class="form-select bg-light border-0 shadow-none py-2 rounded-3">
+                    <option value="">@(Loc.IsArabic ? "جميع المدن والمناطق" : "All Locations")</option>
+                    <option value="Cairo" selected="@(Model.City == "Cairo" ? "selected" : null)">@(Loc.IsArabic ? "القاهرة" : "Cairo")</option>
+                    <option value="Giza" selected="@(Model.City == "Giza" ? "selected" : null)">@(Loc.IsArabic ? "الجيزة" : "Giza")</option>
+                    <option value="Alexandria" selected="@(Model.City == "Alexandria" ? "selected" : null)">@(Loc.IsArabic ? "الإسكندرية" : "Alexandria")</option>
+                </select>
+            </div>
+
+            <!-- Age Group Filter -->
+            <div class="col-6 col-md-3">
+                <label class="form-label text-muted small fw-bold text-uppercase mb-1">@(Loc.IsArabic ? "الفئة العمرية" : "Age Group")</label>
+                <select name="ageGroup" class="form-select bg-light border-0 shadow-none py-2 rounded-3">
+                    <option value="">@(Loc.IsArabic ? "جميع الفئات" : "All Age Groups")</option>
+                    <option value="AllAges" selected="@(Model.AgeGroup == "AllAges" ? "selected" : null)">@(Loc.IsArabic ? "جميع الأعمار" : "All Ages")</option>
+                    <option value="Kids" selected="@(Model.AgeGroup == "Kids" ? "selected" : null)">@(Loc.IsArabic ? "الأطفال (6–12 سنة)" : "Kids (6–12 yrs)")</option>
+                    <option value="Juniors" selected="@(Model.AgeGroup == "Juniors" ? "selected" : null)">@(Loc.IsArabic ? "الناشئين (13–15 سنة)" : "Juniors (13–15 yrs)")</option>
+                    <option value="Teens" selected="@(Model.AgeGroup == "Teens" ? "selected" : null)">@(Loc.IsArabic ? "الشباب (16–17 سنة)" : "Teens (16–17 yrs)")</option>
+                    <option value="Adults" selected="@(Model.AgeGroup == "Adults" ? "selected" : null)">@(Loc.IsArabic ? "البالغين (18+ سنة)" : "Adults (18+ yrs)")</option>
+                </select>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="col-6 col-md-3 d-flex gap-2">
+                <button type="submit" class="ps-btn ps-btn-primary w-100 py-2 rounded-3 fw-bold">
+                    <i class="bi bi-funnel-fill me-1"></i> @(Loc.IsArabic ? "تصفية" : "Filter")
+                </button>
+                <a href="/Games" class="btn btn-outline-secondary py-2 rounded-3" title="@(Loc.IsArabic ? "إعادة تعيين" : "Reset")">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- ── Games List ──────────────────────────────────────────────────────── -->
+    <div id="games-list">
+        @if (Model.GamesResult == null || !Model.GamesResult.Items.Any())
+        {
+            <div class="card border-0 shadow-sm p-5 text-center my-4" style="border-radius: var(--ps-radius-xl);">
+                <div class="text-muted display-4 mb-3">
+                    <i class="bi bi-trophy"></i>
+                </div>
+                <h4 class="fw-bold text-dark mb-2">@(Loc.IsArabic ? "لا توجد مباريات مفتوحة مطابقة للبحث" : "No Open Matches Matching Criteria")</h4>
+                <p class="text-muted mx-auto mb-4" style="max-width: 480px;">
+                    @(Loc.IsArabic ? "جرّب تغيير خيارات البحث أو استكشف الملاعب المتاحة لحجز مباراتك الخاصة." : "Try adjusting your filters or explore our sports complexes to book a court.")
+                </p>
+                <div>
+                    <a href="/Venues" class="ps-btn ps-btn-primary px-4 py-2">
+                        <i class="bi bi-compass me-1"></i> @Loc["Home.Featured.ViewAll"]
+                    </a>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="row g-4">
+                @foreach (var game in Model.GamesResult.Items)
+                {
+                    var isJoined = isLoggedIn && game.Participants.Any(p => p.UserName.Equals(currentUserName, StringComparison.OrdinalIgnoreCase));
+                    var isFull = game.CurrentPlayersCount >= game.MaxPlayers;
+                    var percent = (int)Math.Round((double)game.CurrentPlayersCount / Math.Max(game.MaxPlayers, 1) * 100);
+                    var courtImg = CourtImageHelper.GetCourtImageUrl(game.CourtName, game.SportType);
+                    var courtFallback = CourtImageHelper.GetFallbackImageUrl(game.SportType);
+
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card border-0 shadow-sm h-100 rounded-4 overflow-hidden hover-elevation" style="transition: transform 0.2s, box-shadow 0.2s;">
+                            <!-- Card Image Banner -->
+                            <div class="position-relative" style="height: 140px; overflow: hidden; background: var(--ps-surface-subtle, #12161F);">
+                                <img src="@courtImg" alt="@game.Title" class="w-100 h-100 object-fit-cover" data-fallback="@courtFallback" onerror="PlaySpot.ImageFallback.handleError(this, '@courtFallback')">
+                                <div class="position-absolute top-0 start-0 m-3 d-flex gap-2">
+                                    <span class="badge bg-dark bg-opacity-75 text-white rounded-pill px-3 py-1">
+                                        @Loc.Sport(game.SportType)
+                                    </span>
+                                </div>
+                                <div class="position-absolute top-0 end-0 m-3">
+                                    <span class="badge bg-primary text-white rounded-pill px-3 py-1 fw-bold shadow-xs">
+                                        <i class="bi bi-shield-check me-1"></i>@game.AgeDisplay
+                                    </span>
+                                </div>
+                                <div class="position-absolute bottom-0 start-0 w-100 p-2 px-3 text-white" 
+                                     style="background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 100%);">
+                                    <span class="fw-bold text-white small">@game.VenueName</span>
+                                    <span class="text-white-50 small">&bull; @game.CourtName</span>
+                                </div>
+                            </div>
+
+                            <div class="card-body p-4 d-flex flex-column">
+                                <h5 class="fw-bold text-dark mb-2">@game.Title</h5>
+                                
+                                <!-- Meta details -->
+                                <div class="d-flex flex-column gap-2 text-muted small mb-3">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <i class="bi bi-geo-alt-fill text-primary"></i>
+                                        <span>@game.VenueCity</span>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <i class="bi bi-calendar-event text-primary"></i>
+                                        <span>@game.Date.ToString("ddd, dd MMM yyyy") &bull; @game.StartTime – @game.EndTime</span>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <i class="bi bi-award text-primary"></i>
+                                        <span>@(Loc.IsArabic ? "المستوى:" : "Level:") @game.SkillLevel</span>
+                                    </div>
+                                </div>
+
+                                <!-- Players Capacity Progress -->
+                                <div class="mb-4 mt-auto">
+                                    <div class="d-flex justify-content-between small text-muted mb-1">
+                                        <span>@(Loc.IsArabic ? "اللاعبين المسجلين" : "Confirmed Players")</span>
+                                        <strong class="text-dark">@game.CurrentPlayersCount / @game.MaxPlayers</strong>
+                                    </div>
+                                    <div class="progress" style="height: 8px;">
+                                        <div class="progress-bar @(isFull ? "bg-danger" : "bg-success")" role="progressbar" style="width: @percent%;"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Action Buttons -->
+                                <div class="d-flex align-items-center justify-content-between pt-2 border-top">
+                                    <div>
+                                        <span class="text-muted small d-block">@(Loc.IsArabic ? "سعر المشاركة" : "Fee")</span>
+                                        <strong class="text-dark fs-5">
+                                            @(game.PricePerPlayer > 0 ? $"{game.PricePerPlayer:N0} EGP" : (Loc.IsArabic ? "مجاناً" : "Free"))
+                                        </strong>
+                                    </div>
+
+                                    @if (isJoined)
+                                    {
+                                        <form method="post" asp-page-handler="Leave" asp-route-gameId="@game.Id" onsubmit="return confirm('@(Loc.IsArabic ? "هل أنت متأكد من إلغاء انضمامك؟" : "Are you sure you want to leave this game?")');">
+                                            <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill px-3">
+                                                <i class="bi bi-box-arrow-right me-1"></i> @(Loc.IsArabic ? "إلغاء الانضمام" : "Leave Match")
+                                            </button>
+                                        </form>
+                                    }
+                                    else if (isFull)
+                                    {
+                                        <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3" disabled>
+                                            <i class="bi bi-slash-circle me-1"></i> @(Loc.IsArabic ? "المباراة مكتملة" : "Match Full")
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <form method="post" asp-page-handler="Join" asp-route-gameId="@game.Id">
+                                            <button type="submit" class="ps-btn ps-btn-primary ps-btn-sm rounded-pill px-4 fw-bold">
+                                                <i class="bi bi-person-plus-fill me-1"></i> @(Loc.IsArabic ? "انضمام" : "Join Game")
+                                            </button>
+                                        </form>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+</div>

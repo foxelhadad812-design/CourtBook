@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -24,6 +24,7 @@
     <ProjectReference Include="..\..\src\CourtBook.Application\CourtBook.Application.csproj" />
     <ProjectReference Include="..\..\src\CourtBook.Infrastructure\CourtBook.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\CourtBook.API\CourtBook.API.csproj" />
+    <ProjectReference Include="..\..\src\CourtBook.Web\CourtBook.Web.csproj" />
   </ItemGroup>
 
 </Project>

@@ -73,7 +73,8 @@
             <a class="ps-nav-link" href="/venues">
                 <i class="bi bi-trophy"></i> @Loc["Nav.Sports"]
             </a>
-            <a class="ps-nav-link" href="/venues">
+            <a class="ps-nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Games", StringComparison.OrdinalIgnoreCase) == true ? "active" : "")"
+               href="/games">
                 <i class="bi bi-people"></i> @Loc["Nav.Games"]
             </a>
         </div>
@@ -167,7 +168,7 @@
     <a class="ps-nav-link" href="/"><i class="bi bi-house-door me-2"></i>@Loc["Nav.Home"]</a>
     <a class="ps-nav-link" href="/venues"><i class="bi bi-building me-2"></i>@Loc["Nav.Venues"]</a>
     <a class="ps-nav-link" href="/venues"><i class="bi bi-trophy me-2"></i>@Loc["Nav.Sports"]</a>
-    <a class="ps-nav-link" href="/venues"><i class="bi bi-people me-2"></i>@Loc["Nav.Games"]</a>
+    <a class="ps-nav-link" href="/games"><i class="bi bi-people me-2"></i>@Loc["Nav.Games"]</a>
     @if (loggedIn)
     {
         <hr class="my-2">
@@ -269,6 +270,39 @@
         </div>
     </div>
 </footer>
+
+<!-- ══════════════════════════════════════════════════════════
+     SMART PLAYSPOT ASSISTANT
+     ══════════════════════════════════════════════════════════ -->
+<div id="ps-assistant-wrapper">
+    <!-- Floating Trigger Button -->
+    <button id="ps-assistant-btn" class="ps-assistant-trigger" type="button" aria-label="@(Loc.IsArabic ? "المساعد الذكي لبلاي سبوت" : "PlaySpot Smart Assistant")" title="@(Loc.IsArabic ? "مساعد بلاي سبوت الذكي" : "PlaySpot Smart Assistant")">
+        <i class="bi bi-chat-dots-fill fs-4"></i>
+        <span class="pulse-badge"></span>
+    </button>
+
+    <!-- Assistant Panel -->
+    <div id="ps-assistant-panel" class="ps-assistant-panel" data-role="@(userRole ?? "Guest")" data-name="@(userName ?? "")" role="dialog" aria-modal="true" aria-label="@(Loc.IsArabic ? "مساعد بلاي سبوت" : "PlaySpot Assistant")">
+        <div class="ps-assistant-header">
+            <div class="d-flex align-items-center gap-2">
+                <div style="width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-size:18px;">⚡</div>
+                <div>
+                    <h6 class="mb-0 fw-bold text-white" style="font-size:0.95rem;">@(Loc.IsArabic ? "مساعد بلاي سبوت" : "PlaySpot Assistant")</h6>
+                    <small class="text-white-50" style="font-size:0.75rem;"><span class="d-inline-block rounded-circle bg-success me-1" style="width:7px;height:7px;"></span>@(Loc.IsArabic ? "متصل ومستعد للمساعدة" : "Online & ready")</small>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-1">
+                <button type="button" id="ps-assistant-close" class="btn btn-link text-white-50 p-1" style="text-decoration:none;" aria-label="Close">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+        </div>
+
+        <div id="ps-assistant-body" class="ps-assistant-body">
+            <!-- Dynamically populated by PlaySpot.Assistant -->
+        </div>
+    </div>
+</div>
 
 <!-- Bootstrap 5 JS Bundle -->
 <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js" asp-append-version="true"></script>

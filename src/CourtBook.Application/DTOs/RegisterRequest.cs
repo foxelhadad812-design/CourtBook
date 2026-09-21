@@ -8,6 +8,7 @@ public class RegisterRequest
     public string Password { get; set; } = string.Empty;
     public string Phone { get; set; } = string.Empty;
     public string Role { get; set; } = "Client"; // "Client" or "Owner"
+    public DateOnly? DateOfBirth { get; set; }
     public bool AcceptTerms { get; set; }
     public string? TermsVersion { get; set; }
 }

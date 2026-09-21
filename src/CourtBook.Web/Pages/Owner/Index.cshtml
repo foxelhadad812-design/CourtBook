@@ -65,6 +65,41 @@
 
         @if (d != null)
         {
+            var ownerName = HttpContext.Session.GetString("UserName");
+            if (!string.IsNullOrEmpty(ownerName))
+            {
+                <div class="card border-0 mb-4 overflow-hidden shadow-sm" style="border-radius: var(--ps-radius-xl); background: var(--ps-hero-gradient, linear-gradient(135deg, #090B0E 0%, #161A22 100%)); border: 1px solid var(--ps-border); color: #fff;">
+                    <div class="card-body p-4 d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3">
+                        <div>
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <span class="badge bg-warning text-dark fw-bold px-2 py-1 rounded-pill" style="font-size: 11px;">
+                                    <i class="bi bi-star-fill me-1"></i>@(Loc.IsArabic ? "حساب مالك معتمد" : "Verified Facility Owner")
+                                </span>
+                            </div>
+                            <h3 class="fw-extrabold mb-1 text-white">@(Loc.IsArabic ? $"أهلاً بك مجدداً، {ownerName} 👋" : $"Welcome back, {ownerName} 👋")</h3>
+                            <p class="text-white-50 mb-0 small">
+                                @if (d.UpcomingBookingsCount > 0)
+                                {
+                                    @(Loc.IsArabic ? $"لديك {d.UpcomingBookingsCount} حجز قادم اليوم عبر مجمعاتك وملاعبك الرياضية." : $"You have {d.UpcomingBookingsCount} upcoming bookings scheduled across your facilities.")
+                                }
+                                else
+                                {
+                                    @(Loc.IsArabic ? "جميع ملاعبك ومنشآتك جاهزة ونشطة لاستقبال الحجوزات واللاعبين." : "All your courts and facilities are active and ready to receive bookings.")
+                                }
+                            </p>
+                        </div>
+                        <div class="d-flex flex-wrap gap-2">
+                            <a href="/Owner/Venues/Create" class="ps-btn ps-btn-primary btn-sm rounded-pill px-3">
+                                <i class="bi bi-plus-circle me-1"></i>@(Loc.IsArabic ? "إضافة ملعب جديد" : "Add Court")
+                            </a>
+                            <a href="/Owner/Venues" class="btn btn-outline-light btn-sm rounded-pill px-3">
+                                <i class="bi bi-building me-1"></i>@(Loc.IsArabic ? "إدارة المنشآت" : "Manage Facilities")
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            }
+
             <!-- TOP METRICS: 6 CARDS -->
             <div class="row g-3 mb-4">
                 <!-- Total Venues -->

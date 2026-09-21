@@ -34,6 +34,9 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             .HasMaxLength(20)
             .IsRequired();
 
+        builder.Property(u => u.DateOfBirth)
+            .IsRequired(false);
+
         builder.HasIndex(u => u.Role);
 
         // 1:1 UserProfile

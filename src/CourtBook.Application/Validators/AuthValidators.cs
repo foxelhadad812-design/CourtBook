@@ -43,5 +43,16 @@ public class RegisterRequestValidator : AbstractValidator<RegisterRequest>
         RuleFor(x => x.Phone)
             .NotEmpty().WithMessage("Phone number is required.")
             .Matches(@"^(\+?\d{7,15})$").WithMessage("Please enter a valid phone number.");
+
+        When(x => x.DateOfBirth.HasValue, () =>
+        {
+            RuleFor(x => x.DateOfBirth!.Value)
+                .LessThanOrEqualTo(DateOnly.FromDateTime(DateTime.UtcNow))
+                .WithMessage("Date of birth cannot be in the future.")
+                .LessThanOrEqualTo(DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-6)))
+                .WithMessage("You must be at least 6 years old to register.")
+                .GreaterThanOrEqualTo(DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-120)))
+                .WithMessage("Please enter a valid date of birth.");
+        });
     }
 }

@@ -19,15 +19,31 @@ public class ReviewsController : ControllerBase
     }
 
     /// <summary>
-    /// Gets paginated reviews for a facility.
+    /// Gets paginated reviews for a facility with optional sorting and rating filters.
     /// </summary>
     [HttpGet]
     [AllowAnonymous]
     [ProducesResponseType(typeof(PagedResult<ReviewResponse>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetVenueReviews(Guid venueId, [FromQuery] PagedRequest request)
+    public async Task<IActionResult> GetVenueReviews(
+        Guid venueId,
+        [FromQuery] PagedRequest request,
+        [FromQuery] string? sortBy = null,
+        [FromQuery] int? rating = null)
     {
-        var result = await _reviewService.GetVenueReviewsAsync(venueId, request);
+        var result = await _reviewService.GetVenueReviewsAsync(venueId, request, sortBy, rating);
         return Ok(result);
+    }
+
+    /// <summary>
+    /// Gets the structured rating summary with distribution and category breakdowns for a venue.
+    /// </summary>
+    [HttpGet("summary")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(VenueRatingSummaryDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetRatingSummary(Guid venueId)
+    {
+        var summary = await _reviewService.GetVenueRatingSummaryAsync(venueId);
+        return Ok(summary);
     }
 
     /// <summary>

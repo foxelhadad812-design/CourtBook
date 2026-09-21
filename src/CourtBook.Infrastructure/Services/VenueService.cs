@@ -149,6 +149,7 @@ public class VenueService : IVenueService
     {
         var venue = await _db.Venues
             .AsNoTracking()
+            .Where(v => v.IsActive && v.ApprovalStatus == VenueApprovalStatus.Approved)
             .Include(v => v.Courts.Where(c => c.IsActive))
                 .ThenInclude(c => c.Schedules)
             .Include(v => v.Amenities)

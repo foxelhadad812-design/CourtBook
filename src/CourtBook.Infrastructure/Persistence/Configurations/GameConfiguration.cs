@@ -1,4 +1,5 @@
 using CourtBook.Domain.Entities;
+using CourtBook.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -23,6 +24,17 @@ public class GameConfiguration : IEntityTypeConfiguration<Game>
             .HasConversion<string>()
             .HasMaxLength(20)
             .IsRequired();
+
+        builder.Property(g => g.AgeGroup)
+            .HasConversion<string>()
+            .HasMaxLength(20)
+            .HasDefaultValue(AgeGroup.AllAges);
+
+        builder.Property(g => g.MinAge)
+            .IsRequired(false);
+
+        builder.Property(g => g.MaxAge)
+            .IsRequired(false);
 
         builder.Property(g => g.Status)
             .HasConversion<string>()

@@ -21,6 +21,10 @@ public class DetailsModel : PageModel
     public PagedResult<ReviewResponse>? Reviews { get; set; }
     public bool IsNotFound { get; set; } = false;
 
+    [BindProperty(SupportsGet = true)] public string? SortBy { get; set; } = "recent";
+    [BindProperty(SupportsGet = true)] public int? FilterRating { get; set; }
+    public VenueRatingSummaryDto? RatingSummary { get; set; }
+
     // Computed review metrics
     public Dictionary<int, int> RatingDistribution { get; set; } = new()
     {
@@ -38,6 +42,13 @@ public class DetailsModel : PageModel
 
     public async Task<IActionResult> OnGetAsync(Guid? id, [FromQuery] Guid? venueId)
     {
+        var token = HttpContext.Session.GetString("JwtToken");
+        if (string.IsNullOrEmpty(token))
+        {
+            var returnUrl = Uri.EscapeDataString(Request.Path + Request.QueryString);
+            return Redirect($"/Login?returnUrl={returnUrl}");
+        }
+
         var targetId = id ?? venueId;
         if (!targetId.HasValue || targetId.Value == Guid.Empty)
         {
@@ -56,6 +67,12 @@ public class DetailsModel : PageModel
         {
             // 1. Fetch Venue Details from API
             var venueResp = await _api.Client.GetAsync($"/api/venues/{targetId.Value}");
+            if (venueResp.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                var returnUrl = Uri.EscapeDataString(Request.Path + Request.QueryString);
+                return Redirect($"/Login?returnUrl={returnUrl}");
+            }
+
             if (!venueResp.IsSuccessStatusCode)
             {
                 _logger.LogWarning("Failed to fetch venue {VenueId}. Status: {StatusCode}", targetId.Value, venueResp.StatusCode);
@@ -71,14 +88,56 @@ public class DetailsModel : PageModel
                 return Page();
             }
 
-            // 2. Fetch Verified Reviews from API
+            // 2. Fetch Structured Rating Summary from API
             try
             {
-                var reviewsResp = await _api.Client.GetAsync($"/api/venues/{targetId.Value}/reviews?page=1&pageSize=20");
+                var summaryResp = await _api.Client.GetAsync($"/api/venues/{targetId.Value}/reviews/summary");
+                if (summaryResp.IsSuccessStatusCode)
+                {
+                    RatingSummary = await summaryResp.Content.ReadFromJsonAsync<VenueRatingSummaryDto>();
+                    if (RatingSummary != null)
+                    {
+                        RatingDistribution[5] = RatingSummary.FiveStarCount;
+                        RatingDistribution[4] = RatingSummary.FourStarCount;
+                        RatingDistribution[3] = RatingSummary.ThreeStarCount;
+                        RatingDistribution[2] = RatingSummary.TwoStarCount;
+                        RatingDistribution[1] = RatingSummary.OneStarCount;
+
+                        RatingPercentages[5] = (int)Math.Round(RatingSummary.FiveStarPercent);
+                        RatingPercentages[4] = (int)Math.Round(RatingSummary.FourStarPercent);
+                        RatingPercentages[3] = (int)Math.Round(RatingSummary.ThreeStarPercent);
+                        RatingPercentages[2] = (int)Math.Round(RatingSummary.TwoStarPercent);
+                        RatingPercentages[1] = (int)Math.Round(RatingSummary.OneStarPercent);
+
+                        CourtQualityAvg = RatingSummary.CourtQualityAverage;
+                        CleanlinessAvg = RatingSummary.CleanlinessAverage;
+                        StaffAvg = RatingSummary.StaffAverage;
+                        ValueAvg = RatingSummary.ValueAverage;
+                    }
+                }
+            }
+            catch (Exception sx)
+            {
+                _logger.LogInformation("Rating summary fetch fallback: {Message}", sx.Message);
+            }
+
+            // 3. Fetch Verified Reviews from API (with sorting and star filtering)
+            try
+            {
+                var queryParams = $"page=1&pageSize=50&sortBy={Uri.EscapeDataString(SortBy ?? "recent")}";
+                if (FilterRating.HasValue && FilterRating.Value >= 1 && FilterRating.Value <= 5)
+                {
+                    queryParams += $"&rating={FilterRating.Value}";
+                }
+
+                var reviewsResp = await _api.Client.GetAsync($"/api/venues/{targetId.Value}/reviews?{queryParams}");
                 if (reviewsResp.IsSuccessStatusCode)
                 {
                     Reviews = await reviewsResp.Content.ReadFromJsonAsync<PagedResult<ReviewResponse>>();
-                    CalculateReviewMetrics();
+                    if (RatingSummary == null)
+                    {
+                        CalculateReviewMetrics();
+                    }
                 }
             }
             catch (Exception rx)

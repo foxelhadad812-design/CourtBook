@@ -47,6 +47,36 @@ app.UseAuthMiddleware();
 
 app.UseAuthorization();
 
+// API forwarding routes for browser client calls (Terms modal, Smart Assistant, public discovery)
+app.MapGet("/api/terms/{type}", async (string type, ApiClient api) =>
+{
+    var resp = await api.Client.GetAsync($"/api/terms/{type}");
+    if (!resp.IsSuccessStatusCode)
+    {
+        return Results.NotFound(new { message = "Terms document not found." });
+    }
+    var json = await resp.Content.ReadAsStringAsync();
+    return Results.Content(json, "application/json");
+}).AllowAnonymous();
+
+app.MapGet("/api/venues/{**path}", async (string? path, HttpContext ctx, ApiClient api) =>
+{
+    var query = ctx.Request.QueryString.Value ?? "";
+    var targetUrl = $"/api/venues/{path}{query}";
+    var resp = await api.Client.GetAsync(targetUrl);
+    var content = await resp.Content.ReadAsStringAsync();
+    return Results.Content(content, resp.Content.Headers.ContentType?.MediaType ?? "application/json", statusCode: (int)resp.StatusCode);
+}).AllowAnonymous();
+
+app.MapGet("/api/games/{**path}", async (string? path, HttpContext ctx, ApiClient api) =>
+{
+    var query = ctx.Request.QueryString.Value ?? "";
+    var targetUrl = $"/api/games/{path}{query}";
+    var resp = await api.Client.GetAsync(targetUrl);
+    var content = await resp.Content.ReadAsStringAsync();
+    return Results.Content(content, resp.Content.Headers.ContentType?.MediaType ?? "application/json", statusCode: (int)resp.StatusCode);
+}).AllowAnonymous();
+
 app.MapStaticAssets();
 app.MapRazorPages()
    .WithStaticAssets();

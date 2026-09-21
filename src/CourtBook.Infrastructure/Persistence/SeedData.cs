@@ -20,6 +20,7 @@ public static class SeedData
         await EnsureTermsDocumentsAsync(db, logger);
         await EnsureUsersAndVenuesAsync(db, logger);
         await EnsureVenueAssetsAndDetailsAsync(db, logger);
+        await EnsureCommunityGamesAsync(db, logger);
     }
 
     public static async Task EnsureTermsDocumentsAsync(AppDbContext db, ILogger logger)
@@ -135,17 +136,29 @@ Last Updated: September 2026
 
         if (admin == null)
         {
-            admin = new User { Id = Guid.NewGuid(), Name = "PlaySpot Admin", Email = "admin@courtbook.eg", PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123"), Phone = "01000000001", Role = Role.Admin };
-            ahmed = new User { Id = Guid.NewGuid(), Name = "Ahmed Mostafa", Email = "ahmed.owner@courtbook.eg", PasswordHash = BCrypt.Net.BCrypt.HashPassword("Owner@123"), Phone = "01000000002", Role = Role.Owner };
-            sara = new User { Id = Guid.NewGuid(), Name = "Sara Ibrahim", Email = "sara.owner@courtbook.eg", PasswordHash = BCrypt.Net.BCrypt.HashPassword("Owner@123"), Phone = "01000000003", Role = Role.Owner };
-            mohamed = new User { Id = Guid.NewGuid(), Name = "محمد الحداد", Email = "mohamed.owner@courtbook.eg", PasswordHash = BCrypt.Net.BCrypt.HashPassword("Owner@123"), Phone = "01000000007", Role = Role.Owner };
+            admin = new User { Id = Guid.NewGuid(), Name = "PlaySpot Admin", Email = "admin@courtbook.eg", PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123"), Phone = "01000000001", Role = Role.Admin, DateOfBirth = new DateOnly(1990, 1, 1) };
+            ahmed = new User { Id = Guid.NewGuid(), Name = "Ahmed Mostafa", Email = "ahmed.owner@courtbook.eg", PasswordHash = BCrypt.Net.BCrypt.HashPassword("Owner@123"), Phone = "01000000002", Role = Role.Owner, DateOfBirth = new DateOnly(1988, 1, 10) };
+            sara = new User { Id = Guid.NewGuid(), Name = "Sara Ibrahim", Email = "sara.owner@courtbook.eg", PasswordHash = BCrypt.Net.BCrypt.HashPassword("Owner@123"), Phone = "01000000003", Role = Role.Owner, DateOfBirth = new DateOnly(1992, 4, 12) };
+            mohamed = new User { Id = Guid.NewGuid(), Name = "محمد الحداد", Email = "mohamed.owner@courtbook.eg", PasswordHash = BCrypt.Net.BCrypt.HashPassword("Owner@123"), Phone = "01000000007", Role = Role.Owner, DateOfBirth = new DateOnly(1985, 11, 20) };
 
-            omar = new User { Id = Guid.NewGuid(), Name = "Omar Hassan", Email = "omar@gmail.com", PasswordHash = BCrypt.Net.BCrypt.HashPassword("Client@123"), Phone = "01000000004", Role = Role.Client };
-            nada = new User { Id = Guid.NewGuid(), Name = "Nada Youssef", Email = "nada@gmail.com", PasswordHash = BCrypt.Net.BCrypt.HashPassword("Client@123"), Phone = "01000000005", Role = Role.Client };
-            karim = new User { Id = Guid.NewGuid(), Name = "Karim Adel", Email = "karim@gmail.com", PasswordHash = BCrypt.Net.BCrypt.HashPassword("Client@123"), Phone = "01000000006", Role = Role.Client };
+            omar = new User { Id = Guid.NewGuid(), Name = "Omar Hassan", Email = "omar@gmail.com", PasswordHash = BCrypt.Net.BCrypt.HashPassword("Client@123"), Phone = "01000000004", Role = Role.Client, DateOfBirth = new DateOnly(1996, 5, 15) };
+            nada = new User { Id = Guid.NewGuid(), Name = "Nada Youssef", Email = "nada@gmail.com", PasswordHash = BCrypt.Net.BCrypt.HashPassword("Client@123"), Phone = "01000000005", Role = Role.Client, DateOfBirth = new DateOnly(2000, 8, 20) };
+            karim = new User { Id = Guid.NewGuid(), Name = "Karim Adel", Email = "karim@gmail.com", PasswordHash = BCrypt.Net.BCrypt.HashPassword("Client@123"), Phone = "01000000006", Role = Role.Client, DateOfBirth = new DateOnly(2009, 3, 10) };
 
             await db.Users.AddRangeAsync(admin, ahmed, sara, mohamed, omar, nada, karim);
             await db.SaveChangesAsync();
+        }
+        else
+        {
+            bool updated = false;
+            if (omar != null && !omar.DateOfBirth.HasValue) { omar.DateOfBirth = new DateOnly(1996, 5, 15); updated = true; }
+            if (nada != null && !nada.DateOfBirth.HasValue) { nada.DateOfBirth = new DateOnly(2000, 8, 20); updated = true; }
+            if (karim != null && !karim.DateOfBirth.HasValue) { karim.DateOfBirth = new DateOnly(2009, 3, 10); updated = true; }
+            if (admin != null && !admin.DateOfBirth.HasValue) { admin.DateOfBirth = new DateOnly(1990, 1, 1); updated = true; }
+            if (ahmed != null && !ahmed.DateOfBirth.HasValue) { ahmed.DateOfBirth = new DateOnly(1988, 1, 10); updated = true; }
+            if (sara != null && !sara.DateOfBirth.HasValue) { sara.DateOfBirth = new DateOnly(1992, 4, 12); updated = true; }
+            if (mohamed != null && !mohamed.DateOfBirth.HasValue) { mohamed.DateOfBirth = new DateOnly(1985, 11, 20); updated = true; }
+            if (updated) await db.SaveChangesAsync();
         }
 
         // ── 2. Amenities ──────────────────────────────────────────────────────
@@ -1171,5 +1184,191 @@ Last Updated: September 2026
         });
 
         return list;
+    }
+
+    public static async Task EnsureCommunityGamesAsync(AppDbContext db, ILogger logger)
+    {
+        if (await db.Games.CountAsync() >= 6) return;
+
+        logger.LogInformation("Seeding initial community matches with age classifications...");
+
+        var omar = await db.Users.FirstOrDefaultAsync(u => u.Email == "omar@gmail.com");
+        var nada = await db.Users.FirstOrDefaultAsync(u => u.Email == "nada@gmail.com");
+        var karim = await db.Users.FirstOrDefaultAsync(u => u.Email == "karim@gmail.com");
+
+        if (omar == null || nada == null || karim == null) return;
+
+        var footballCourt = await db.Courts.Include(c => c.Venue).FirstOrDefaultAsync(c => c.SportType == SportType.Football && c.IsActive && c.Venue.ApprovalStatus == VenueApprovalStatus.Approved);
+        var padelCourt = await db.Courts.Include(c => c.Venue).FirstOrDefaultAsync(c => c.SportType == SportType.Padel && c.IsActive && c.Venue.ApprovalStatus == VenueApprovalStatus.Approved);
+        var tennisCourt = await db.Courts.Include(c => c.Venue).FirstOrDefaultAsync(c => c.SportType == SportType.Tennis && c.IsActive && c.Venue.ApprovalStatus == VenueApprovalStatus.Approved);
+        var basketballCourt = await db.Courts.Include(c => c.Venue).FirstOrDefaultAsync(c => c.SportType == SportType.Basketball && c.IsActive && c.Venue.ApprovalStatus == VenueApprovalStatus.Approved);
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var games = new List<Game>();
+
+        if (footballCourt != null)
+        {
+            var g1 = new Game
+            {
+                Id = Guid.NewGuid(),
+                Title = "Friday Night 7v7 Adults Clash",
+                SportType = SportType.Football,
+                VenueId = footballCourt.VenueId,
+                CourtId = footballCourt.Id,
+                CreatorId = omar.Id,
+                Date = today.AddDays(2),
+                StartTime = new TimeOnly(19, 0),
+                EndTime = new TimeOnly(20, 30),
+                SkillLevel = SkillLevel.Intermediate,
+                AgeGroup = AgeGroup.Adults,
+                MinAge = 18,
+                MaxAge = null,
+                MaxPlayers = 14,
+                MinPlayers = 10,
+                PricePerPlayer = 85m,
+                Status = GameStatus.Open,
+                Description = "Competitive adult football match. Please arrive 15 minutes early with proper turf shoes.",
+                CreatedAt = DateTime.UtcNow
+            };
+            g1.Participants.Add(new GameParticipant { Id = Guid.NewGuid(), GameId = g1.Id, UserId = omar.Id, IsConfirmed = true, JoinedAt = DateTime.UtcNow });
+            games.Add(g1);
+
+            var g2 = new Game
+            {
+                Id = Guid.NewGuid(),
+                Title = "Youth Academy Football Scrimmage",
+                SportType = SportType.Football,
+                VenueId = footballCourt.VenueId,
+                CourtId = footballCourt.Id,
+                CreatorId = karim.Id,
+                Date = today.AddDays(3),
+                StartTime = new TimeOnly(16, 30),
+                EndTime = new TimeOnly(18, 0),
+                SkillLevel = SkillLevel.AllLevels,
+                AgeGroup = AgeGroup.Teens,
+                MinAge = 16,
+                MaxAge = 17,
+                MaxPlayers = 10,
+                MinPlayers = 6,
+                PricePerPlayer = 50m,
+                Status = GameStatus.Open,
+                Description = "High school and teen football scrimmage focusing on quick passing and teamwork.",
+                CreatedAt = DateTime.UtcNow
+            };
+            g2.Participants.Add(new GameParticipant { Id = Guid.NewGuid(), GameId = g2.Id, UserId = karim.Id, IsConfirmed = true, JoinedAt = DateTime.UtcNow });
+            games.Add(g2);
+        }
+
+        if (padelCourt != null)
+        {
+            var g3 = new Game
+            {
+                Id = Guid.NewGuid(),
+                Title = "Open Padel Doubles League",
+                SportType = SportType.Padel,
+                VenueId = padelCourt.VenueId,
+                CourtId = padelCourt.Id,
+                CreatorId = nada.Id,
+                Date = today.AddDays(1),
+                StartTime = new TimeOnly(10, 0),
+                EndTime = new TimeOnly(11, 30),
+                SkillLevel = SkillLevel.AllLevels,
+                AgeGroup = AgeGroup.AllAges,
+                MaxPlayers = 4,
+                MinPlayers = 4,
+                PricePerPlayer = 120m,
+                Status = GameStatus.Open,
+                Description = "Morning padel game open to all ages and experience levels. Balls provided.",
+                CreatedAt = DateTime.UtcNow
+            };
+            g3.Participants.Add(new GameParticipant { Id = Guid.NewGuid(), GameId = g3.Id, UserId = nada.Id, IsConfirmed = true, JoinedAt = DateTime.UtcNow });
+            games.Add(g3);
+
+            var g4 = new Game
+            {
+                Id = Guid.NewGuid(),
+                Title = "Junior Padel Clinic & Mini Match",
+                SportType = SportType.Padel,
+                VenueId = padelCourt.VenueId,
+                CourtId = padelCourt.Id,
+                CreatorId = omar.Id,
+                Date = today.AddDays(4),
+                StartTime = new TimeOnly(11, 0),
+                EndTime = new TimeOnly(12, 30),
+                SkillLevel = SkillLevel.Beginner,
+                AgeGroup = AgeGroup.Kids,
+                MinAge = 6,
+                MaxAge = 12,
+                MaxPlayers = 4,
+                MinPlayers = 2,
+                PricePerPlayer = 70m,
+                Status = GameStatus.Open,
+                Description = "Fun introductory padel game for kids (6-12 years) with supervision and fun mini-sets.",
+                CreatedAt = DateTime.UtcNow
+            };
+            g4.Participants.Add(new GameParticipant { Id = Guid.NewGuid(), GameId = g4.Id, UserId = omar.Id, IsConfirmed = true, JoinedAt = DateTime.UtcNow });
+            games.Add(g4);
+        }
+
+        if (tennisCourt != null)
+        {
+            var g5 = new Game
+            {
+                Id = Guid.NewGuid(),
+                Title = "Sunset Singles Tennis Match",
+                SportType = SportType.Tennis,
+                VenueId = tennisCourt.VenueId,
+                CourtId = tennisCourt.Id,
+                CreatorId = omar.Id,
+                Date = today.AddDays(2),
+                StartTime = new TimeOnly(17, 30),
+                EndTime = new TimeOnly(19, 0),
+                SkillLevel = SkillLevel.Advanced,
+                AgeGroup = AgeGroup.Adults,
+                MinAge = 18,
+                MaxAge = null,
+                MaxPlayers = 2,
+                MinPlayers = 2,
+                PricePerPlayer = 150m,
+                Status = GameStatus.Open,
+                Description = "Fast-paced advanced singles duel under the evening floodlights.",
+                CreatedAt = DateTime.UtcNow
+            };
+            g5.Participants.Add(new GameParticipant { Id = Guid.NewGuid(), GameId = g5.Id, UserId = omar.Id, IsConfirmed = true, JoinedAt = DateTime.UtcNow });
+            games.Add(g5);
+        }
+
+        if (basketballCourt != null)
+        {
+            var g6 = new Game
+            {
+                Id = Guid.NewGuid(),
+                Title = "Weekend 3x3 Half-Court Battle",
+                SportType = SportType.Basketball,
+                VenueId = basketballCourt.VenueId,
+                CourtId = basketballCourt.Id,
+                CreatorId = nada.Id,
+                Date = today.AddDays(3),
+                StartTime = new TimeOnly(18, 0),
+                EndTime = new TimeOnly(19, 30),
+                SkillLevel = SkillLevel.AllLevels,
+                AgeGroup = AgeGroup.AllAges,
+                MaxPlayers = 6,
+                MinPlayers = 4,
+                PricePerPlayer = 60m,
+                Status = GameStatus.Open,
+                Description = "Casual half-court 3v3 basketball runs with music and refreshments.",
+                CreatedAt = DateTime.UtcNow
+            };
+            g6.Participants.Add(new GameParticipant { Id = Guid.NewGuid(), GameId = g6.Id, UserId = nada.Id, IsConfirmed = true, JoinedAt = DateTime.UtcNow });
+            games.Add(g6);
+        }
+
+        if (games.Any())
+        {
+            await db.Games.AddRangeAsync(games);
+            await db.SaveChangesAsync();
+            logger.LogInformation("Seeded {Count} community games across diverse sports & age groups.", games.Count);
+        }
     }
 }

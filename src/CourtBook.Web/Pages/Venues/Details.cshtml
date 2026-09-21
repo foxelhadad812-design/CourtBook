@@ -1,5 +1,6 @@
 @page "{id:guid?}"
 @model CourtBook.Web.Pages.Venues.DetailsModel
+@using CourtBook.Web.Helpers
 @{
     ViewData["Title"] = Model.Venue != null ? $"{Model.Venue.Name} — {Loc["Brand.Name"]}" : Loc["Venues.Empty.Title"];
 }
@@ -146,7 +147,7 @@ else
             <div class="card border-0 shadow-sm overflow-hidden mb-4" style="border-radius: var(--ps-radius-xl);">
                 <div class="p-3 p-md-4">
                     <!-- Main Gallery Viewer (16:9 Aspect Ratio) -->
-                    <div class="position-relative gallery-main-container rounded-4 overflow-hidden shadow-xs" style="aspect-ratio: 16 / 9; max-height: 480px; background: #0F172A;">
+                    <div class="position-relative gallery-main-container rounded-4 overflow-hidden shadow-xs" style="aspect-ratio: 16 / 9; max-height: 480px; background: var(--ps-surface-subtle, #12161F);">
                         <img id="gallery-main-img" 
                              src="@primaryImage" 
                              alt="@venue.Name photo" 
@@ -346,17 +347,8 @@ else
                                         @foreach (var court in sg)
                                         {
                                             var courtSport = court.SportType.ToLowerInvariant();
-                                            var courtSurface = court.SurfaceType?.ToLowerInvariant() ?? "";
-                                            var courtImg = courtSport switch {
-                                                "football" => court.Capacity > 10 ? "/images/venues/football/football-pitch-01.jpg" : "/images/venues/football/football-pitch-02.jpg",
-                                                "padel" => court.IsIndoor ? "/images/venues/padel/padel-indoor-01.jpg" : "/images/venues/padel/padel-court-01.jpg",
-                                                "tennis" => courtSurface.Contains("hard") ? "/images/venues/tennis/tennis-hard-01.jpg" : "/images/venues/tennis/tennis-clay-01.jpg",
-                                                "basketball" => court.IsIndoor ? "/images/venues/basketball/basketball-indoor-01.jpg" : "/images/venues/basketball/basketball-court-01.jpg",
-                                                "volleyball" => "/images/venues/volleyball/volleyball-indoor-01.jpg",
-                                                "badminton" => "/images/venues/badminton/badminton-court-01.jpg",
-                                                _ => "/images/venues/fallbacks/venue-fallback.jpg"
-                                            };
-                                            var courtFallback = $"/images/venues/fallbacks/{courtSport}-fallback.jpg";
+                                            var courtImg = CourtImageHelper.GetCourtImageUrl(court.Name, court.SportType, court.IsIndoor, court.SurfaceType, court.Capacity);
+                                            var courtFallback = CourtImageHelper.GetFallbackImageUrl(court.SportType);
 
                                             <div class="card border border-light-subtle rounded-3 p-3 p-md-4 shadow-xs hover-elevation" style="transition: transform 0.2s, box-shadow 0.2s;">
                                                 <div class="row align-items-center g-3">
@@ -474,12 +466,12 @@ else
                             </div>
                         </div>
 
-                        <!-- Rating Overview Box -->
-                        <div class="bg-light p-4 rounded-3 mb-4">
+                        <!-- Rating Overview Box with Distribution & Dimensions -->
+                        <div class="bg-light p-4 rounded-3 mb-4 border border-light-subtle">
                             <div class="row align-items-center g-4">
                                 
-                                <!-- Overall Score -->
-                                <div class="col-md-4 text-center border-end-md">
+                                <!-- Overall Score & Trust Indicator -->
+                                <div class="col-lg-3 col-md-4 text-center border-end-md">
                                     <div class="display-4 fw-extrabold text-dark mb-0">
                                         @venue.AverageRating.ToString("0.0")
                                     </div>
@@ -496,56 +488,111 @@ else
                                             }
                                         }
                                     </div>
-                                    <div class="text-muted small">
+                                    <div class="text-muted small mb-2">
                                         @Loc.T("Details.Reviews.BasedOn", venue.TotalReviews)
+                                    </div>
+                                    <span class="badge bg-success-subtle text-success border border-success border-opacity-25 px-2 py-1 rounded-pill small">
+                                        <i class="bi bi-shield-fill-check me-1"></i>@(Loc.IsArabic ? "حجوزات حقيقية 100%" : "100% Verified")
+                                    </span>
+                                </div>
+
+                                <!-- 5★ - 1★ Star Distribution Bars -->
+                                <div class="col-lg-4 col-md-8 border-end-lg">
+                                    <div class="d-flex flex-column gap-2">
+                                        @for (int star = 5; star >= 1; star--)
+                                        {
+                                            var count = Model.RatingDistribution.GetValueOrDefault(star, 0);
+                                            var pct = Model.RatingPercentages.GetValueOrDefault(star, 0);
+                                            <a href="?id=@venue.Id&filterRating=@star&sortBy=@Model.SortBy#reviews-section" 
+                                               class="d-flex align-items-center gap-2 text-decoration-none small text-muted hover-opacity" 
+                                               title="@star Stars: @count reviews">
+                                                <span class="text-muted fw-bold d-flex align-items-center" style="width: 32px;">
+                                                    @star <i class="bi bi-star-fill text-warning ms-1" style="font-size: 11px;"></i>
+                                                </span>
+                                                <div class="progress flex-grow-1" style="height: 7px;">
+                                                    <div class="progress-bar bg-warning" role="progressbar" style="width: @pct%;"></div>
+                                                </div>
+                                                <span class="text-muted small" style="width: 36px; text-align: end;">@count</span>
+                                            </a>
+                                        }
                                     </div>
                                 </div>
 
-                                <!-- Sub-category Scores -->
-                                <div class="col-md-8">
+                                <!-- Sub-category Scores (Dimensions) -->
+                                <div class="col-lg-5 col-12">
                                     <div class="row g-3">
                                         <div class="col-6">
                                             <div class="d-flex justify-content-between small text-muted mb-1">
                                                 <span>@Loc["Details.Reviews.Quality"]</span>
-                                                <strong class="text-dark">@(Model.CourtQualityAvg > 0 ? Model.CourtQualityAvg.ToString("0.0") : "5.0") / 5</strong>
+                                                <strong class="text-dark">@(venue.TotalReviews > 0 ? Model.CourtQualityAvg.ToString("0.0") : "—") / 5</strong>
                                             </div>
                                             <div class="progress" style="height: 6px;">
-                                                <div class="progress-bar bg-primary" role="progressbar" style="width: @((Model.CourtQualityAvg > 0 ? Model.CourtQualityAvg : 5.0) * 20)%;"></div>
+                                                <div class="progress-bar bg-primary" role="progressbar" style="width: @(venue.TotalReviews > 0 ? Model.CourtQualityAvg * 20 : 0)%;"></div>
                                             </div>
                                         </div>
 
                                         <div class="col-6">
                                             <div class="d-flex justify-content-between small text-muted mb-1">
                                                 <span>@Loc["Details.Reviews.Cleanliness"]</span>
-                                                <strong class="text-dark">@(Model.CleanlinessAvg > 0 ? Model.CleanlinessAvg.ToString("0.0") : "4.9") / 5</strong>
+                                                <strong class="text-dark">@(venue.TotalReviews > 0 ? Model.CleanlinessAvg.ToString("0.0") : "—") / 5</strong>
                                             </div>
                                             <div class="progress" style="height: 6px;">
-                                                <div class="progress-bar bg-success" role="progressbar" style="width: @((Model.CleanlinessAvg > 0 ? Model.CleanlinessAvg : 4.9) * 20)%;"></div>
+                                                <div class="progress-bar bg-success" role="progressbar" style="width: @(venue.TotalReviews > 0 ? Model.CleanlinessAvg * 20 : 0)%;"></div>
                                             </div>
                                         </div>
 
                                         <div class="col-6">
                                             <div class="d-flex justify-content-between small text-muted mb-1">
                                                 <span>@Loc["Details.Reviews.Staff"]</span>
-                                                <strong class="text-dark">@(Model.StaffAvg > 0 ? Model.StaffAvg.ToString("0.0") : "4.8") / 5</strong>
+                                                <strong class="text-dark">@(venue.TotalReviews > 0 ? Model.StaffAvg.ToString("0.0") : "—") / 5</strong>
                                             </div>
                                             <div class="progress" style="height: 6px;">
-                                                <div class="progress-bar bg-info" role="progressbar" style="width: @((Model.StaffAvg > 0 ? Model.StaffAvg : 4.8) * 20)%;"></div>
+                                                <div class="progress-bar bg-info" role="progressbar" style="width: @(venue.TotalReviews > 0 ? Model.StaffAvg * 20 : 0)%;"></div>
                                             </div>
                                         </div>
 
                                         <div class="col-6">
                                             <div class="d-flex justify-content-between small text-muted mb-1">
                                                 <span>@Loc["Details.Reviews.Value"]</span>
-                                                <strong class="text-dark">@(Model.ValueAvg > 0 ? Model.ValueAvg.ToString("0.0") : "4.8") / 5</strong>
+                                                <strong class="text-dark">@(venue.TotalReviews > 0 ? Model.ValueAvg.ToString("0.0") : "—") / 5</strong>
                                             </div>
                                             <div class="progress" style="height: 6px;">
-                                                <div class="progress-bar bg-warning" role="progressbar" style="width: @((Model.ValueAvg > 0 ? Model.ValueAvg : 4.8) * 20)%;"></div>
+                                                <div class="progress-bar bg-warning" role="progressbar" style="width: @(venue.TotalReviews > 0 ? Model.ValueAvg * 20 : 0)%;"></div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
+                            </div>
+                        </div>
+
+                        <!-- Review Filter & Sorting Bar -->
+                        <div class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3 mb-4 pb-3 border-bottom">
+                            <!-- Star filter pills -->
+                            <div class="d-flex flex-wrap align-items-center gap-1">
+                                <a href="?id=@venue.Id&sortBy=@Model.SortBy#reviews-section" 
+                                   class="btn btn-sm rounded-pill px-3 py-1 @(Model.FilterRating == null ? "btn-dark text-white fw-bold" : "btn-outline-secondary")">
+                                    @(Loc.IsArabic ? "جميع التقييمات" : "All Reviews")
+                                </a>
+                                @for (int star = 5; star >= 1; star--)
+                                {
+                                    <a href="?id=@venue.Id&filterRating=@star&sortBy=@Model.SortBy#reviews-section" 
+                                       class="btn btn-sm rounded-pill px-2 py-1 d-inline-flex align-items-center gap-1 @(Model.FilterRating == star ? "btn-primary text-white fw-bold" : "btn-outline-secondary")">
+                                        <span>@star</span>
+                                        <i class="bi bi-star-fill text-warning" style="font-size: 10px;"></i>
+                                    </a>
+                                }
+                            </div>
+
+                            <!-- Sorting Dropdown -->
+                            <div class="d-flex align-items-center gap-2">
+                                <label class="text-muted small mb-0 fw-medium">@(Loc.IsArabic ? "ترتيب حسب:" : "Sort by:")</label>
+                                <select class="form-select form-select-sm rounded-pill shadow-none" style="width: auto; cursor: pointer;" 
+                                        onchange="window.location.href='?id=@venue.Id&filterRating=@Model.FilterRating&sortBy=' + this.value + '#reviews-section'">
+                                    <option value="recent" selected="@(Model.SortBy == "recent" ? "selected" : null)">@(Loc.IsArabic ? "الأحدث" : "Most Recent")</option>
+                                    <option value="highest" selected="@(Model.SortBy == "highest" ? "selected" : null)">@(Loc.IsArabic ? "الأعلى تقييماً" : "Highest Rated")</option>
+                                    <option value="lowest" selected="@(Model.SortBy == "lowest" ? "selected" : null)">@(Loc.IsArabic ? "الأقل تقييماً" : "Lowest Rated")</option>
+                                </select>
                             </div>
                         </div>
 
@@ -568,11 +615,17 @@ else
                                                     @initials
                                                 </div>
                                                 <div>
-                                                    <div class="d-flex align-items-center gap-2">
+                                                    <div class="d-flex align-items-center gap-2 flex-wrap">
                                                         <span class="fw-bold text-dark">@rev.UserName</span>
                                                         <span class="badge bg-success-subtle text-success d-inline-flex align-items-center gap-1" style="font-size: 10px;">
-                                                            <i class="bi bi-patch-check-fill"></i> @(Loc.IsArabic ? "لاعب موثق" : "Verified Player")
+                                                            <i class="bi bi-patch-check-fill"></i> @(Loc.IsArabic ? "حجز مؤكد" : "Verified Booking")
                                                         </span>
+                                                        @if (!string.IsNullOrEmpty(rev.CourtName))
+                                                        {
+                                                            <span class="badge bg-light text-secondary border d-inline-flex align-items-center gap-1" style="font-size: 10px;">
+                                                                <i class="bi bi-geo-alt-fill text-primary"></i> @rev.CourtName
+                                                            </span>
+                                                        }
                                                     </div>
                                                     <div class="text-muted" style="font-size: 12px;">
                                                         @rev.CreatedAt.ToString("MMM dd, yyyy")
@@ -683,7 +736,7 @@ else
                         </div>
 
                         <!-- Cancellation Policy Card -->
-                        <div class="card border-0 shadow-sm p-4" style="border-radius: var(--ps-radius-xl); background: rgba(59, 130, 246, 0.08); border-left: 4px solid var(--ps-primary) !important;">
+                        <div class="card border-0 shadow-sm p-4" style="border-radius: var(--ps-radius-xl); background: var(--ps-primary-50); border-inline-start: 4px solid var(--ps-primary) !important;">
                             <div class="d-flex align-items-center gap-2 mb-2 text-primary">
                                 <i class="bi bi-shield-check fs-5"></i>
                                 <h5 class="fw-bold text-dark mb-0">@Loc["Details.Policy.Title"]</h5>

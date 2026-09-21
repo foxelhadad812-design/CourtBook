@@ -16,6 +16,9 @@ public class Game
     public TimeOnly EndTime { get; set; }
     
     public SkillLevel SkillLevel { get; set; } = SkillLevel.AllLevels;
+    public AgeGroup AgeGroup { get; set; } = AgeGroup.AllAges;
+    public int? MinAge { get; set; }
+    public int? MaxAge { get; set; }
     public int MaxPlayers { get; set; }
     public int MinPlayers { get; set; } = 2;
     public decimal PricePerPlayer { get; set; } = 0;
