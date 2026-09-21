@@ -91,5 +91,9 @@ public class CourtsController : ControllerBase
         {
             return Forbid(ex.Message);
         }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 }

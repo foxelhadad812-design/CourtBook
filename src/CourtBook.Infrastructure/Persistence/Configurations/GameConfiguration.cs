@@ -47,9 +47,10 @@ public class GameConfiguration : IEntityTypeConfiguration<Game>
         builder.Property(g => g.Description)
             .HasMaxLength(1000);
 
-        // Discovery indexes for finding games
+        // Discovery and conflict detection indexes
         builder.HasIndex(g => new { g.SportType, g.Date, g.Status });
         builder.HasIndex(g => new { g.VenueId, g.Date, g.Status });
+        builder.HasIndex(g => new { g.CourtId, g.Date, g.Status });
         builder.HasIndex(g => g.CreatorId);
 
         // Creator relationship

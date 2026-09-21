@@ -54,57 +54,46 @@ public class OwnerService : IOwnerService
         var bookingsThisWeek = await ownerBookingsQuery
             .CountAsync(b => b.StartTime >= weekStart);
 
-        // 3. Revenue Calculations
-        var allBookings = await ownerBookingsQuery
-            .Include(b => b.Court)
-                .ThenInclude(c => c.Venue)
-                    .ThenInclude(v => v.CancellationPolicy)
-            .Select(b => new
-            {
-                b.StartTime,
-                b.EndTime,
-                b.Status,
-                b.TotalPrice,
-                b.CancelledAt,
-                FreeCancellationHours = b.Court.Venue.CancellationPolicy != null ? b.Court.Venue.CancellationPolicy.FreeCancellationHours : 24,
-                LateFeePercent = b.Court.Venue.CancellationPolicy != null ? b.Court.Venue.CancellationPolicy.LateCancellationFeePercent : 50m
-            })
-            .ToListAsync();
+        // 3. Revenue Calculations via direct database aggregation
+        var totalRevenueConfirmed = await ownerBookingsQuery
+            .Where(b => b.Status == BookingStatus.Confirmed || b.Status == BookingStatus.Completed)
+            .SumAsync(b => (decimal?)b.TotalPrice) ?? 0m;
 
-        decimal totalRevenue = 0;
-        decimal revenueThisMonth = 0;
-        decimal revenueThisWeek = 0;
-        decimal revenueToday = 0;
+        var totalRevenueCancelled = await ownerBookingsQuery
+            .Where(b => b.Status == BookingStatus.Cancelled)
+            .SumAsync(b => (decimal?)b.CancellationFee) ?? 0m;
 
-        foreach (var b in allBookings)
-        {
-            decimal effectiveRevenue = 0;
+        var totalRevenue = totalRevenueConfirmed + totalRevenueCancelled;
 
-            if (b.Status == BookingStatus.Confirmed || b.Status == BookingStatus.Completed)
-            {
-                effectiveRevenue = b.TotalPrice;
-            }
-            else if (b.Status == BookingStatus.Cancelled && b.CancelledAt.HasValue)
-            {
-                var hoursUntilStart = (b.StartTime - b.CancelledAt.Value).TotalHours;
-                if (hoursUntilStart < b.FreeCancellationHours && hoursUntilStart > 0)
-                {
-                    // Late fee retained by venue
-                    effectiveRevenue = Math.Round(b.TotalPrice * (b.LateFeePercent / 100m), 2);
-                }
-            }
+        var revenueThisMonthConfirmed = await ownerBookingsQuery
+            .Where(b => (b.Status == BookingStatus.Confirmed || b.Status == BookingStatus.Completed) && b.StartTime >= monthStart)
+            .SumAsync(b => (decimal?)b.TotalPrice) ?? 0m;
 
-            totalRevenue += effectiveRevenue;
+        var revenueThisMonthCancelled = await ownerBookingsQuery
+            .Where(b => b.Status == BookingStatus.Cancelled && b.StartTime >= monthStart)
+            .SumAsync(b => (decimal?)b.CancellationFee) ?? 0m;
 
-            if (b.StartTime >= monthStart)
-                revenueThisMonth += effectiveRevenue;
+        var revenueThisMonth = revenueThisMonthConfirmed + revenueThisMonthCancelled;
 
-            if (b.StartTime >= weekStart)
-                revenueThisWeek += effectiveRevenue;
+        var revenueThisWeekConfirmed = await ownerBookingsQuery
+            .Where(b => (b.Status == BookingStatus.Confirmed || b.Status == BookingStatus.Completed) && b.StartTime >= weekStart)
+            .SumAsync(b => (decimal?)b.TotalPrice) ?? 0m;
 
-            if (b.StartTime >= todayStart && b.StartTime < todayEnd)
-                revenueToday += effectiveRevenue;
-        }
+        var revenueThisWeekCancelled = await ownerBookingsQuery
+            .Where(b => b.Status == BookingStatus.Cancelled && b.StartTime >= weekStart)
+            .SumAsync(b => (decimal?)b.CancellationFee) ?? 0m;
+
+        var revenueThisWeek = revenueThisWeekConfirmed + revenueThisWeekCancelled;
+
+        var revenueTodayConfirmed = await ownerBookingsQuery
+            .Where(b => (b.Status == BookingStatus.Confirmed || b.Status == BookingStatus.Completed) && b.StartTime >= todayStart && b.StartTime < todayEnd)
+            .SumAsync(b => (decimal?)b.TotalPrice) ?? 0m;
+
+        var revenueTodayCancelled = await ownerBookingsQuery
+            .Where(b => b.Status == BookingStatus.Cancelled && b.StartTime >= todayStart && b.StartTime < todayEnd)
+            .SumAsync(b => (decimal?)b.CancellationFee) ?? 0m;
+
+        var revenueToday = revenueTodayConfirmed + revenueTodayCancelled;
 
         // 4. Most Booked Court
         var topCourt = await _db.Bookings

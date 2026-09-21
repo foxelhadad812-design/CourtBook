@@ -196,6 +196,7 @@ public class OwnerDashboardAndAuthorizationTests
             EndTime = now.AddHours(11),
             Status = BookingStatus.Cancelled,
             TotalPrice = 200m,
+            CancellationFee = 100m,
             CancelledAt = now.AddHours(4) // cancelled 6h before match -> 50% late fee = 100m
         });
 

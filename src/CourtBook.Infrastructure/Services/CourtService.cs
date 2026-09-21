@@ -1,3 +1,4 @@
+using CourtBook.Application.Common;
 using CourtBook.Application.DTOs;
 using CourtBook.Application.Interfaces;
 using CourtBook.Domain.Entities;
@@ -100,6 +101,32 @@ public class CourtService : ICourtService
 
         if (court.Venue.OwnerId != userId && userRole != "Admin")
             throw new UnauthorizedAccessException("Not your venue.");
+
+        var nowUtc = DateTime.UtcNow;
+        var hasUpcomingBookings = await _db.Bookings
+            .AnyAsync(b => b.CourtId == id && b.Status == BookingStatus.Confirmed && b.EndTime > nowUtc);
+
+        var todayDate = DateOnly.FromDateTime(TimeZoneHelper.GetCurrentEgyptTime());
+        var currentTime = TimeOnly.FromDateTime(TimeZoneHelper.GetCurrentEgyptTime());
+        var hasActiveGames = await _db.Games
+            .AnyAsync(g => g.CourtId == id
+                && (g.Status == GameStatus.Open || g.Status == GameStatus.Full)
+                && (g.Date > todayDate || (g.Date == todayDate && g.EndTime > currentTime)));
+
+        if (hasUpcomingBookings || hasActiveGames)
+        {
+            throw new InvalidOperationException("Cannot delete court with active upcoming bookings or community games. Please cancel them first.");
+        }
+
+        var hasHistoricalBookings = await _db.Bookings.AnyAsync(b => b.CourtId == id);
+        var hasHistoricalGames = await _db.Games.AnyAsync(g => g.CourtId == id);
+
+        if (hasHistoricalBookings || hasHistoricalGames)
+        {
+            court.IsActive = false;
+            await _db.SaveChangesAsync();
+            return true;
+        }
 
         _db.Courts.Remove(court);
         await _db.SaveChangesAsync();

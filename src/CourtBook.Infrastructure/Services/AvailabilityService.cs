@@ -59,9 +59,8 @@ public class AvailabilityService : IAvailabilityService
         if (schedule is null || schedule.OpenTime >= schedule.CloseTime)
             return Result<CourtAvailabilityResponse>.Ok(response);
 
-        // Fetch active bookings for this day
-        var dayStartUtc = DateTime.SpecifyKind(request.Date.ToDateTime(TimeOnly.MinValue), DateTimeKind.Utc);
-        var dayEndUtc = DateTime.SpecifyKind(request.Date.ToDateTime(TimeOnly.MaxValue), DateTimeKind.Utc);
+        // Fetch active bookings and active community games for this day in Egypt timezone
+        var (dayStartUtc, dayEndUtc) = TimeZoneHelper.GetEgyptDayUtcRange(request.Date);
 
         var existingBookings = await _db.Bookings
             .AsNoTracking()
@@ -70,6 +69,14 @@ public class AvailabilityService : IAvailabilityService
                      && b.StartTime < dayEndUtc 
                      && b.EndTime > dayStartUtc)
             .Select(b => new { b.StartTime, b.EndTime })
+            .ToListAsync();
+
+        var existingGames = await _db.Games
+            .AsNoTracking()
+            .Where(g => g.CourtId == courtId
+                     && (g.Status == GameStatus.Open || g.Status == GameStatus.Full)
+                     && g.Date == request.Date)
+            .Select(g => new { g.StartTime, g.EndTime })
             .ToListAsync();
 
         var nowUtc = DateTime.UtcNow;
@@ -85,8 +92,8 @@ public class AvailabilityService : IAvailabilityService
             if (currentSlotEnd > schedule.CloseTime || currentSlotEnd < currentSlotStart)
                 break;
 
-            var slotStartUtc = DateTime.SpecifyKind(request.Date.ToDateTime(currentSlotStart), DateTimeKind.Utc);
-            var slotEndUtc = DateTime.SpecifyKind(request.Date.ToDateTime(currentSlotEnd), DateTimeKind.Utc);
+            var slotStartUtc = TimeZoneHelper.CreateUtcFromEgyptDateAndTime(request.Date, currentSlotStart);
+            var slotEndUtc = TimeZoneHelper.CreateUtcFromEgyptDateAndTime(request.Date, currentSlotEnd);
 
             // Determine status
             SlotAvailabilityStatus status;
@@ -96,8 +103,9 @@ public class AvailabilityService : IAvailabilityService
             }
             else
             {
-                var isOverlapping = existingBookings.Any(b => b.StartTime < slotEndUtc && b.EndTime > slotStartUtc);
-                status = isOverlapping ? SlotAvailabilityStatus.Booked : SlotAvailabilityStatus.Available;
+                var isBookingOverlap = existingBookings.Any(b => b.StartTime < slotEndUtc && b.EndTime > slotStartUtc);
+                var isGameOverlap = existingGames.Any(g => g.StartTime < currentSlotEnd && g.EndTime > currentSlotStart);
+                status = (isBookingOverlap || isGameOverlap) ? SlotAvailabilityStatus.Booked : SlotAvailabilityStatus.Available;
             }
 
             // Calculate pricing

@@ -17,6 +17,7 @@ public class Booking
     public BookingStatus Status { get; set; } = BookingStatus.Pending;
     public PaymentStatus PaymentStatus { get; set; } = PaymentStatus.Pending;
     public decimal TotalPrice { get; set; }
+    public decimal CancellationFee { get; set; } = 0;
     public string? CancellationReason { get; set; }
     public DateTime? CancelledAt { get; set; }
     public string? Notes { get; set; }

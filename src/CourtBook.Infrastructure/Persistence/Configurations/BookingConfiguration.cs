@@ -31,6 +31,11 @@ public class BookingConfiguration : IEntityTypeConfiguration<Booking>
             .HasColumnType("decimal(10,2)")
             .IsRequired();
 
+        builder.Property(b => b.CancellationFee)
+            .HasColumnType("decimal(10,2)")
+            .HasDefaultValue(0m)
+            .IsRequired();
+
         builder.Property(b => b.StartTime)
             .IsRequired();
 

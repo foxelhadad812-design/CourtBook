@@ -9,16 +9,33 @@ namespace CourtBook.Infrastructure.Persistence;
 
 public static class SeedData
 {
-    public static async Task SeedAsync(IServiceProvider services)
+    public static async Task SeedAsync(IServiceProvider services, bool isDevelopment = true)
     {
         using var scope = services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<AppDbContext>>();
 
-        await db.Database.MigrateAsync();
+        // 1. System prerequisites: always seeded (even in Production)
+        await EnsureSystemPrerequisitesAsync(db, logger);
 
+        // 2. Demo data: only seeded in Development
+        if (isDevelopment)
+        {
+            await EnsureDemoDataAsync(db, logger);
+        }
+    }
+
+    public static async Task EnsureSystemPrerequisitesAsync(AppDbContext db, ILogger logger)
+    {
+        await db.Database.MigrateAsync();
         await EnsureTermsDocumentsAsync(db, logger);
-        await EnsureUsersAndVenuesAsync(db, logger);
+        await EnsureBaseAmenitiesAsync(db, logger);
+        await EnsureAdminAccountAsync(db, logger);
+    }
+
+    public static async Task EnsureDemoDataAsync(AppDbContext db, ILogger logger)
+    {
+        await EnsureDemoUsersAndVenuesAsync(db, logger);
         await EnsureVenueAssetsAndDetailsAsync(db, logger);
         await EnsureCommunityGamesAsync(db, logger);
     }
@@ -123,45 +140,31 @@ Last Updated: September 2026
         }
     }
 
-    public static async Task EnsureUsersAndVenuesAsync(AppDbContext db, ILogger logger)
+    public static async Task EnsureAdminAccountAsync(AppDbContext db, ILogger logger)
     {
-        // ── 1. Users ──────────────────────────────────────────────────────────
-        User? admin = await db.Users.FirstOrDefaultAsync(u => u.Email == "admin@courtbook.eg");
-        User? ahmed = await db.Users.FirstOrDefaultAsync(u => u.Email == "ahmed.owner@courtbook.eg");
-        User? sara = await db.Users.FirstOrDefaultAsync(u => u.Email == "sara.owner@courtbook.eg");
-        User? mohamed = await db.Users.FirstOrDefaultAsync(u => u.Email == "mohamed.owner@courtbook.eg");
-        User? omar = await db.Users.FirstOrDefaultAsync(u => u.Email == "omar@gmail.com");
-        User? nada = await db.Users.FirstOrDefaultAsync(u => u.Email == "nada@gmail.com");
-        User? karim = await db.Users.FirstOrDefaultAsync(u => u.Email == "karim@gmail.com");
-
+        var admin = await db.Users.FirstOrDefaultAsync(u => u.Role == Role.Admin);
         if (admin == null)
         {
-            admin = new User { Id = Guid.NewGuid(), Name = "PlaySpot Admin", Email = "admin@courtbook.eg", PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123"), Phone = "01000000001", Role = Role.Admin, DateOfBirth = new DateOnly(1990, 1, 1) };
-            ahmed = new User { Id = Guid.NewGuid(), Name = "Ahmed Mostafa", Email = "ahmed.owner@courtbook.eg", PasswordHash = BCrypt.Net.BCrypt.HashPassword("Owner@123"), Phone = "01000000002", Role = Role.Owner, DateOfBirth = new DateOnly(1988, 1, 10) };
-            sara = new User { Id = Guid.NewGuid(), Name = "Sara Ibrahim", Email = "sara.owner@courtbook.eg", PasswordHash = BCrypt.Net.BCrypt.HashPassword("Owner@123"), Phone = "01000000003", Role = Role.Owner, DateOfBirth = new DateOnly(1992, 4, 12) };
-            mohamed = new User { Id = Guid.NewGuid(), Name = "محمد الحداد", Email = "mohamed.owner@courtbook.eg", PasswordHash = BCrypt.Net.BCrypt.HashPassword("Owner@123"), Phone = "01000000007", Role = Role.Owner, DateOfBirth = new DateOnly(1985, 11, 20) };
-
-            omar = new User { Id = Guid.NewGuid(), Name = "Omar Hassan", Email = "omar@gmail.com", PasswordHash = BCrypt.Net.BCrypt.HashPassword("Client@123"), Phone = "01000000004", Role = Role.Client, DateOfBirth = new DateOnly(1996, 5, 15) };
-            nada = new User { Id = Guid.NewGuid(), Name = "Nada Youssef", Email = "nada@gmail.com", PasswordHash = BCrypt.Net.BCrypt.HashPassword("Client@123"), Phone = "01000000005", Role = Role.Client, DateOfBirth = new DateOnly(2000, 8, 20) };
-            karim = new User { Id = Guid.NewGuid(), Name = "Karim Adel", Email = "karim@gmail.com", PasswordHash = BCrypt.Net.BCrypt.HashPassword("Client@123"), Phone = "01000000006", Role = Role.Client, DateOfBirth = new DateOnly(2009, 3, 10) };
-
-            await db.Users.AddRangeAsync(admin, ahmed, sara, mohamed, omar, nada, karim);
+            logger.LogInformation("Seeding default System Administrator account...");
+            admin = new User
+            {
+                Id = Guid.NewGuid(),
+                Name = "PlaySpot Admin",
+                Email = "admin@courtbook.eg",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123"),
+                Phone = "01000000001",
+                Role = Role.Admin,
+                DateOfBirth = new DateOnly(1990, 1, 1),
+                CreatedAt = DateTime.UtcNow
+            };
+            await db.Users.AddAsync(admin);
             await db.SaveChangesAsync();
+            logger.LogInformation("Default System Administrator account created (admin@courtbook.eg).");
         }
-        else
-        {
-            bool updated = false;
-            if (omar != null && !omar.DateOfBirth.HasValue) { omar.DateOfBirth = new DateOnly(1996, 5, 15); updated = true; }
-            if (nada != null && !nada.DateOfBirth.HasValue) { nada.DateOfBirth = new DateOnly(2000, 8, 20); updated = true; }
-            if (karim != null && !karim.DateOfBirth.HasValue) { karim.DateOfBirth = new DateOnly(2009, 3, 10); updated = true; }
-            if (admin != null && !admin.DateOfBirth.HasValue) { admin.DateOfBirth = new DateOnly(1990, 1, 1); updated = true; }
-            if (ahmed != null && !ahmed.DateOfBirth.HasValue) { ahmed.DateOfBirth = new DateOnly(1988, 1, 10); updated = true; }
-            if (sara != null && !sara.DateOfBirth.HasValue) { sara.DateOfBirth = new DateOnly(1992, 4, 12); updated = true; }
-            if (mohamed != null && !mohamed.DateOfBirth.HasValue) { mohamed.DateOfBirth = new DateOnly(1985, 11, 20); updated = true; }
-            if (updated) await db.SaveChangesAsync();
-        }
+    }
 
-        // ── 2. Amenities ──────────────────────────────────────────────────────
+    public static async Task EnsureBaseAmenitiesAsync(AppDbContext db, ILogger logger)
+    {
         var parking = await db.Amenities.FirstOrDefaultAsync(a => a.Name == "Free Parking") 
             ?? new Amenity { Id = Guid.NewGuid(), Name = "Free Parking", Icon = "bi-p-square", Category = "Comfort" };
         var showers = await db.Amenities.FirstOrDefaultAsync(a => a.Name == "Showers & Lockers") 
@@ -176,17 +179,68 @@ Last Updated: September 2026
             ?? new Amenity { Id = Guid.NewGuid(), Name = "Racket & Ball Rental", Icon = "bi-bag", Category = "Sport" };
 
         var baseAmenities = new[] { parking, showers, floodlights, cafe, wifi, rental };
+        var added = false;
         foreach (var am in baseAmenities)
         {
-            if (!await db.Amenities.AnyAsync(a => a.Id == am.Id))
+            if (!await db.Amenities.AnyAsync(a => a.Name == am.Name || a.Id == am.Id))
             {
                 await db.Amenities.AddAsync(am);
+                added = true;
             }
         }
-        await db.SaveChangesAsync();
+        if (added)
+        {
+            await db.SaveChangesAsync();
+            logger.LogInformation("Base amenities seeded successfully.");
+        }
+    }
+
+    public static Task EnsureUsersAndVenuesAsync(AppDbContext db, ILogger logger) => EnsureDemoUsersAndVenuesAsync(db, logger);
+
+    public static async Task EnsureDemoUsersAndVenuesAsync(AppDbContext db, ILogger logger)
+    {
+        // ── 1. Admin & Demo Users ───────────────────────────────────────────
+        await EnsureAdminAccountAsync(db, logger);
+        var admin = await db.Users.FirstAsync(u => u.Role == Role.Admin);
+
+        User? ahmed = await db.Users.FirstOrDefaultAsync(u => u.Email == "ahmed.owner@courtbook.eg");
+        User? sara = await db.Users.FirstOrDefaultAsync(u => u.Email == "sara.owner@courtbook.eg");
+        User? mohamed = await db.Users.FirstOrDefaultAsync(u => u.Email == "mohamed.owner@courtbook.eg");
+        User? omar = await db.Users.FirstOrDefaultAsync(u => u.Email == "omar@gmail.com");
+        User? nada = await db.Users.FirstOrDefaultAsync(u => u.Email == "nada@gmail.com");
+        User? karim = await db.Users.FirstOrDefaultAsync(u => u.Email == "karim@gmail.com");
+
+        if (ahmed == null)
+        {
+            ahmed = new User { Id = Guid.NewGuid(), Name = "Ahmed Mostafa", Email = "ahmed.owner@courtbook.eg", PasswordHash = BCrypt.Net.BCrypt.HashPassword("Owner@123"), Phone = "01000000002", Role = Role.Owner, DateOfBirth = new DateOnly(1988, 1, 10) };
+            sara = new User { Id = Guid.NewGuid(), Name = "Sara Ibrahim", Email = "sara.owner@courtbook.eg", PasswordHash = BCrypt.Net.BCrypt.HashPassword("Owner@123"), Phone = "01000000003", Role = Role.Owner, DateOfBirth = new DateOnly(1992, 4, 12) };
+            mohamed = new User { Id = Guid.NewGuid(), Name = "محمد الحداد", Email = "mohamed.owner@courtbook.eg", PasswordHash = BCrypt.Net.BCrypt.HashPassword("Owner@123"), Phone = "01000000007", Role = Role.Owner, DateOfBirth = new DateOnly(1985, 11, 20) };
+
+            omar = new User { Id = Guid.NewGuid(), Name = "Omar Hassan", Email = "omar@gmail.com", PasswordHash = BCrypt.Net.BCrypt.HashPassword("Client@123"), Phone = "01000000004", Role = Role.Client, DateOfBirth = new DateOnly(1996, 5, 15) };
+            nada = new User { Id = Guid.NewGuid(), Name = "Nada Youssef", Email = "nada@gmail.com", PasswordHash = BCrypt.Net.BCrypt.HashPassword("Client@123"), Phone = "01000000005", Role = Role.Client, DateOfBirth = new DateOnly(2000, 8, 20) };
+            karim = new User { Id = Guid.NewGuid(), Name = "Karim Adel", Email = "karim@gmail.com", PasswordHash = BCrypt.Net.BCrypt.HashPassword("Client@123"), Phone = "01000000006", Role = Role.Client, DateOfBirth = new DateOnly(2009, 3, 10) };
+
+            await db.Users.AddRangeAsync(ahmed, sara, mohamed, omar, nada, karim);
+            await db.SaveChangesAsync();
+        }
+        else
+        {
+            bool updated = false;
+            if (omar != null && !omar.DateOfBirth.HasValue) { omar.DateOfBirth = new DateOnly(1996, 5, 15); updated = true; }
+            if (nada != null && !nada.DateOfBirth.HasValue) { nada.DateOfBirth = new DateOnly(2000, 8, 20); updated = true; }
+            if (karim != null && !karim.DateOfBirth.HasValue) { karim.DateOfBirth = new DateOnly(2009, 3, 10); updated = true; }
+            if (ahmed != null && !ahmed.DateOfBirth.HasValue) { ahmed.DateOfBirth = new DateOnly(1988, 1, 10); updated = true; }
+            if (sara != null && !sara.DateOfBirth.HasValue) { sara.DateOfBirth = new DateOnly(1992, 4, 12); updated = true; }
+            if (mohamed != null && !mohamed.DateOfBirth.HasValue) { mohamed.DateOfBirth = new DateOnly(1985, 11, 20); updated = true; }
+            if (updated) await db.SaveChangesAsync();
+        }
+
+        // ── 2. Amenities ──────────────────────────────────────────────────────
+        await EnsureBaseAmenitiesAsync(db, logger);
+        var baseAmenities = await db.Amenities.ToListAsync();
 
         // ── 3. The 18 Sports Complexes ─────────────────────────────────────────
-        var definitions = Get18ComplexDefinitions(ahmed!.Id, sara!.Id, mohamed!.Id, admin!.Id);
+        var definitions = Get18ComplexDefinitions(ahmed!.Id, sara!.Id, mohamed!.Id, admin.Id);
 
         foreach (var def in definitions)
         {

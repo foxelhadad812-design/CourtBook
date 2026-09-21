@@ -51,14 +51,16 @@ public class BookingService : IBookingService
                 if (court is null)
                     throw new ArgumentException("Court not found or inactive.");
 
-                // Re-validate working schedule
-                var dayOfWeek = request.StartTime.DayOfWeek;
+                // Re-validate working schedule in Egypt local time
+                var localStart = TimeZoneHelper.ConvertUtcToEgypt(request.StartTime);
+                var localEnd = TimeZoneHelper.ConvertUtcToEgypt(request.EndTime);
+                var dayOfWeek = localStart.DayOfWeek;
                 var schedule = court.Schedules.FirstOrDefault(s => s.DayOfWeek == dayOfWeek);
                 if (schedule is null)
                     throw new ArgumentException("Court is closed on this day.");
 
-                var requestStartTime = TimeOnly.FromDateTime(request.StartTime);
-                var requestEndTime = TimeOnly.FromDateTime(request.EndTime);
+                var requestStartTime = TimeOnly.FromDateTime(localStart);
+                var requestEndTime = TimeOnly.FromDateTime(localEnd);
 
                 if (requestStartTime < schedule.OpenTime || requestEndTime > schedule.CloseTime)
                     throw new ArgumentException("Booking time is outside court working hours.");
@@ -72,6 +74,18 @@ public class BookingService : IBookingService
 
                 if (hasOverlap)
                     throw new InvalidOperationException("Court is not available for the selected time slot.");
+
+                // Concurrency-safe check for conflicting active community games
+                var requestDate = DateOnly.FromDateTime(localStart);
+                var hasGameConflict = await _db.Games
+                    .AnyAsync(g => g.CourtId == request.CourtId
+                        && (g.Status == GameStatus.Open || g.Status == GameStatus.Full)
+                        && g.Date == requestDate
+                        && g.StartTime < requestEndTime
+                        && g.EndTime > requestStartTime);
+
+                if (hasGameConflict)
+                    throw new InvalidOperationException("Court is reserved for a community match during this time slot.");
 
                 // Calculate price with potential PriceRules
                 var durationHours = (decimal)(request.EndTime - request.StartTime).TotalHours;
@@ -363,6 +377,7 @@ public class BookingService : IBookingService
         booking.Status = BookingStatus.Cancelled;
         booking.CancelledAt = now;
         booking.CancellationReason = reason;
+        booking.CancellationFee = fee;
 
         await _db.SaveChangesAsync();
 

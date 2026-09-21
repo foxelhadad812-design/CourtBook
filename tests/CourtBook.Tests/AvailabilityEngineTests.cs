@@ -1,3 +1,4 @@
+using CourtBook.Application.Common;
 using CourtBook.Application.DTOs;
 using CourtBook.Domain.Entities;
 using CourtBook.Domain.Enums;
@@ -56,9 +57,9 @@ public class AvailabilityEngineTests
 
         var futureDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(5));
         
-        // Add existing confirmed booking at 14:00 - 15:00 on futureDate
-        var startUtc = DateTime.SpecifyKind(futureDate.ToDateTime(new TimeOnly(14, 0)), DateTimeKind.Utc);
-        var endUtc = DateTime.SpecifyKind(futureDate.ToDateTime(new TimeOnly(15, 0)), DateTimeKind.Utc);
+        // Add existing confirmed booking at 14:00 - 15:00 on futureDate (in Egypt local time)
+        var startUtc = TimeZoneHelper.CreateUtcFromEgyptDateAndTime(futureDate, new TimeOnly(14, 0));
+        var endUtc = TimeZoneHelper.CreateUtcFromEgyptDateAndTime(futureDate, new TimeOnly(15, 0));
 
         db.Bookings.Add(new Booking
         {

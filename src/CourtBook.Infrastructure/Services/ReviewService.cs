@@ -67,20 +67,21 @@ public class ReviewService : IReviewService
             StaffRating = request.StaffRating,
             ValueRating = request.ValueRating,
             Comment = request.Comment,
+            IsModerated = true,
             CreatedAt = DateTime.UtcNow
         };
 
         _db.Reviews.Add(review);
         await _db.SaveChangesAsync();
 
-        // 4. Update Venue AverageRating and TotalReviews
+        // 4. Update Venue AverageRating and TotalReviews from moderated reviews only
         var ratings = await _db.Reviews
-            .Where(r => r.VenueId == venueId)
+            .Where(r => r.VenueId == venueId && r.IsModerated)
             .Select(r => r.OverallRating)
             .ToListAsync();
 
         venue.TotalReviews = ratings.Count;
-        venue.AverageRating = Math.Round(ratings.Average(), 1);
+        venue.AverageRating = ratings.Count > 0 ? Math.Round(ratings.Average(), 1) : 0.0;
 
         await _db.SaveChangesAsync();
 
@@ -111,7 +112,7 @@ public class ReviewService : IReviewService
             .Include(r => r.User)
             .Include(r => r.Booking)
                 .ThenInclude(b => b.Court)
-            .Where(r => r.VenueId == venueId);
+            .Where(r => r.VenueId == venueId && r.IsModerated);
 
         if (rating.HasValue && rating.Value >= 1 && rating.Value <= 5)
         {
@@ -158,7 +159,7 @@ public class ReviewService : IReviewService
     {
         var reviews = await _db.Reviews
             .AsNoTracking()
-            .Where(r => r.VenueId == venueId)
+            .Where(r => r.VenueId == venueId && r.IsModerated)
             .ToListAsync();
 
         var total = reviews.Count;

@@ -13,14 +13,26 @@ builder.Services.AddSession(options =>
     options.IdleTimeout = TimeSpan.FromHours(1);
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = builder.Environment.IsProduction()
+        ? CookieSecurePolicy.Always
+        : CookieSecurePolicy.SameAsRequest;
 });
 
 builder.Services.AddSingleton<ITextLocalizer, TextLocalizer>();
 
+builder.Services.AddTransient<SessionTokenHandler>();
+
+var apiBaseUrl = builder.Configuration["ApiSettings:BaseUrl"] ?? "http://localhost:5257";
+if (builder.Environment.IsProduction() && string.IsNullOrWhiteSpace(builder.Configuration["ApiSettings:BaseUrl"]))
+{
+    throw new InvalidOperationException("CRITICAL CONFIGURATION ERROR: ApiSettings:BaseUrl must be explicitly configured in Production.");
+}
+
 builder.Services.AddHttpClient<ApiClient>(client =>
 {
-    client.BaseAddress = new Uri("http://localhost:5257");
-});
+    client.BaseAddress = new Uri(apiBaseUrl);
+}).AddHttpMessageHandler<SessionTokenHandler>();
 
 var app = builder.Build();
 

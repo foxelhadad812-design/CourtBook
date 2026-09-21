@@ -199,11 +199,45 @@ public class VenueService : IVenueService
 
     public async Task<bool> DeleteAsync(Guid userId, string userRole, Guid id)
     {
-        var venue = await _db.Venues.FindAsync(id);
+        var venue = await _db.Venues
+            .Include(v => v.Courts)
+            .FirstOrDefaultAsync(v => v.Id == id);
         if (venue is null) return false;
 
         if (venue.OwnerId != userId && userRole != "Admin")
             throw new UnauthorizedAccessException("You don't have permission to delete this venue.");
+
+        var courtIds = venue.Courts.Select(c => c.Id).ToList();
+
+        var nowUtc = DateTime.UtcNow;
+        var hasUpcomingBookings = await _db.Bookings
+            .AnyAsync(b => courtIds.Contains(b.CourtId) && b.Status == BookingStatus.Confirmed && b.EndTime > nowUtc);
+
+        var todayDate = DateOnly.FromDateTime(TimeZoneHelper.GetCurrentEgyptTime());
+        var currentTime = TimeOnly.FromDateTime(TimeZoneHelper.GetCurrentEgyptTime());
+        var hasActiveGames = await _db.Games
+            .AnyAsync(g => courtIds.Contains(g.CourtId)
+                && (g.Status == GameStatus.Open || g.Status == GameStatus.Full)
+                && (g.Date > todayDate || (g.Date == todayDate && g.EndTime > currentTime)));
+
+        if (hasUpcomingBookings || hasActiveGames)
+        {
+            throw new InvalidOperationException("Cannot delete venue with active upcoming bookings or community games. Please cancel them first.");
+        }
+
+        var hasHistoricalBookings = await _db.Bookings.AnyAsync(b => courtIds.Contains(b.CourtId));
+        var hasHistoricalGames = await _db.Games.AnyAsync(g => courtIds.Contains(g.CourtId));
+
+        if (hasHistoricalBookings || hasHistoricalGames)
+        {
+            venue.IsActive = false;
+            foreach (var court in venue.Courts)
+            {
+                court.IsActive = false;
+            }
+            await _db.SaveChangesAsync();
+            return true;
+        }
 
         _db.Venues.Remove(venue);
         await _db.SaveChangesAsync();

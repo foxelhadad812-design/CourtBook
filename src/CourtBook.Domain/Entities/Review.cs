@@ -17,7 +17,7 @@ public class Review
     public string? Comment { get; set; }
     public string? OwnerResponse { get; set; }
     public DateTime? OwnerRespondedAt { get; set; }
-    public bool IsModerated { get; set; } = false;
+    public bool IsModerated { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation properties

@@ -19,8 +19,27 @@ using Scalar.AspNetCore;
 var builder = WebApplication.CreateBuilder(args);
 
 // ── Database ─────────────────────────────────────────────────────────────────
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    throw new InvalidOperationException(
+        "CRITICAL CONFIGURATION ERROR: ConnectionStrings:DefaultConnection is not configured. " +
+        "Set it via environment variable ConnectionStrings__DefaultConnection in production.");
+}
+
+if (builder.Environment.IsProduction())
+{
+    var lowerConn = connectionString.ToLowerInvariant();
+    if (lowerConn.Contains("(localdb)") || lowerConn.Contains("localhost") || lowerConn.Contains("127.0.0.1"))
+    {
+        throw new InvalidOperationException(
+            "CRITICAL SECURITY ERROR: Production environment cannot use localhost or LocalDB database connection. " +
+            "Please provide a production SQL Server instance.");
+    }
+}
+
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"),
+    options.UseSqlServer(connectionString,
         sql => sql.EnableRetryOnFailure(maxRetryCount: 3)));
 
 builder.Services.AddScoped<ITokenService,        TokenService>();
@@ -91,16 +110,37 @@ builder.Services.AddRateLimiter(options =>
 // ── JWT Authentication ────────────────────────────────────────────────────────
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 
-// Secret is read from config; in production inject via environment variable:
-//   JwtSettings__Key=<your-256-bit-secret>
-var rawKey = jwtSettings["Key"]
-    ?? throw new InvalidOperationException(
-        "JwtSettings:Key is not configured. " +
+var rawKey = jwtSettings["Key"];
+if (string.IsNullOrWhiteSpace(rawKey))
+{
+    throw new InvalidOperationException(
+        "CRITICAL CONFIGURATION ERROR: JwtSettings:Key is not configured. " +
         "Set it via environment variable JwtSettings__Key in production.");
+}
 
 if (rawKey.Length < 32)
+{
     throw new InvalidOperationException(
-        "JwtSettings:Key must be at least 32 characters for HMAC-SHA256.");
+        "CRITICAL SECURITY ERROR: JwtSettings:Key must be at least 32 characters (256 bits) for HMAC-SHA256.");
+}
+
+if (builder.Environment.IsProduction())
+{
+    var knownInsecurePlaceholders = new[]
+    {
+        "CourtBook_Super_Secret_Key_For_Jwt_Authentication_2024!",
+        "PlaySpot_Dev_Secret_Key_Must_Be_At_Least_32_Chars_Long!",
+        "CHANGE_THIS_TO_A_LONG_SECRET_KEY_32CHARS",
+        "OVERRIDE_VIA_ENV_VAR_OR_PROD_SECRET_MIN_32_CHARS"
+    };
+
+    if (knownInsecurePlaceholders.Any(p => string.Equals(p, rawKey, StringComparison.OrdinalIgnoreCase)))
+    {
+        throw new InvalidOperationException(
+            "CRITICAL SECURITY ERROR: Production environment cannot use a known development or placeholder JWT secret key! " +
+            "Please configure a secure random 256-bit secret key via environment variable JwtSettings__Key.");
+    }
+}
 
 var key = Encoding.UTF8.GetBytes(rawKey);
 
@@ -176,11 +216,8 @@ builder.Services.AddProblemDetails();
 
 var app = builder.Build();
 
-// ── Seed development data ─────────────────────────────────────────────────────
-if (app.Environment.IsDevelopment())
-{
-    await SeedData.SeedAsync(app.Services);
-}
+// ── Seed Data: System prerequisites unconditionally, Demo data in Development ──
+await SeedData.SeedAsync(app.Services, app.Environment.IsDevelopment());
 
 // ── Middleware Pipeline ───────────────────────────────────────────────────────
 // Order matters. GlobalExceptionMiddleware must be first to catch everything.
