@@ -54,8 +54,9 @@
                     
                     <!-- Password -->
                     <div class="mb-2 position-relative">
-                        <label asp-for="Input.Password" class="form-label text-dark fw-semibold small mb-1">@Loc["Auth.Login.PasswordLabel"] <span class="text-danger">*</span></label>
-                        <span class="ps-form-helper mb-1">@(Loc.IsArabic ? "استخدم 6 أحرف على الأقل تحتوي أرقاماً وحروفاً." : "Use at least 6 characters with mixed letters and numbers.")</span>
+                        <label asp-for="Input.Password" class="form-label text-dark fw-semibold small mb-1">@Loc["Auth.Register.PasswordLabel"] <span class="text-danger">*</span></label>
+                        <span class="ps-form-helper mb-1">@Loc["Auth.Register.PasswordHelper"]</span>
+                        <span class="ps-form-example mb-2">@Loc["Auth.Register.PasswordExample"]</span>
                         <div class="position-relative">
                             <input asp-for="Input.Password" class="form-control bg-light border-0 shadow-none py-2 rounded-3" type="password" placeholder="••••••••" required id="regPassword" />
                             <button class="btn btn-link position-absolute top-50 end-0 translate-middle-y text-muted text-decoration-none" type="button" id="togglePassword">
@@ -112,28 +113,28 @@
                     const val = password.value;
                     let strength = 0;
                     
-                    if(val.length >= 6) strength += 25;
-                    if(val.match(/[a-z]+/)) strength += 25;
-                    if(val.match(/[A-Z]+/)) strength += 25;
-                    if(val.match(/[0-9]+/)) strength += 25;
-                    if(val.match(/[$@@#&!]+/)) strength += 25;
+                    if(val.length >= 8) strength += 20;
+                    if(val.match(/[a-z]+/)) strength += 20;
+                    if(val.match(/[A-Z]+/)) strength += 20;
+                    if(val.match(/[0-9]+/)) strength += 20;
+                    if(val.match(/[!@@#$%^&*(),.?"':{}|<>\-_=+\\/\[\]~]+/)) strength += 20;
 
                     if(val.length === 0) strength = 0;
                     if(strength > 100) strength = 100;
 
                     strengthBar.style.width = strength + '%';
 
-                    if(strength < 50) {
+                    if(strength < 40) {
                         strengthBar.className = 'progress-bar bg-danger';
-                        strengthText.textContent = isAr ? 'ضعيفة' : 'Weak';
+                        strengthText.textContent = isAr ? 'ضعيفة (يجب إضافة حروف كبيرة وصغيرة وأرقام ورموز خاصة)' : 'Weak (requires uppercase, lowercase, numbers & symbols)';
                         strengthText.className = 'text-danger small fw-bold';
-                    } else if(strength < 75) {
+                    } else if(strength < 80) {
                         strengthBar.className = 'progress-bar bg-warning';
-                        strengthText.textContent = isAr ? 'متوسطة' : 'Medium';
+                        strengthText.textContent = isAr ? 'متوسطة (أضف رموزاً وأحرفاً إضافية)' : 'Medium (add more symbols & characters)';
                         strengthText.className = 'text-warning small fw-bold';
                     } else {
                         strengthBar.className = 'progress-bar bg-success';
-                        strengthText.textContent = isAr ? 'قوية وممتازة' : 'Strong';
+                        strengthText.textContent = isAr ? 'قوية ومحمية بالكامل 🔒' : 'Strong & Fully Protected 🔒';
                         strengthText.className = 'text-success small fw-bold';
                     }
                 });

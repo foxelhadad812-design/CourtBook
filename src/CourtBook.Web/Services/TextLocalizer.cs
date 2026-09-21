@@ -420,7 +420,39 @@ public class TextLocalizer : ITextLocalizer
         ["Action.Back"] = "Back",
         ["Action.Confirm"] = "Confirm",
         ["Action.Search"] = "Search",
-        ["Action.Clear"] = "Clear"
+        ["Action.Clear"] = "Clear",
+
+        // Authentication & Accounts
+        ["Auth.Login.Title"] = "Welcome Back",
+        ["Auth.Login.Subtitle"] = "Sign in to manage your bookings and explore top sports facilities.",
+        ["Auth.Login.EmailLabel"] = "Email Address",
+        ["Auth.Login.EmailHelper"] = "Use the email registered on your PlaySpot account.",
+        ["Auth.Login.EmailExample"] = "e.g., player@example.com or owner@courtbook.eg",
+        ["Auth.Login.PasswordLabel"] = "Password",
+        ["Auth.Login.PasswordHelper"] = "Enter your account password.",
+        ["Auth.Login.Btn"] = "Sign In",
+        ["Auth.Login.NoAccount"] = "Don't have an account?",
+        ["Auth.Login.CreateOne"] = "Create Account",
+
+        ["Auth.Register.Title"] = "Create an Account",
+        ["Auth.Register.Subtitle"] = "Join the leading sports booking platform in Egypt.",
+        ["Auth.Register.NameLabel"] = "Full Name",
+        ["Auth.Register.NameHelper"] = "Enter your first and last name.",
+        ["Auth.Register.NameExample"] = "e.g., Ahmed Mostafa",
+        ["Auth.Register.EmailLabel"] = "Email Address",
+        ["Auth.Register.EmailHelper"] = "We'll send your booking confirmations here.",
+        ["Auth.Register.EmailExample"] = "e.g., ahmed@gmail.com",
+        ["Auth.Register.PhoneLabel"] = "Mobile Number",
+        ["Auth.Register.PhoneHelper"] = "Egyptian mobile number (11 digits).",
+        ["Auth.Register.PhoneExample"] = "e.g., 01012345678",
+        ["Auth.Register.PasswordLabel"] = "Password",
+        ["Auth.Register.PasswordHelper"] = "Use at least 8 characters with uppercase, lowercase, numbers, and special symbols.",
+        ["Auth.Register.PasswordExample"] = "e.g., PlaySpot#2026! or Cairo@123",
+        ["Auth.Register.RoleLabel"] = "Account Type",
+        ["Auth.Register.RolePlayer"] = "Player / Athlete (Book Courts)",
+        ["Auth.Register.RoleOwner"] = "Facility Owner (Manage Venues)",
+        ["Auth.Register.Btn"] = "Create Account",
+        ["Auth.Register.HaveAccount"] = "Already have an account?"
     };
 
     private static readonly Dictionary<string, string> _ar = new(StringComparer.OrdinalIgnoreCase)
@@ -761,6 +793,38 @@ public class TextLocalizer : ITextLocalizer
         ["Action.Back"] = "رجوع",
         ["Action.Confirm"] = "تأكيد",
         ["Action.Search"] = "بحث",
-        ["Action.Clear"] = "مسح"
+        ["Action.Clear"] = "مسح",
+
+        // Authentication & Accounts
+        ["Auth.Login.Title"] = "أهلاً بك مجدداً",
+        ["Auth.Login.Subtitle"] = "سجّل الدخول لإدارة حجوزاتك واستكشاف أفضل المنشآت الرياضية.",
+        ["Auth.Login.EmailLabel"] = "البريد الإلكتروني",
+        ["Auth.Login.EmailHelper"] = "استخدم البريد الإلكتروني المسجل في حسابك.",
+        ["Auth.Login.EmailExample"] = "مثال: player@example.com أو owner@courtbook.eg",
+        ["Auth.Login.PasswordLabel"] = "كلمة المرور",
+        ["Auth.Login.PasswordHelper"] = "أدخل كلمة المرور الخاصة بحسابك.",
+        ["Auth.Login.Btn"] = "تسجيل الدخول",
+        ["Auth.Login.NoAccount"] = "ليس لديك حساب؟",
+        ["Auth.Login.CreateOne"] = "أنشئ حساباً جديداً",
+
+        ["Auth.Register.Title"] = "إنشاء حساب جديد",
+        ["Auth.Register.Subtitle"] = "انضم إلى منصة حجز الملاعب الرياضية الرائدة في مصر.",
+        ["Auth.Register.NameLabel"] = "الاسم الكامل",
+        ["Auth.Register.NameHelper"] = "أدخل اسمك الأول واسم العائلة.",
+        ["Auth.Register.NameExample"] = "مثال: أحمد مصطفى",
+        ["Auth.Register.EmailLabel"] = "البريد الإلكتروني",
+        ["Auth.Register.EmailHelper"] = "سنرسل تأكيدات الحجوزات إلى هذا البريد.",
+        ["Auth.Register.EmailExample"] = "مثال: ahmed@gmail.com",
+        ["Auth.Register.PhoneLabel"] = "رقم الهاتف المحمول",
+        ["Auth.Register.PhoneHelper"] = "رقم هاتف محمول مصري (11 رقماً).",
+        ["Auth.Register.PhoneExample"] = "مثال: 01012345678",
+        ["Auth.Register.PasswordLabel"] = "كلمة المرور",
+        ["Auth.Register.PasswordHelper"] = "استخدم 8 أحرف على الأقل تحتوي على حروف كبيرة وصغيرة، وأرقام، ورموز خاصة.",
+        ["Auth.Register.PasswordExample"] = "مثال: PlaySpot#2026! أو Cairo@123",
+        ["Auth.Register.RoleLabel"] = "نوع الحساب",
+        ["Auth.Register.RolePlayer"] = "لاعب (حجز الملاعب)",
+        ["Auth.Register.RoleOwner"] = "صاحب منشأة رياضية (إدارة الملاعب)",
+        ["Auth.Register.Btn"] = "إنشاء الحساب",
+        ["Auth.Register.HaveAccount"] = "لديك حساب بالفعل؟"
     };
 }
