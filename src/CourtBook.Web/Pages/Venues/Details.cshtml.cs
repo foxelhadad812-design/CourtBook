@@ -9,10 +9,12 @@ namespace CourtBook.Web.Pages.Venues;
 public class DetailsModel : PageModel
 {
     private readonly ApiClient _api;
+    private readonly ILogger<DetailsModel> _logger;
 
-    public DetailsModel(ApiClient api)
+    public DetailsModel(ApiClient api, ILogger<DetailsModel> logger)
     {
         _api = api;
+        _logger = logger;
     }
 
     public VenueResponse? Venue { get; set; }
@@ -56,6 +58,7 @@ public class DetailsModel : PageModel
             var venueResp = await _api.Client.GetAsync($"/api/venues/{targetId.Value}");
             if (!venueResp.IsSuccessStatusCode)
             {
+                _logger.LogWarning("Failed to fetch venue {VenueId}. Status: {StatusCode}", targetId.Value, venueResp.StatusCode);
                 IsNotFound = true;
                 return Page();
             }
@@ -63,6 +66,7 @@ public class DetailsModel : PageModel
             Venue = await venueResp.Content.ReadFromJsonAsync<VenueResponse>();
             if (Venue == null)
             {
+                _logger.LogWarning("Venue {VenueId} deserialized to null", targetId.Value);
                 IsNotFound = true;
                 return Page();
             }
@@ -77,16 +81,17 @@ public class DetailsModel : PageModel
                     CalculateReviewMetrics();
                 }
             }
-            catch
+            catch (Exception rx)
             {
-                // Silently fall back to empty reviews if review service is temporarily quiet
+                _logger.LogInformation("Review fetch fallback: {Message}", rx.Message);
                 Reviews = PagedResult<ReviewResponse>.Empty(1, 20);
             }
 
             return Page();
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogError(ex, "Exception while loading venue details for {VenueId}", targetId.Value);
             IsNotFound = true;
             return Page();
         }

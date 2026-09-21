@@ -33,6 +33,8 @@ public class AppDbContext : DbContext
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<Report> Reports => Set<Report>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<TermsDocument> TermsDocuments => Set<TermsDocument>();
+    public DbSet<TermsAcceptance> TermsAcceptances => Set<TermsAcceptance>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -23,17 +23,35 @@ public class AuthService : IAuthService
     }
 
     /// <summary>
-    /// Registers a new user with the Client role.
-    /// Throws InvalidOperationException if the email is already taken.
+    /// Registers a new user with the selected role (Client or Owner) and records terms acceptance.
+    /// Throws InvalidOperationException if the email is already taken or if terms are not accepted.
     /// </summary>
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
     {
+        // Guard: terms acceptance
+        if (!request.AcceptTerms)
+            throw new InvalidOperationException("You must accept the terms of service to register.");
+
         // Guard: duplicate email
         bool emailExists = await _db.Users
             .AnyAsync(u => u.Email == request.Email);
 
         if (emailExists)
             throw new InvalidOperationException("Email is already registered.");
+
+        // Determine role: Client (default) or Owner. Admin registration via public endpoint is prohibited.
+        var assignedRole = Role.Client;
+        if (!string.IsNullOrWhiteSpace(request.Role))
+        {
+            if (string.Equals(request.Role, "Owner", StringComparison.OrdinalIgnoreCase))
+            {
+                assignedRole = Role.Owner;
+            }
+            else if (string.Equals(request.Role, "Admin", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("Registration as an Administrator is not allowed.");
+            }
+        }
 
         var user = new User
         {
@@ -42,10 +60,27 @@ public class AuthService : IAuthService
             Email        = request.Email,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
             Phone        = request.Phone,
-            Role         = Role.Client   // New registrations are always Clients
+            Role         = assignedRole
         };
 
         _db.Users.Add(user);
+
+        // Record terms acceptance audit
+        var termsType = assignedRole == Role.Owner ? TermsType.FacilityOwner : TermsType.Player;
+        var termsDoc = await _db.TermsDocuments
+            .FirstOrDefaultAsync(t => t.Type == termsType && t.IsActive);
+
+        if (termsDoc != null)
+        {
+            _db.TermsAcceptances.Add(new TermsAcceptance
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                TermsDocumentId = termsDoc.Id,
+                AcceptedAt = DateTime.UtcNow
+            });
+        }
+
         await _db.SaveChangesAsync();
 
         return new AuthResponse

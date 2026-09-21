@@ -122,23 +122,38 @@
                                 <!-- Image Header with Badges (16:9) -->
                                 <div class="position-relative ps-venue-card-img-wrapper" style="height: 180px;">
                                     <img src="@photoUrl" alt="@venue.Name" class="w-100 h-100 object-fit-cover" data-fallback="@fallbackPhoto" onerror="PlaySpot.ImageFallback.handleError(this, '@fallbackPhoto')" />
-                                    <div class="position-absolute top-0 end-0 p-2 d-flex gap-1">
-                                        @if (venue.IsActive)
+                                    <div class="position-absolute top-0 end-0 p-2 d-flex flex-wrap gap-1 justify-content-end">
+                                        <!-- Approval Status Badge -->
+                                        @if (venue.ApprovalStatus == CourtBook.Domain.Enums.VenueApprovalStatus.Approved)
                                         {
                                             <span class="badge bg-success bg-opacity-90 px-2 py-1 small rounded-pill">
-                                                <i class="bi bi-check-circle-fill me-1"></i> @(Loc.IsArabic ? "نشطة" : "Active")
+                                                <i class="bi bi-patch-check-fill me-1"></i> @Loc["ApprovalStatus.Approved"]
+                                            </span>
+                                        }
+                                        else if (venue.ApprovalStatus == CourtBook.Domain.Enums.VenueApprovalStatus.Pending)
+                                        {
+                                            <span class="badge bg-warning text-dark bg-opacity-90 px-2 py-1 small rounded-pill">
+                                                <i class="bi bi-hourglass-split me-1"></i> @Loc["ApprovalStatus.Pending"]
+                                            </span>
+                                        }
+                                        else if (venue.ApprovalStatus == CourtBook.Domain.Enums.VenueApprovalStatus.Rejected)
+                                        {
+                                            <span class="badge bg-danger bg-opacity-90 px-2 py-1 small rounded-pill">
+                                                <i class="bi bi-x-circle-fill me-1"></i> @Loc["ApprovalStatus.Rejected"]
+                                            </span>
+                                        }
+
+                                        <!-- Operational State -->
+                                        @if (venue.IsActive)
+                                        {
+                                            <span class="badge bg-dark bg-opacity-75 px-2 py-1 small rounded-pill">
+                                                <i class="bi bi-check-circle me-1"></i> @(Loc.IsArabic ? "تشغيل" : "Active")
                                             </span>
                                         }
                                         else
                                         {
                                             <span class="badge bg-danger bg-opacity-90 px-2 py-1 small rounded-pill">
                                                 <i class="bi bi-pause-circle-fill me-1"></i> @(Loc.IsArabic ? "متوقفة" : "Inactive")
-                                            </span>
-                                        }
-                                        @if (venue.IsVerified)
-                                        {
-                                            <span class="badge bg-primary bg-opacity-90 px-2 py-1 small rounded-pill">
-                                                <i class="bi bi-patch-check-fill me-1"></i> @Loc["Details.VerifiedBadge"]
                                             </span>
                                         }
                                     </div>
@@ -154,9 +169,25 @@
                                 <!-- Card Body -->
                                 <div class="card-body p-4 d-flex flex-column">
                                     <h5 class="card-title text-dark fw-bold mb-1 text-truncate">@venue.Name</h5>
-                                    <div class="text-muted small mb-3">
+                                    <div class="text-muted small mb-2">
                                         <i class="bi bi-geo-alt me-1 text-danger"></i>@venue.Area, @venue.City
                                     </div>
+
+                                    <!-- Approval Notice if Pending or Rejected -->
+                                    @if (venue.ApprovalStatus == CourtBook.Domain.Enums.VenueApprovalStatus.Rejected && !string.IsNullOrEmpty(venue.RejectionReason))
+                                    {
+                                        <div class="alert alert-danger py-1 px-2 small mb-2" style="font-size: 11px;">
+                                            <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                                            <strong>@(Loc.IsArabic ? "سبب الرفض: " : "Rejection Reason: ")</strong>@venue.RejectionReason
+                                        </div>
+                                    }
+                                    else if (venue.ApprovalStatus == CourtBook.Domain.Enums.VenueApprovalStatus.Pending)
+                                    {
+                                        <div class="alert alert-warning py-1 px-2 small mb-2" style="font-size: 11px;">
+                                            <i class="bi bi-clock-history me-1"></i>
+                                            @(Loc.IsArabic ? "المنشأة قيد مراجعة الإدارة وستظهر في منصة الحجز فور اعتمادها." : "Under admin review; will become bookable once approved.")
+                                        </div>
+                                    }
 
                                     <!-- Sports Pills -->
                                     <div class="d-flex flex-wrap gap-1 mb-3">

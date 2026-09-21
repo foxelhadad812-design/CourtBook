@@ -35,6 +35,8 @@ builder.Services.AddScoped<IGameService,         GameService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IProfileService,      ProfileService>();
 builder.Services.AddScoped<IOwnerService,        OwnerService>();
+builder.Services.AddScoped<IAdminVenueService,   AdminVenueService>();
+builder.Services.AddScoped<ITermsService,        TermsService>();
 
 // ── FluentValidation ──────────────────────────────────────────────────────────
 // Registers all validators from the Application assembly automatically.

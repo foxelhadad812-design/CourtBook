@@ -212,6 +212,9 @@ public class OwnerService : IOwnerService
             TotalReviews = v.TotalReviews,
             IsActive = v.IsActive,
             IsVerified = v.IsVerified,
+            ApprovalStatus = v.ApprovalStatus,
+            RejectionReason = v.RejectionReason,
+            ApprovedAt = v.ApprovedAt,
             UpcomingBookingsCount = upcomingCounts.TryGetValue(v.Id, out var count) ? count : 0,
             PrimaryImageUrl = v.Images.FirstOrDefault(i => i.IsPrimary)?.ImageUrl ?? v.Images.FirstOrDefault()?.ImageUrl
         }).ToList();
@@ -250,6 +253,9 @@ public class OwnerService : IOwnerService
             TotalReviews = venue.TotalReviews,
             IsActive = venue.IsActive,
             IsVerified = venue.IsVerified,
+            ApprovalStatus = venue.ApprovalStatus,
+            RejectionReason = venue.RejectionReason,
+            ApprovedAt = venue.ApprovedAt,
             UpcomingBookingsCount = upcomingCount,
             PrimaryImageUrl = venue.Images.FirstOrDefault(i => i.IsPrimary)?.ImageUrl ?? venue.Images.FirstOrDefault()?.ImageUrl
         };
@@ -417,6 +423,9 @@ public class OwnerService : IOwnerService
             TotalReviews = venue.TotalReviews,
             IsActive = venue.IsActive,
             IsVerified = venue.IsVerified,
+            ApprovalStatus = venue.ApprovalStatus,
+            RejectionReason = venue.RejectionReason,
+            ApprovedAt = venue.ApprovedAt,
             CreatedAt = venue.CreatedAt,
             UpcomingBookingsCount = upcomingCount,
             PrimaryImageUrl = venue.Images.FirstOrDefault(i => i.IsPrimary)?.ImageUrl ?? venue.Images.FirstOrDefault()?.ImageUrl,
@@ -488,6 +497,7 @@ public class OwnerService : IOwnerService
             Longitude = request.Longitude,
             IsActive = true,
             IsVerified = false,
+            ApprovalStatus = VenueApprovalStatus.Pending,
             AverageRating = 0.0,
             TotalReviews = 0,
             CreatedAt = DateTime.UtcNow
@@ -551,6 +561,9 @@ public class OwnerService : IOwnerService
             TotalReviews = 0,
             IsActive = true,
             IsVerified = false,
+            ApprovalStatus = venue.ApprovalStatus,
+            RejectionReason = venue.RejectionReason,
+            ApprovedAt = venue.ApprovedAt,
             UpcomingBookingsCount = 0,
             PrimaryImageUrl = null
         };
@@ -633,6 +646,9 @@ public class OwnerService : IOwnerService
             TotalReviews = venue.TotalReviews,
             IsActive = venue.IsActive,
             IsVerified = venue.IsVerified,
+            ApprovalStatus = venue.ApprovalStatus,
+            RejectionReason = venue.RejectionReason,
+            ApprovedAt = venue.ApprovedAt,
             UpcomingBookingsCount = upcomingCount,
             PrimaryImageUrl = venue.Images.FirstOrDefault(i => i.IsPrimary)?.ImageUrl ?? venue.Images.FirstOrDefault()?.ImageUrl
         };

@@ -40,10 +40,19 @@ public class VenueConfiguration : IEntityTypeConfiguration<Venue>
         builder.Property(v => v.Website)
             .HasMaxLength(300);
 
+        builder.Property(v => v.ApprovalStatus)
+            .IsRequired()
+            .HasConversion<string>()
+            .HasMaxLength(30);
+
+        builder.Property(v => v.RejectionReason)
+            .HasMaxLength(1000);
+
         // Performance indexes for search, filtering, and discovery
         builder.HasIndex(v => v.City);
         builder.HasIndex(v => new { v.City, v.Area });
         builder.HasIndex(v => v.IsActive);
+        builder.HasIndex(v => v.ApprovalStatus);
         builder.HasIndex(v => v.IsVerified);
         builder.HasIndex(v => v.AverageRating);
         builder.HasIndex(v => v.OwnerId);
@@ -52,6 +61,12 @@ public class VenueConfiguration : IEntityTypeConfiguration<Venue>
         builder.HasOne(v => v.Owner)
             .WithMany(u => u.OwnedVenues)
             .HasForeignKey(v => v.OwnerId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Admin who approved the venue (optional)
+        builder.HasOne(v => v.ApprovedBy)
+            .WithMany()
+            .HasForeignKey(v => v.ApprovedById)
             .OnDelete(DeleteBehavior.Restrict);
 
         // 1:1 CancellationPolicy

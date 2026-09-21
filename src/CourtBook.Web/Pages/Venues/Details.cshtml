@@ -274,98 +274,160 @@ else
                             </span>
                         </div>
 
-                        <!-- Courts List -->
-                        <div class="d-flex flex-column gap-3">
-                            @foreach (var court in venue.Courts)
-                            {
-                                var courtSport = court.SportType.ToLowerInvariant();
-                                var courtImg = courtSport switch {
-                                    "football" => "/images/venues/football/football-pitch-01.jpg",
-                                    "padel" => "/images/venues/padel/padel-court-01.jpg",
-                                    "tennis" => "/images/venues/tennis/tennis-clay-01.jpg",
-                                    "basketball" => "/images/venues/basketball/basketball-indoor-01.jpg",
-                                    "volleyball" => "/images/venues/volleyball/volleyball-indoor-01.jpg",
-                                    "badminton" => "/images/venues/badminton/badminton-court-01.jpg",
-                                    _ => "/images/venues/fallbacks/venue-fallback.jpg"
-                                };
-                                var courtFallback = $"/images/venues/fallbacks/{courtSport}-fallback.jpg";
+                        <!-- Courts Grouped by Sport Hierarchy -->
+                        @{
+                            var sportsGroups = venue.Courts
+                                .GroupBy(c => c.SportType)
+                                .OrderBy(g => g.Key)
+                                .ToList();
+                        }
 
-                                var badgeCls = courtSport switch {
+                        @if (sportsGroups.Count > 1)
+                        {
+                            <!-- Quick Filter Pills -->
+                            <div class="d-flex flex-wrap gap-2 mb-4">
+                                @foreach (var sg in sportsGroups)
+                                {
+                                    var sp = sg.Key;
+                                    var sportEmoji = sp.ToLowerInvariant() switch {
+                                        "football" => "⚽",
+                                        "padel" => "🎾",
+                                        "tennis" => "🏸",
+                                        "basketball" => "🏀",
+                                        "volleyball" => "🏐",
+                                        "badminton" => "🏸",
+                                        _ => "🏆"
+                                    };
+                                    <a href="#sport-section-@sp.ToLowerInvariant()" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1 fw-medium text-decoration-none d-inline-flex align-items-center gap-1">
+                                        <span>@sportEmoji</span>
+                                        <span>@Loc.Sport(sp)</span>
+                                        <span class="badge bg-secondary-subtle text-secondary rounded-pill ms-1">@sg.Count()</span>
+                                    </a>
+                                }
+                            </div>
+                        }
+
+                        <div class="d-flex flex-column gap-4">
+                            @foreach (var sg in sportsGroups)
+                            {
+                                var sp = sg.Key;
+                                var sportEmoji = sp.ToLowerInvariant() switch {
+                                    "football" => "⚽",
+                                    "padel" => "🎾",
+                                    "tennis" => "🏸",
+                                    "basketball" => "🏀",
+                                    "volleyball" => "🏐",
+                                    "badminton" => "🏸",
+                                    _ => "🏆"
+                                };
+                                var badgeCls = sp.ToLowerInvariant() switch {
                                     "football" => "badge-football",
                                     "padel" => "badge-padel",
                                     "tennis" => "badge-tennis",
                                     "basketball" => "badge-basketball",
+                                    "volleyball" => "badge-volleyball",
+                                    "badminton" => "badge-badminton",
                                     _ => "bg-light text-dark"
                                 };
 
-                                <div class="card border border-light-subtle rounded-3 p-3 p-md-4 shadow-xs hover-elevation" style="transition: transform 0.2s, box-shadow 0.2s;">
-                                    <div class="row align-items-center g-3">
-                                        
-                                        <!-- Court Image Thumbnail (16:9) -->
-                                        <div class="col-sm-3 col-12">
-                                            <div class="position-relative rounded-3 overflow-hidden ps-venue-card-img-wrapper" style="height: 110px;">
-                                                <img src="@courtImg" alt="@court.Name" class="w-100 h-100 object-fit-cover" data-fallback="@courtFallback" onerror="PlaySpot.ImageFallback.handleError(this, '@courtFallback')">
-                                                <div class="position-absolute top-0 start-0 m-2">
-                                                    <span class="badge @badgeCls rounded-pill" style="font-size: 10px;">@Loc.Sport(court.SportType)</span>
+                                <div id="sport-section-@sp.ToLowerInvariant()" class="border-top pt-3">
+                                    <div class="d-flex align-items-center justify-content-between mb-3">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="badge @badgeCls p-2 rounded-3 fs-6">@sportEmoji</span>
+                                            <div>
+                                                <h5 class="fw-bold text-dark mb-0">@Loc.Sport(sp)</h5>
+                                                <small class="text-muted">@sg.Count() @(Loc.IsArabic ? "ملاعب مجهزة" : "Courts available")</small>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Courts List for this Sport -->
+                                    <div class="d-flex flex-column gap-3">
+                                        @foreach (var court in sg)
+                                        {
+                                            var courtSport = court.SportType.ToLowerInvariant();
+                                            var courtSurface = court.SurfaceType?.ToLowerInvariant() ?? "";
+                                            var courtImg = courtSport switch {
+                                                "football" => court.Capacity > 10 ? "/images/venues/football/football-pitch-01.jpg" : "/images/venues/football/football-pitch-02.jpg",
+                                                "padel" => court.IsIndoor ? "/images/venues/padel/padel-indoor-01.jpg" : "/images/venues/padel/padel-court-01.jpg",
+                                                "tennis" => courtSurface.Contains("hard") ? "/images/venues/tennis/tennis-hard-01.jpg" : "/images/venues/tennis/tennis-clay-01.jpg",
+                                                "basketball" => court.IsIndoor ? "/images/venues/basketball/basketball-indoor-01.jpg" : "/images/venues/basketball/basketball-court-01.jpg",
+                                                "volleyball" => "/images/venues/volleyball/volleyball-indoor-01.jpg",
+                                                "badminton" => "/images/venues/badminton/badminton-court-01.jpg",
+                                                _ => "/images/venues/fallbacks/venue-fallback.jpg"
+                                            };
+                                            var courtFallback = $"/images/venues/fallbacks/{courtSport}-fallback.jpg";
+
+                                            <div class="card border border-light-subtle rounded-3 p-3 p-md-4 shadow-xs hover-elevation" style="transition: transform 0.2s, box-shadow 0.2s;">
+                                                <div class="row align-items-center g-3">
+                                                    
+                                                    <!-- Court Image Thumbnail (16:9) -->
+                                                    <div class="col-sm-3 col-12">
+                                                        <div class="position-relative rounded-3 overflow-hidden ps-venue-card-img-wrapper" style="height: 110px;">
+                                                            <img src="@courtImg" alt="@court.Name" class="w-100 h-100 object-fit-cover" data-fallback="@courtFallback" onerror="PlaySpot.ImageFallback.handleError(this, '@courtFallback')">
+                                                            <div class="position-absolute top-0 start-0 m-2">
+                                                                <span class="badge @badgeCls rounded-pill" style="font-size: 10px;">@Loc.Sport(court.SportType)</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Court Details -->
+                                                    <div class="col-sm-5 col-12">
+                                                        <div class="d-flex align-items-center gap-2 mb-1">
+                                                            <h5 class="fw-bold text-dark mb-0">@court.Name</h5>
+                                                            @if (court.IsActive)
+                                                            {
+                                                                <span class="badge bg-success-subtle text-success" style="font-size: 10px;">@Loc["SlotStatus.Available"]</span>
+                                                            }
+                                                            else
+                                                            {
+                                                                <span class="badge bg-secondary-subtle text-secondary" style="font-size: 10px;">@(Loc.IsArabic ? "صيانة" : "Maintenance")</span>
+                                                            }
+                                                        </div>
+
+                                                        <p class="text-muted small mb-2 text-truncate-2" style="font-size: 13px;">
+                                                            @court.Description
+                                                        </p>
+
+                                                        <!-- Specs Row -->
+                                                        <div class="d-flex flex-wrap gap-2 text-muted small" style="font-size: 12px;">
+                                                            <span class="d-flex align-items-center gap-1 bg-light px-2 py-1 rounded">
+                                                                <i class="bi bi-layers-fill text-primary"></i> @court.SurfaceType
+                                                            </span>
+                                                            <span class="d-flex align-items-center gap-1 bg-light px-2 py-1 rounded">
+                                                                <i class="bi @(court.IsIndoor ? "bi-house-door-fill text-info" : "bi-sun-fill text-warning")"></i>
+                                                                @(court.IsIndoor ? Loc["Details.Court.Indoor"] : Loc["Details.Court.Outdoor"])
+                                                            </span>
+                                                            <span class="d-flex align-items-center gap-1 bg-light px-2 py-1 rounded">
+                                                                <i class="bi bi-people-fill text-secondary"></i> @Loc.T("Details.Court.Capacity", court.Capacity)
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Price & Booking CTA -->
+                                                    <div class="col-sm-4 col-12 text-sm-end pt-2 pt-sm-0 border-top border-sm-0">
+                                                        <div class="mb-2">
+                                                            <span class="text-muted small d-block">@Loc["Venues.Card.StartingFrom"]</span>
+                                                            <span class="fw-extrabold text-dark fs-4">@Loc.FormatCurrency(court.PricePerHour)</span>
+                                                            <span class="text-muted small">@Loc["Venues.Card.PerHour"]</span>
+                                                        </div>
+
+                                                        @if (court.IsActive)
+                                                        {
+                                                            <a href="/Courts/Book?courtId=@court.Id&venueId=@venue.Id" class="ps-btn ps-btn-primary ps-btn-sm w-100 w-sm-auto px-4 py-2 fw-bold">
+                                                                <i class="bi bi-calendar-check me-1"></i> @Loc["Details.Court.BookNow"]
+                                                            </a>
+                                                        }
+                                                        else
+                                                        {
+                                                            <button class="btn btn-secondary btn-sm w-100 w-sm-auto px-4 py-2" disabled>
+                                                                <i class="bi bi-lock-fill me-1"></i> @(Loc.IsArabic ? "الملعب غير متاح" : "Unavailable")
+                                                            </button>
+                                                        }
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-
-                                        <!-- Court Details -->
-                                        <div class="col-sm-5 col-12">
-                                            <div class="d-flex align-items-center gap-2 mb-1">
-                                                <h5 class="fw-bold text-dark mb-0">@court.Name</h5>
-                                                @if (court.IsActive)
-                                                {
-                                                    <span class="badge bg-success-subtle text-success" style="font-size: 10px;">@Loc["SlotStatus.Available"]</span>
-                                                }
-                                                else
-                                                {
-                                                    <span class="badge bg-secondary-subtle text-secondary" style="font-size: 10px;">@(Loc.IsArabic ? "صيانة" : "Maintenance")</span>
-                                                }
-                                            </div>
-
-                                            <p class="text-muted small mb-2 text-truncate-2" style="font-size: 13px;">
-                                                @court.Description
-                                            </p>
-
-                                            <!-- Specs Row -->
-                                            <div class="d-flex flex-wrap gap-2 text-muted small" style="font-size: 12px;">
-                                                <span class="d-flex align-items-center gap-1 bg-light px-2 py-1 rounded">
-                                                    <i class="bi bi-layers-fill text-primary"></i> @court.SurfaceType
-                                                </span>
-                                                <span class="d-flex align-items-center gap-1 bg-light px-2 py-1 rounded">
-                                                    <i class="bi @(court.IsIndoor ? "bi-house-door-fill text-info" : "bi-sun-fill text-warning")"></i>
-                                                    @(court.IsIndoor ? Loc["Details.Court.Indoor"] : Loc["Details.Court.Outdoor"])
-                                                </span>
-                                                <span class="d-flex align-items-center gap-1 bg-light px-2 py-1 rounded">
-                                                    <i class="bi bi-people-fill text-secondary"></i> @Loc.T("Details.Court.Capacity", court.Capacity)
-                                                </span>
-                                            </div>
-                                        </div>
-
-                                        <!-- Price & Booking CTA -->
-                                        <div class="col-sm-4 col-12 text-sm-end pt-2 pt-sm-0 border-top border-sm-0">
-                                            <div class="mb-2">
-                                                <span class="text-muted small d-block">@Loc["Venues.Card.StartingFrom"]</span>
-                                                <span class="fw-extrabold text-dark fs-4">@Loc.FormatCurrency(court.PricePerHour)</span>
-                                                <span class="text-muted small">@Loc["Venues.Card.PerHour"]</span>
-                                            </div>
-
-                                            @if (court.IsActive)
-                                            {
-                                                <a href="/Courts/Book?courtId=@court.Id&venueId=@venue.Id" class="ps-btn ps-btn-primary ps-btn-sm w-100 w-sm-auto px-4 py-2 fw-bold">
-                                                    <i class="bi bi-calendar-check me-1"></i> @Loc["Details.Court.BookNow"]
-                                                </a>
-                                            }
-                                            else
-                                            {
-                                                <button class="btn btn-light btn-sm w-100 w-sm-auto text-muted" disabled>
-                                                    @(Loc.IsArabic ? "مغلق مؤقتاً" : "Temporarily Closed")
-                                                </button>
-                                            }
-                                        </div>
-
+                                        }
                                     </div>
                                 </div>
                             }

@@ -52,22 +52,34 @@
                     </nav>
                     <div class="d-flex align-items-center gap-2">
                         <h1 class="h3 text-dark fw-bold mb-0">@Model.Venue.Name</h1>
-                        @if (Model.Venue.IsActive)
+                        @if (Model.Venue.ApprovalStatus == CourtBook.Domain.Enums.VenueApprovalStatus.Approved)
                         {
                             <span class="badge bg-success-subtle text-success border border-success border-opacity-25 rounded-pill px-2 py-1 small">
-                                <i class="bi bi-check-circle-fill me-1"></i> @(Loc.IsArabic ? "نشطة" : "Active")
+                                <i class="bi bi-patch-check-fill me-1"></i> @Loc["ApprovalStatus.Approved"]
+                            </span>
+                        }
+                        else if (Model.Venue.ApprovalStatus == CourtBook.Domain.Enums.VenueApprovalStatus.Pending)
+                        {
+                            <span class="badge bg-warning-subtle text-warning border border-warning border-opacity-25 rounded-pill px-2 py-1 small">
+                                <i class="bi bi-hourglass-split me-1"></i> @Loc["ApprovalStatus.Pending"]
+                            </span>
+                        }
+                        else if (Model.Venue.ApprovalStatus == CourtBook.Domain.Enums.VenueApprovalStatus.Rejected)
+                        {
+                            <span class="badge bg-danger-subtle text-danger border border-danger border-opacity-25 rounded-pill px-2 py-1 small">
+                                <i class="bi bi-x-circle-fill me-1"></i> @Loc["ApprovalStatus.Rejected"]
+                            </span>
+                        }
+                        @if (Model.Venue.IsActive)
+                        {
+                            <span class="badge bg-secondary-subtle text-secondary border border-secondary border-opacity-25 rounded-pill px-2 py-1 small">
+                                <i class="bi bi-check-circle-fill me-1"></i> @(Loc.IsArabic ? "تشغيل" : "Active")
                             </span>
                         }
                         else
                         {
                             <span class="badge bg-danger-subtle text-danger border border-danger border-opacity-25 rounded-pill px-2 py-1 small">
                                 <i class="bi bi-pause-circle-fill me-1"></i> @(Loc.IsArabic ? "متوقفة" : "Inactive")
-                            </span>
-                        }
-                        @if (Model.Venue.IsVerified)
-                        {
-                            <span class="badge bg-primary-subtle text-primary border border-primary border-opacity-25 rounded-pill px-2 py-1 small">
-                                <i class="bi bi-patch-check-fill me-1"></i> @Loc["Details.VerifiedBadge"]
                             </span>
                         }
                     </div>
@@ -77,14 +89,40 @@
                 </div>
 
                 <div class="d-flex gap-2">
-                    <a href="/Venues/Details?id=@Model.Venue.Id" target="_blank" class="btn btn-outline-secondary rounded-pill px-3" title="@(Loc.IsArabic ? "معاينة الصفحة العامة" : "View Live")">
-                        <i class="bi bi-box-arrow-up-right me-1"></i> @(Loc.IsArabic ? "معاينة مباشرة" : "View Live")
-                    </a>
+                    @if (Model.Venue.ApprovalStatus == CourtBook.Domain.Enums.VenueApprovalStatus.Approved)
+                    {
+                        <a href="/Venues/Details?id=@Model.Venue.Id" target="_blank" class="btn btn-outline-secondary rounded-pill px-3" title="@(Loc.IsArabic ? "معاينة الصفحة العامة" : "View Live")">
+                            <i class="bi bi-box-arrow-up-right me-1"></i> @(Loc.IsArabic ? "معاينة مباشرة" : "View Live")
+                        </a>
+                    }
                     <a href="/Owner/Venues" class="btn btn-outline-secondary rounded-pill px-3">
                         <i class="bi bi-arrow-left me-1"></i> @Loc["Action.Back"]
                     </a>
                 </div>
             </div>
+
+            <!-- Approval Banner -->
+            @if (Model.Venue.ApprovalStatus == CourtBook.Domain.Enums.VenueApprovalStatus.Pending)
+            {
+                <div class="alert alert-warning border-0 shadow-sm d-flex align-items-center mb-4" style="border-radius: 12px;">
+                    <i class="bi bi-clock-history fs-4 me-3 text-warning"></i>
+                    <div>
+                        <div class="fw-bold">@(Loc.IsArabic ? "المنشأة قيد المراجعة والاعتماد" : "Facility Pending Admin Review")</div>
+                        <div class="small text-muted">@(Loc.IsArabic ? "تم إرسال المنشأة للمراجعة من قِبل إدارة المنصة، وستكون متاحة للجمهور للحجز فور اعتمادها." : "This facility is currently under review by administrators. Once approved, it will be published to the live booking marketplace.")</div>
+                    </div>
+                </div>
+            }
+            else if (Model.Venue.ApprovalStatus == CourtBook.Domain.Enums.VenueApprovalStatus.Rejected)
+            {
+                <div class="alert alert-danger border-0 shadow-sm d-flex align-items-center mb-4" style="border-radius: 12px;">
+                    <i class="bi bi-exclamation-octagon-fill fs-4 me-3 text-danger"></i>
+                    <div>
+                        <div class="fw-bold">@(Loc.IsArabic ? "تم رفض اعتماد المنشأة" : "Facility Approval Rejected")</div>
+                        <div class="small"><strong>@(Loc.IsArabic ? "سبب الرفض: " : "Reason: ")</strong>@Model.Venue.RejectionReason</div>
+                        <div class="small text-muted mt-1">@(Loc.IsArabic ? "يمكنك تحديث بيانات المنشأة واستيفاء الشروط لإعادة مراجعتها." : "Please update your facility information and address the rejection reason above.")</div>
+                    </div>
+                </div>
+            }
 
             <!-- Feedback Messages -->
             @if (!string.IsNullOrEmpty(Model.SuccessMessage))

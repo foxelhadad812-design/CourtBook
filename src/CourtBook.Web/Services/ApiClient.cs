@@ -9,13 +9,22 @@ public class ApiClient
     {
         _httpClient = httpClient;
         _httpContextAccessor = httpContextAccessor;
-
-        var token = _httpContextAccessor.HttpContext?.Session.GetString("JwtToken");
-        if (!string.IsNullOrEmpty(token))
-        {
-            _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-        }
     }
 
-    public HttpClient Client => _httpClient;
+    public HttpClient Client
+    {
+        get
+        {
+            var token = _httpContextAccessor.HttpContext?.Session.GetString("JwtToken");
+            if (!string.IsNullOrEmpty(token))
+            {
+                _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            }
+            else
+            {
+                _httpClient.DefaultRequestHeaders.Authorization = null;
+            }
+            return _httpClient;
+        }
+    }
 }

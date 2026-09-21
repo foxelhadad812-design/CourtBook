@@ -38,7 +38,7 @@ public class VenuesController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    [AllowAnonymous]
+    [Authorize]
     public async Task<IActionResult> GetById(Guid id)
     {
         var venue = await _venueService.GetByIdAsync(id);

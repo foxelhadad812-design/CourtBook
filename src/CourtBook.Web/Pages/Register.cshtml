@@ -25,6 +25,37 @@
                 }
                 
                 <form method="post" id="registerForm">
+                    <!-- Account Type Selection (Player vs Owner) -->
+                    <div class="mb-4">
+                        <label class="form-label text-dark fw-bold small mb-2">@Loc["Auth.Register.RoleTitle"] <span class="text-danger">*</span></label>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label class="card h-100 p-3 border cursor-pointer role-card border-primary bg-primary-subtle" id="roleCardClient" style="border-radius: 12px; cursor: pointer; transition: all 0.2s;">
+                                    <input type="radio" asp-for="Input.Role" value="Client" class="d-none" id="radioRoleClient" checked onchange="handleRoleChange('Client')" />
+                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                        <i class="bi bi-person-badge-fill text-primary fs-5"></i>
+                                        <span class="fw-bold text-dark small">@Loc["Auth.Register.RolePlayer"]</span>
+                                    </div>
+                                    <div class="text-muted" style="font-size: 11px; line-height: 1.3;">
+                                        @Loc["Auth.Register.RolePlayerDesc"]
+                                    </div>
+                                </label>
+                            </div>
+                            <div class="col-6">
+                                <label class="card h-100 p-3 border cursor-pointer role-card" id="roleCardOwner" style="border-radius: 12px; cursor: pointer; transition: all 0.2s;">
+                                    <input type="radio" asp-for="Input.Role" value="Owner" class="d-none" id="radioRoleOwner" onchange="handleRoleChange('Owner')" />
+                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                        <i class="bi bi-building-fill text-success fs-5"></i>
+                                        <span class="fw-bold text-dark small">@Loc["Auth.Register.RoleOwner"]</span>
+                                    </div>
+                                    <div class="text-muted" style="font-size: 11px; line-height: 1.3;">
+                                        @Loc["Auth.Register.RoleOwnerDesc"]
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Full Name -->
                     <div class="mb-3">
                         <label asp-for="Input.Name" class="form-label text-dark fw-semibold small mb-1">@Loc["Profile.Field.Name"] <span class="text-danger">*</span></label>
@@ -74,6 +105,22 @@
                         <small class="text-muted" id="pwStrengthText">@(Loc.IsArabic ? "قوة كلمة المرور" : "Strength")</small>
                     </div>
 
+                    <!-- Terms Acceptance Checkbox -->
+                    <div class="mb-4 p-3 bg-light rounded-3 border border-light-subtle">
+                        <div class="form-check d-flex align-items-start gap-2 mb-0">
+                            <input asp-for="Input.AcceptTerms" class="form-check-input mt-1" type="checkbox" id="acceptTermsCheck" required />
+                            <label class="form-check-label small text-muted" for="acceptTermsCheck">
+                                @Loc["Auth.Register.TermsPrompt"]
+                                <a href="javascript:void(0)" class="text-primary fw-semibold text-decoration-none" id="termsLink" onclick="openTermsModal()">
+                                    <span id="termsLinkPlayer">@Loc["Auth.Register.TermsPlayerLink"]</span>
+                                    <span id="termsLinkOwner" class="d-none">@Loc["Auth.Register.TermsOwnerLink"]</span>
+                                </a>
+                                <span class="text-danger">*</span>
+                            </label>
+                        </div>
+                        <span asp-validation-for="Input.AcceptTerms" class="text-danger small d-block mt-1"></span>
+                    </div>
+
                     <button type="submit" class="ps-btn ps-btn-primary w-100 py-3 fw-bold shadow-sm" id="regBtn">
                         @Loc["Auth.Register.Btn"]
                     </button>
@@ -89,9 +136,91 @@
     </div>
 </div>
 
+<!-- Legal Terms Modal -->
+<div class="modal fade" id="termsModal" tabindex="-1" aria-labelledby="termsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable modal-lg">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: var(--ps-radius-xl);">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-dark" id="termsModalLabel">@Loc["Auth.Register.TermsModalTitle"]</h5>
+                <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-4">
+                <div id="termsLoading" class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status"></div>
+                </div>
+                <div id="termsContent" class="text-muted small" style="white-space: pre-wrap; line-height: 1.6; display: none;"></div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">@Loc["Auth.Register.CloseModal"]</button>
+                <button type="button" class="ps-btn ps-btn-primary rounded-pill px-4" onclick="acceptAndCloseTerms()">@Loc["Auth.Register.AcceptModal"]</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script>
+        let currentRole = "Client";
+        let termsModalInstance = null;
+
+        function handleRoleChange(role) {
+            currentRole = role;
+            const cardClient = document.getElementById('roleCardClient');
+            const cardOwner = document.getElementById('roleCardOwner');
+            const linkPlayer = document.getElementById('termsLinkPlayer');
+            const linkOwner = document.getElementById('termsLinkOwner');
+
+            if (role === 'Owner') {
+                cardOwner.className = 'card h-100 p-3 border cursor-pointer role-card border-success bg-success-subtle';
+                cardClient.className = 'card h-100 p-3 border cursor-pointer role-card border-light-subtle bg-white';
+                if (linkPlayer) linkPlayer.classList.add('d-none');
+                if (linkOwner) linkOwner.classList.remove('d-none');
+            } else {
+                cardClient.className = 'card h-100 p-3 border cursor-pointer role-card border-primary bg-primary-subtle';
+                cardOwner.className = 'card h-100 p-3 border cursor-pointer role-card border-light-subtle bg-white';
+                if (linkPlayer) linkPlayer.classList.remove('d-none');
+                if (linkOwner) linkOwner.classList.add('d-none');
+            }
+        }
+
+        async function openTermsModal() {
+            const modalEl = document.getElementById('termsModal');
+            if (!termsModalInstance) {
+                termsModalInstance = new bootstrap.Modal(modalEl);
+            }
+            termsModalInstance.show();
+
+            const loading = document.getElementById('termsLoading');
+            const content = document.getElementById('termsContent');
+            const modalTitle = document.getElementById('termsModalLabel');
+            loading.style.display = 'block';
+            content.style.display = 'none';
+
+            const typeName = currentRole === 'Owner' ? 'FacilityOwner' : 'Player';
+            try {
+                const res = await fetch(`/api/terms/${typeName}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    modalTitle.textContent = data.title;
+                    content.textContent = data.content;
+                } else {
+                    content.textContent = "Terms and conditions are currently unavailable. Please check back later.";
+                }
+            } catch (err) {
+                content.textContent = "Unable to load terms at this moment. Please verify your connection.";
+            } finally {
+                loading.style.display = 'none';
+                content.style.display = 'block';
+            }
+        }
+
+        function acceptAndCloseTerms() {
+            const check = document.getElementById('acceptTermsCheck');
+            if (check) check.checked = true;
+            if (termsModalInstance) termsModalInstance.hide();
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             const togglePassword = document.querySelector('#togglePassword');
             const password = document.querySelector('#regPassword');
@@ -142,3 +271,4 @@
         });
     </script>
 }
+

@@ -1,4 +1,5 @@
 using CourtBook.Application.Common;
+using CourtBook.Domain.Enums;
 
 namespace CourtBook.Application.DTOs;
 
@@ -37,6 +38,9 @@ public class OwnerVenueDto
     public int TotalReviews { get; set; }
     public bool IsActive { get; set; }
     public bool IsVerified { get; set; }
+    public VenueApprovalStatus ApprovalStatus { get; set; } = VenueApprovalStatus.Pending;
+    public string? RejectionReason { get; set; }
+    public DateTime? ApprovedAt { get; set; }
     public int UpcomingBookingsCount { get; set; }
     public string? PrimaryImageUrl { get; set; }
 }

@@ -2,6 +2,7 @@ using CourtBook.Application.Common;
 using CourtBook.Application.DTOs;
 using CourtBook.Application.Interfaces;
 using CourtBook.Domain.Entities;
+using CourtBook.Domain.Enums;
 using CourtBook.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -20,7 +21,7 @@ public class VenueService : IVenueService
     {
         var query = _db.Venues
             .AsNoTracking()
-            .Where(v => v.IsActive);
+            .Where(v => v.IsActive && v.ApprovalStatus == VenueApprovalStatus.Approved);
 
         // Filter: Full-text search
         if (!string.IsNullOrWhiteSpace(request.Search))
@@ -43,11 +44,18 @@ public class VenueService : IVenueService
             query = query.Where(v => v.Area.ToLower().Contains(request.Area.Trim().ToLower()));
         }
 
-        // Filter: Sport
+        // Filter: Sport (by actual active court relation)
         if (!string.IsNullOrWhiteSpace(request.Sport))
         {
-            var sportTerm = request.Sport.Trim().ToLower();
-            query = query.Where(v => v.Courts.Any(c => c.IsActive && c.SportType.ToString().ToLower() == sportTerm));
+            if (Enum.TryParse<SportType>(request.Sport.Trim(), true, out var parsedSport))
+            {
+                query = query.Where(v => v.Courts.Any(c => c.IsActive && c.SportType == parsedSport));
+            }
+            else
+            {
+                var sportTerm = request.Sport.Trim().ToLower();
+                query = query.Where(v => v.Courts.Any(c => c.IsActive && c.SportType.ToString().ToLower() == sportTerm));
+            }
         }
 
         // Filter: MinPrice & MaxPrice
@@ -112,6 +120,10 @@ public class VenueService : IVenueService
             CourtsCount = v.Courts.Count(c => c.IsActive),
             StartingPrice = v.Courts.Where(c => c.IsActive).Min(c => (decimal?)c.PricePerHour) ?? 0,
             Sports = v.Courts.Where(c => c.IsActive).Select(c => c.SportType.ToString()).Distinct().ToList(),
+            SportsSummary = v.Courts.Where(c => c.IsActive)
+                .GroupBy(c => c.SportType.ToString())
+                .Select(g => new SportCountDto { Sport = g.Key, CourtCount = g.Count() })
+                .ToList(),
             Amenities = v.Amenities.Select(a => a.Amenity?.Name ?? "").Where(name => !string.IsNullOrEmpty(name)).ToList(),
             PrimaryImageUrl = v.Images.FirstOrDefault(i => i.IsPrimary)?.ImageUrl
         }).ToList();
@@ -123,6 +135,7 @@ public class VenueService : IVenueService
     {
         var venues = await _db.Venues
             .AsNoTracking()
+            .Where(v => v.IsActive && v.ApprovalStatus == VenueApprovalStatus.Approved)
             .Include(v => v.Courts.Where(c => c.IsActive))
             .Include(v => v.Amenities).ThenInclude(va => va.Amenity)
             .Include(v => v.Images)

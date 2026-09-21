@@ -4,7 +4,16 @@ namespace CourtBook.Web.Models;
 
 public class LoginRequest { public string Email { get; set; } = ""; public string Password { get; set; } = ""; }
 public class AuthResponse { public string Token { get; set; } = ""; public string Role { get; set; } = ""; }
-public class RegisterRequest { public string Name { get; set; } = ""; public string Email { get; set; } = ""; public string Password { get; set; } = ""; public string Phone { get; set; } = ""; }
+public class RegisterRequest 
+{ 
+    public string Name { get; set; } = ""; 
+    public string Email { get; set; } = ""; 
+    public string Password { get; set; } = ""; 
+    public string Phone { get; set; } = ""; 
+    public string Role { get; set; } = "Client"; 
+    public bool AcceptTerms { get; set; } 
+    public string? TermsVersion { get; set; } 
+}
 
 public class VenueResponse
 {

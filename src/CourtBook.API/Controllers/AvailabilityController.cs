@@ -22,7 +22,7 @@ public class AvailabilityController : ControllerBase
     /// Incorporates court schedules, existing bookings, past-time cutoff, and dynamic price rules.
     /// </summary>
     [HttpGet]
-    [AllowAnonymous]
+    [Authorize]
     [ProducesResponseType(typeof(CourtAvailabilityResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]

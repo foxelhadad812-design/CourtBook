@@ -15,6 +15,12 @@ public class VenueSearchRequest : PagedRequest
     public List<Guid>? AmenityIds { get; set; }
 }
 
+public class SportCountDto
+{
+    public string Sport { get; set; } = string.Empty;
+    public int CourtCount { get; set; }
+}
+
 public class VenueCardDto
 {
     public Guid Id { get; set; }
@@ -30,6 +36,7 @@ public class VenueCardDto
     public bool IsVerified { get; set; }
     public decimal StartingPrice { get; set; }
     public List<string> Sports { get; set; } = [];
+    public List<SportCountDto> SportsSummary { get; set; } = [];
     public List<string> Amenities { get; set; } = [];
     public string? PrimaryImageUrl { get; set; }
     public int CourtsCount { get; set; }

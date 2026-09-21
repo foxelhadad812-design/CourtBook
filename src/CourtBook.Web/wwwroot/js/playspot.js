@@ -353,13 +353,18 @@
      IMAGE FALLBACK
      ───────────────────────────────────────────────────── */
   PlaySpot.ImageFallback = {
+    handleError(img, fallback) {
+      if (!img) return;
+      const target = fallback || img.getAttribute('data-fallback') || '/images/venues/fallbacks/venue.jpg';
+      if (img.src !== target) {
+        img.onerror = null;
+        img.src = target;
+      }
+    },
     init() {
       document.querySelectorAll('img[data-fallback]').forEach(img => {
         img.addEventListener('error', function () {
-          const fallback = this.getAttribute('data-fallback') || '/images/venues/fallbacks/venue.jpg';
-          if (this.src !== fallback) {
-            this.src = fallback;
-          }
+          PlaySpot.ImageFallback.handleError(this);
         }, { once: true });
       });
     }

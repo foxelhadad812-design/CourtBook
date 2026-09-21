@@ -24,6 +24,7 @@ public class VenueSearchAndFilterTests
             Area = "Smouha",
             Address = "Smouha Sporting St",
             IsActive = true,
+            ApprovalStatus = VenueApprovalStatus.Approved,
             AverageRating = 4.9,
             TotalReviews = 15
         };
@@ -74,7 +75,8 @@ public class VenueSearchAndFilterTests
                 Name = $"Extra Venue {i}",
                 City = "Giza",
                 Address = $"Street {i}",
-                IsActive = true
+                IsActive = true,
+                ApprovalStatus = VenueApprovalStatus.Approved
             });
         }
         await db.SaveChangesAsync();

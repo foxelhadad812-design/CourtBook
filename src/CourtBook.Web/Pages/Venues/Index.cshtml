@@ -73,12 +73,16 @@
                             <select name="city" class="form-select bg-light border-0 shadow-none fw-medium" onchange="this.form.submit()">
                                 <option value="" selected="@(string.IsNullOrEmpty(Model.City))">@Loc["Home.Search.City"]</option>
                                 <option value="Cairo" selected="@(Model.City == "Cairo")">@(Loc.IsArabic ? "القاهرة (جميع المناطق)" : "Cairo (All Areas)")</option>
+                                <option value="New Cairo" selected="@(Model.City == "New Cairo")">@(Loc.IsArabic ? "القاهرة الجديدة والتجمع" : "New Cairo")</option>
                                 <option value="Maadi" selected="@(Model.City == "Maadi")">@(Loc.IsArabic ? "المعادي، القاهرة" : "Maadi, Cairo")</option>
                                 <option value="Zamalek" selected="@(Model.City == "Zamalek")">@(Loc.IsArabic ? "الزمالك، القاهرة" : "Zamalek, Cairo")</option>
                                 <option value="Nasr City" selected="@(Model.City == "Nasr City")">@(Loc.IsArabic ? "مدينة نصر، القاهرة" : "Nasr City, Cairo")</option>
-                                <option value="New Cairo" selected="@(Model.City == "New Cairo")">@(Loc.IsArabic ? "القاهرة الجديدة والتجمع" : "New Cairo / 5th Settlement")</option>
+                                <option value="Heliopolis" selected="@(Model.City == "Heliopolis")">@(Loc.IsArabic ? "مصر الجديدة (هليوبوليس)" : "Heliopolis, Cairo")</option>
                                 <option value="6th of October" selected="@(Model.City == "6th of October")">@(Loc.IsArabic ? "مدينة 6 أكتوبر" : "6th of October City")</option>
+                                <option value="Sheikh Zayed" selected="@(Model.City == "Sheikh Zayed")">@(Loc.IsArabic ? "الشيخ زايد" : "Sheikh Zayed City")</option>
+                                <option value="Alexandria" selected="@(Model.City == "Alexandria")">@(Loc.IsArabic ? "الإسكندرية" : "Alexandria")</option>
                                 <option value="الفيوم" selected="@(Model.City == "الفيوم")">@(Loc.IsArabic ? "الفيوم" : "Fayoum")</option>
+                                <option value="Mansoura" selected="@(Model.City == "Mansoura")">@(Loc.IsArabic ? "المنصورة" : "Mansoura")</option>
                             </select>
                         </div>
 
@@ -208,18 +212,51 @@
                                         @venue.Description
                                     </p>
 
-                                    <!-- Sports Pills -->
+                                    <!-- Sports Pills with Court Counts -->
                                     <div class="d-flex flex-wrap gap-1 mb-3">
-                                        @foreach (var sp in venue.Sports)
+                                        @if (venue.SportsSummary != null && venue.SportsSummary.Any())
                                         {
-                                            var badgeClass = sp.ToLowerInvariant() switch {
-                                                "football" => "badge-football",
-                                                "padel" => "badge-padel",
-                                                "tennis" => "badge-tennis",
-                                                "basketball" => "badge-basketball",
-                                                _ => "bg-light text-dark"
-                                            };
-                                            <span class="badge @badgeClass" style="font-size: 11px; padding: 4px 8px; border-radius: 6px;">@Loc.Sport(sp)</span>
+                                            @foreach (var ss in venue.SportsSummary)
+                                            {
+                                                var sp = ss.Sport;
+                                                var badgeClass = sp.ToLowerInvariant() switch {
+                                                    "football" => "badge-football",
+                                                    "padel" => "badge-padel",
+                                                    "tennis" => "badge-tennis",
+                                                    "basketball" => "badge-basketball",
+                                                    "volleyball" => "badge-volleyball",
+                                                    "badminton" => "badge-badminton",
+                                                    _ => "bg-light text-dark"
+                                                };
+                                                var sportEmoji = sp.ToLowerInvariant() switch {
+                                                    "football" => "⚽",
+                                                    "padel" => "🎾",
+                                                    "tennis" => "🏸",
+                                                    "basketball" => "🏀",
+                                                    "volleyball" => "🏐",
+                                                    "badminton" => "🏸",
+                                                    _ => "🏆"
+                                                };
+                                                <span class="badge @badgeClass d-inline-flex align-items-center gap-1" style="font-size: 11px; padding: 4px 8px; border-radius: 6px;">
+                                                    <span>@sportEmoji</span>
+                                                    <span>@Loc.Sport(sp)</span>
+                                                    <span class="fw-bold opacity-75">(@ss.CourtCount)</span>
+                                                </span>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            @foreach (var sp in venue.Sports)
+                                            {
+                                                var badgeClass = sp.ToLowerInvariant() switch {
+                                                    "football" => "badge-football",
+                                                    "padel" => "badge-padel",
+                                                    "tennis" => "badge-tennis",
+                                                    "basketball" => "badge-basketball",
+                                                    _ => "bg-light text-dark"
+                                                };
+                                                <span class="badge @badgeClass" style="font-size: 11px; padding: 4px 8px; border-radius: 6px;">@Loc.Sport(sp)</span>
+                                            }
                                         }
                                     </div>
 

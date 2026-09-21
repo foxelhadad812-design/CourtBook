@@ -762,6 +762,72 @@ namespace CourtBook.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("CourtBook.Domain.Entities.TermsAcceptance", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("AcceptedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<Guid>("TermsDocumentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TermsDocumentId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("TermsAcceptances");
+                });
+
+            modelBuilder.Entity("CourtBook.Domain.Entities.TermsDocument", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("PublishedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Type", "IsActive");
+
+                    b.ToTable("TermsDocuments");
+                });
+
             modelBuilder.Entity("CourtBook.Domain.Entities.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -862,6 +928,17 @@ namespace CourtBook.Infrastructure.Persistence.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("nvarchar(300)");
 
+                    b.Property<string>("ApprovalStatus")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ApprovedById")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Area")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -917,6 +994,10 @@ namespace CourtBook.Infrastructure.Persistence.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
+                    b.Property<string>("RejectionReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
                     b.Property<int>("TotalReviews")
                         .HasColumnType("int");
 
@@ -925,6 +1006,10 @@ namespace CourtBook.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(300)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ApprovalStatus");
+
+                    b.HasIndex("ApprovedById");
 
                     b.HasIndex("AverageRating");
 
@@ -1223,6 +1308,25 @@ namespace CourtBook.Infrastructure.Persistence.Migrations
                     b.Navigation("Venue");
                 });
 
+            modelBuilder.Entity("CourtBook.Domain.Entities.TermsAcceptance", b =>
+                {
+                    b.HasOne("CourtBook.Domain.Entities.TermsDocument", "TermsDocument")
+                        .WithMany("Acceptances")
+                        .HasForeignKey("TermsDocumentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CourtBook.Domain.Entities.User", "User")
+                        .WithMany("TermsAcceptances")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("TermsDocument");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("CourtBook.Domain.Entities.UserProfile", b =>
                 {
                     b.HasOne("CourtBook.Domain.Entities.User", "User")
@@ -1236,11 +1340,18 @@ namespace CourtBook.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("CourtBook.Domain.Entities.Venue", b =>
                 {
+                    b.HasOne("CourtBook.Domain.Entities.User", "ApprovedBy")
+                        .WithMany()
+                        .HasForeignKey("ApprovedById")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("CourtBook.Domain.Entities.User", "Owner")
                         .WithMany("OwnedVenues")
                         .HasForeignKey("OwnerId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("ApprovedBy");
 
                     b.Navigation("Owner");
                 });
@@ -1305,6 +1416,11 @@ namespace CourtBook.Infrastructure.Persistence.Migrations
                     b.Navigation("Participants");
                 });
 
+            modelBuilder.Entity("CourtBook.Domain.Entities.TermsDocument", b =>
+                {
+                    b.Navigation("Acceptances");
+                });
+
             modelBuilder.Entity("CourtBook.Domain.Entities.User", b =>
                 {
                     b.Navigation("AuditLogs");
@@ -1326,6 +1442,8 @@ namespace CourtBook.Infrastructure.Persistence.Migrations
                     b.Navigation("Profile");
 
                     b.Navigation("Reviews");
+
+                    b.Navigation("TermsAcceptances");
                 });
 
             modelBuilder.Entity("CourtBook.Domain.Entities.Venue", b =>

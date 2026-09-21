@@ -47,6 +47,7 @@ public static class TestDbContextFactory
             Area = "Maadi",
             Address = "10 Street",
             IsActive = true,
+            ApprovalStatus = VenueApprovalStatus.Approved,
             AverageRating = 4.8,
             TotalReviews = 10
         };

@@ -27,4 +27,5 @@ public class User
     public ICollection<GameParticipant> GameParticipations { get; set; } = [];
     public ICollection<Notification> Notifications { get; set; } = [];
     public ICollection<AuditLog> AuditLogs { get; set; } = [];
+    public ICollection<TermsAcceptance> TermsAcceptances { get; set; } = [];
 }

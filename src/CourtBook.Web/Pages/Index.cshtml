@@ -172,15 +172,17 @@
                 @foreach (var venue in Model.FeaturedVenues)
                 {
                     var firstSport = venue.Sports.FirstOrDefault()?.ToLower() ?? "football";
-                    var sportImage = firstSport switch {
-                        "football" => "/images/venues/football/football-pitch-01.jpg",
-                        "padel" => "/images/venues/padel/padel-court-01.jpg",
-                        "tennis" => "/images/venues/tennis/tennis-clay-01.jpg",
-                        "basketball" => "/images/venues/basketball/basketball-indoor-01.jpg",
-                        "volleyball" => "/images/venues/volleyball/volleyball-indoor-01.jpg",
-                        "badminton" => "/images/venues/badminton/badminton-court-01.jpg",
-                        _ => "/images/venues/facilities/complex-exterior-01.jpg"
-                    };
+                    var sportImage = !string.IsNullOrEmpty(venue.PrimaryImageUrl)
+                        ? venue.PrimaryImageUrl
+                        : firstSport switch {
+                            "football" => "/images/venues/football/football-pitch-01.jpg",
+                            "padel" => "/images/venues/padel/padel-court-01.jpg",
+                            "tennis" => "/images/venues/tennis/tennis-clay-01.jpg",
+                            "basketball" => "/images/venues/basketball/basketball-indoor-01.jpg",
+                            "volleyball" => "/images/venues/volleyball/volleyball-indoor-01.jpg",
+                            "badminton" => "/images/venues/badminton/badminton-court-01.jpg",
+                            _ => "/images/venues/facilities/complex-exterior-01.jpg"
+                        };
                     var fallbackImage = $"/images/venues/fallbacks/{firstSport}.jpg";
 
                     <div class="col-md-6 col-lg-4">

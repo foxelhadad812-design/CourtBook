@@ -18,14 +18,14 @@ public class CourtsController : ControllerBase
     }
 
     [HttpGet]
-    [AllowAnonymous]
+    [Authorize]
     public async Task<IActionResult> GetAll(Guid venueId)
     {
         return Ok(await _courtService.GetAllByVenueAsync(venueId));
     }
 
     [HttpGet("{id}")]
-    [AllowAnonymous]
+    [Authorize]
     public async Task<IActionResult> GetById(Guid venueId, Guid id)
     {
         var court = await _courtService.GetByIdAsync(venueId, id);
@@ -33,7 +33,7 @@ public class CourtsController : ControllerBase
     }
 
     [HttpGet("/api/courts/{id}")]
-    [AllowAnonymous]
+    [Authorize]
     public async Task<IActionResult> GetDirectById(Guid id)
     {
         var court = await _courtService.GetByIdAsync(id);
