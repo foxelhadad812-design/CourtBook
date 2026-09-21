@@ -1,17 +1,22 @@
 @page "{id:guid?}"
 @model CourtBook.Web.Pages.Courts.BookModel
 @{
-    ViewData["Title"] = Model.Court != null ? $"Book {Model.Court.Name} - {Model.Venue?.Name}" : "Court Not Found";
+    ViewData["Title"] = Model.Court != null ? $"{Loc["Book.Title"]} — {Model.Court.Name} ({Model.Venue?.Name})" : Loc["Venues.Empty.Title"];
     var court = Model.Court;
     var venue = Model.Venue;
-    var sportImg = court?.SportType.ToLower() switch {
-        "football" => "/images/football.jpg",
-        "padel" => "/images/padel.jpg",
-        "tennis" => "/images/tennis.jpg",
-        "basketball" => "/images/basketball.jpg",
-        _ => "/images/venue.jpg"
+    var sportKey = court?.SportType.ToLowerInvariant() ?? "football";
+    var sportImg = sportKey switch {
+        "football" => "/images/venues/football/football-pitch-01.jpg",
+        "padel" => "/images/venues/padel/padel-court-01.jpg",
+        "tennis" => "/images/venues/tennis/tennis-clay-01.jpg",
+        "basketball" => "/images/venues/basketball/basketball-indoor-01.jpg",
+        "volleyball" => "/images/venues/volleyball/volleyball-indoor-01.jpg",
+        "badminton" => "/images/venues/badminton/badminton-court-01.jpg",
+        _ => "/images/venues/fallbacks/venue-fallback.jpg"
     };
-    var badgeCls = court?.SportType.ToLower() switch {
+    var fallbackImg = $"/images/venues/fallbacks/{sportKey}-fallback.jpg";
+
+    var badgeCls = sportKey switch {
         "football" => "badge-football",
         "padel" => "badge-padel",
         "tennis" => "badge-tennis",
@@ -26,61 +31,61 @@
 @if (Model.IsNotFound || court == null)
 {
     <div class="container py-5 text-center" style="min-height: 60vh; display: flex; align-items: center; justify-content: center;">
-        <div class="card border-0 shadow-sm p-5 max-w-md mx-auto" style="border-radius: var(--ps-radius-2xl); background: #ffffff;">
+        <div class="card border-0 shadow-sm p-5 max-w-md mx-auto" style="border-radius: var(--ps-radius-2xl);">
             <div class="mb-4">
                 <div class="d-inline-flex align-items-center justify-content-center bg-danger-subtle text-danger rounded-circle" style="width: 80px; height: 80px; font-size: 2.5rem;">
                     <i class="bi bi-exclamation-triangle"></i>
                 </div>
             </div>
-            <h2 class="fw-extrabold text-dark mb-2">Court Not Found</h2>
-            <p class="text-muted mb-4">The court you are attempting to book does not exist, is inactive, or has been removed.</p>
+            <h2 class="fw-extrabold text-dark mb-2">@(Loc.IsArabic ? "الملعب غير متوفر" : "Court Not Found")</h2>
+            <p class="text-muted mb-4">@(Loc.IsArabic ? "الملعب المطلوب غير متاح حالياً أو تم إيقافه." : "The court you are attempting to book does not exist, is inactive, or has been removed.")</p>
             <a href="/venues" class="ps-btn ps-btn-primary px-4 py-2">
-                <i class="bi bi-compass me-1"></i> Browse Sports Venues
+                <i class="bi bi-compass me-1"></i> @Loc["Home.Featured.ViewAll"]
             </a>
         </div>
     </div>
 }
 else
 {
-    <div class="booking-flow-wrapper py-4" style="background: #F8FAFC; min-height: 90vh;">
+    <div class="booking-flow-wrapper py-4" style="min-height: 90vh;">
         <div class="container">
 
             <!-- ── Top Breadcrumb & Return Link ──────────────────────────────── -->
             <div class="d-flex align-items-center justify-content-between mb-4">
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb small mb-0">
-                        <li class="breadcrumb-item"><a href="/" class="text-decoration-none text-muted">Home</a></li>
-                        <li class="breadcrumb-item"><a href="/venues" class="text-decoration-none text-muted">Venues</a></li>
+                        <li class="breadcrumb-item"><a href="/" class="text-decoration-none text-muted">@Loc["Nav.Home"]</a></li>
+                        <li class="breadcrumb-item"><a href="/venues" class="text-decoration-none text-muted">@Loc["Nav.Venues"]</a></li>
                         @if (venue != null)
                         {
                             <li class="breadcrumb-item"><a href="/venues/details?id=@venue.Id" class="text-decoration-none text-muted">@venue.Name</a></li>
                         }
-                        <li class="breadcrumb-item active text-dark fw-semibold" aria-current="page">Book @court.Name</li>
+                        <li class="breadcrumb-item active text-dark fw-semibold" aria-current="page">@Loc["Book.Title"] @court.Name</li>
                     </ol>
                 </nav>
 
                 @if (venue != null)
                 {
                     <a href="/venues/details?id=@venue.Id" class="text-decoration-none text-muted small fw-medium d-none d-sm-inline-flex align-items-center gap-1">
-                        <i class="bi bi-arrow-left"></i> Back to Venue Details
+                        <i class="bi bi-arrow-left"></i> @(Loc.IsArabic ? "العودة لتفاصيل المنشأة" : "Back to Venue Details")
                     </a>
                 }
             </div>
 
             <!-- ── Facility & Court Header Showcase ──────────────────────────── -->
-            <div class="card border-0 shadow-sm p-4 mb-4" style="border-radius: var(--ps-radius-xl); background: #ffffff;">
+            <div class="card border-0 shadow-sm p-4 mb-4" style="border-radius: var(--ps-radius-xl);">
                 <div class="row align-items-center g-3">
                     <div class="col-md-2 col-sm-3 col-4">
-                        <div class="rounded-3 overflow-hidden position-relative shadow-xs" style="height: 85px;">
-                            <img src="@sportImg" alt="@court.Name" class="w-100 h-100 object-fit-cover">
+                        <div class="rounded-3 overflow-hidden position-relative shadow-xs" style="aspect-ratio: 16 / 9; max-height: 90px;">
+                            <img src="@sportImg" alt="@court.Name" class="w-100 h-100 object-fit-cover" data-fallback="@fallbackImg" onerror="PlaySpot.ImageFallback.handleError(this, '@fallbackImg')">
                         </div>
                     </div>
                     <div class="col-md-7 col-sm-6 col-8">
                         <div class="d-flex align-items-center gap-2 mb-1">
-                            <span class="badge @badgeCls" style="font-size: 11px;">@court.SportType</span>
+                            <span class="badge @badgeCls" style="font-size: 11px;">@Loc.Sport(court.SportType)</span>
                             <span class="badge bg-light text-dark border" style="font-size: 11px;">
                                 <i class="bi @(court.IsIndoor ? "bi-house-door-fill text-info" : "bi-sun-fill text-warning")"></i>
-                                @(court.IsIndoor ? "Indoor" : "Outdoor")
+                                @(court.IsIndoor ? Loc["Details.Court.Indoor"] : Loc["Details.Court.Outdoor"])
                             </span>
                             @if (!string.IsNullOrEmpty(court.SurfaceType))
                             {
@@ -94,14 +99,14 @@ else
                         </h2>
                         <div class="text-muted small d-flex align-items-center gap-1">
                             <i class="bi bi-geo-alt-fill text-danger"></i>
-                            <strong>@(venue?.Name ?? "Sports Venue")</strong> &mdash; @(venue?.City ?? "Egypt")
+                            <strong>@(venue?.Name ?? Loc["Brand.Name"])</strong> &mdash; @(venue?.City ?? "Egypt")
                         </div>
                     </div>
                     <div class="col-md-3 col-sm-3 col-12 text-sm-end pt-2 pt-sm-0 border-top border-sm-0">
-                        <div class="text-muted small">Standard Rate</div>
+                        <div class="text-muted small">@Loc["Book.Summary.BaseRate"]</div>
                         <div class="d-flex align-items-baseline justify-content-sm-end gap-1">
-                            <span class="fw-extrabold text-primary fs-3">@court.PricePerHour.ToString("0")</span>
-                            <span class="text-muted small fw-medium">EGP / hr</span>
+                            <span class="fw-extrabold text-primary fs-3">@Loc.FormatCurrency(court.PricePerHour)</span>
+                            <span class="text-muted small fw-medium">@Loc["Venues.Card.PerHour"]</span>
                         </div>
                     </div>
                 </div>
@@ -114,9 +119,9 @@ else
                         <i class="bi bi-exclamation-octagon-fill"></i>
                     </div>
                     <div class="flex-grow-1">
-                        <h6 class="fw-bold mb-1">Slot No Longer Available (Concurrent Booking Conflict)</h6>
+                        <h6 class="fw-bold mb-1">@Loc["Book.Conflict.Title"]</h6>
                         <p id="conflict-message" class="mb-0 small text-danger-emphasis">
-                            Another player has just reserved this time slot. The availability grid has been automatically refreshed. Please choose another available slot.
+                            @Loc["Book.Conflict.Message"]
                         </p>
                     </div>
                 </div>
@@ -137,19 +142,20 @@ else
                 <div class="col-lg-8">
 
                     <!-- Step 1: Date Selection Card -->
-                    <div class="card border-0 shadow-sm p-4 mb-4" style="border-radius: var(--ps-radius-xl); background: #ffffff;">
-                        <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="card border-0 shadow-sm p-4 mb-4" style="border-radius: var(--ps-radius-xl);">
+                        <div class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2 mb-3">
                             <div>
-                                <h5 class="fw-bold text-dark mb-1">
-                                    <span class="badge bg-primary text-white rounded-circle me-1" style="width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px;">1</span>
-                                    Select Date
+                                <h5 class="fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                                    <span class="badge bg-primary text-white rounded-circle" style="width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px;">1</span>
+                                    @Loc["Book.Step1.Title"]
                                 </h5>
-                                <p class="text-muted small mb-0">Choose your match day (availability loads dynamically)</p>
+                                <p class="text-muted small mb-0">@Loc["Book.Step1.Helper"]</p>
+                                <span class="ps-form-example mt-1">@Loc["Book.Step1.Example"]</span>
                             </div>
 
                             <!-- Native Date Picker Input -->
                             <div class="d-flex align-items-center gap-2">
-                                <label for="native-date-picker" class="small text-muted d-none d-sm-inline">Custom Date:</label>
+                                <label for="native-date-picker" class="small text-muted d-none d-sm-inline">@(Loc.IsArabic ? "تاريخ محدد:" : "Custom Date:")</label>
                                 <input type="date" 
                                        id="native-date-picker" 
                                        class="form-control form-control-sm bg-light border fw-medium shadow-none" 
@@ -170,7 +176,7 @@ else
                                 var currentDay = startDate.AddDays(d);
                                 var dateStr = currentDay.ToString("yyyy-MM-dd");
                                 var isSelected = dateStr == Model.Date;
-                                var dayName = d == 0 ? "Today" : d == 1 ? "Tomorrow" : currentDay.ToString("ddd");
+                                var dayName = d == 0 ? (Loc.IsArabic ? "اليوم" : "Today") : d == 1 ? (Loc.IsArabic ? "غداً" : "Tomorrow") : Loc.DayOfWeek(currentDay.DayOfWeek);
                                 var dayNum = currentDay.ToString("dd MMM");
 
                                 <button type="button" 
@@ -186,15 +192,13 @@ else
                     </div>
 
                     <!-- Step 2: Duration Selector Card -->
-                    <div class="card border-0 shadow-sm p-4 mb-4" style="border-radius: var(--ps-radius-xl); background: #ffffff;">
-                        <div class="d-flex align-items-center justify-content-between mb-3">
-                            <div>
-                                <h5 class="fw-bold text-dark mb-1">
-                                    <span class="badge bg-primary text-white rounded-circle me-1" style="width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px;">2</span>
-                                    Select Duration
-                                </h5>
-                                <p class="text-muted small mb-0">Slots and pricing are calculated based on duration</p>
-                            </div>
+                    <div class="card border-0 shadow-sm p-4 mb-4" style="border-radius: var(--ps-radius-xl);">
+                        <div class="mb-3">
+                            <h5 class="fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                                <span class="badge bg-primary text-white rounded-circle" style="width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px;">2</span>
+                                @Loc["Book.Step2.Title"]
+                            </h5>
+                            <p class="text-muted small mb-0">@Loc["Book.Step2.Helper"]</p>
                         </div>
 
                         <div class="d-flex flex-wrap gap-3" id="duration-pills">
@@ -202,44 +206,47 @@ else
                                     class="duration-pill-btn btn px-4 py-2 rounded-pill border fw-bold @(Model.DurationMinutes == 60 ? "btn-primary text-white active" : "btn-light bg-light text-dark")"
                                     data-duration="60"
                                     onclick="onDurationChanged(60)">
-                                <i class="bi bi-clock me-1"></i> 60 Min (1 hr)
+                                <i class="bi bi-clock me-1"></i> @Loc["Book.Step2.60min"]
                             </button>
                             <button type="button" 
                                     class="duration-pill-btn btn px-4 py-2 rounded-pill border fw-bold @(Model.DurationMinutes == 90 ? "btn-primary text-white active" : "btn-light bg-light text-dark")"
                                     data-duration="90"
                                     onclick="onDurationChanged(90)">
-                                <i class="bi bi-clock me-1"></i> 90 Min (1.5 hrs)
+                                <i class="bi bi-clock me-1"></i> @Loc["Book.Step2.90min"]
                             </button>
                             <button type="button" 
                                     class="duration-pill-btn btn px-4 py-2 rounded-pill border fw-bold @(Model.DurationMinutes == 120 ? "btn-primary text-white active" : "btn-light bg-light text-dark")"
                                     data-duration="120"
                                     onclick="onDurationChanged(120)">
-                                <i class="bi bi-clock me-1"></i> 120 Min (2 hrs)
+                                <i class="bi bi-clock me-1"></i> @Loc["Book.Step2.120min"]
                             </button>
                         </div>
                     </div>
 
                     <!-- Step 3: Available Time Slots Grid -->
-                    <div class="card border-0 shadow-sm p-4 mb-4" style="border-radius: var(--ps-radius-xl); background: #ffffff;">
+                    <div class="card border-0 shadow-sm p-4 mb-4" style="border-radius: var(--ps-radius-xl);">
                         <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-3">
                             <div>
-                                <h5 class="fw-bold text-dark mb-1">
-                                    <span class="badge bg-primary text-white rounded-circle me-1" style="width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px;">3</span>
-                                    Select Time Slot
+                                <h5 class="fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                                    <span class="badge bg-primary text-white rounded-circle" style="width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px;">3</span>
+                                    @Loc["Book.Step3.Title"]
                                 </h5>
-                                <p class="text-muted small mb-0">Click on an available slot to reserve your court</p>
+                                <p class="text-muted small mb-0">@Loc["Book.Step3.Helper"]</p>
                             </div>
 
-                            <!-- Legend -->
-                            <div class="d-flex flex-wrap gap-2 text-muted small" style="font-size: 11px;">
+                            <!-- Visual Color Legend -->
+                            <div class="d-flex flex-wrap gap-2 text-muted small align-items-center" style="font-size: 11px;">
                                 <span class="d-flex align-items-center gap-1">
-                                    <span class="rounded-circle border" style="width: 10px; height: 10px; background: #ffffff; border-color: #2563EB !important;"></span> Available
+                                    <span class="rounded-circle" style="width: 10px; height: 10px; background: #10B981;"></span> @Loc["Book.Legend.Available"]
                                 </span>
                                 <span class="d-flex align-items-center gap-1">
-                                    <span class="rounded-circle" style="width: 10px; height: 10px; background: var(--ps-primary);"></span> Selected
+                                    <span class="rounded-circle" style="width: 10px; height: 10px; background: #2563EB;"></span> @Loc["Book.Legend.Selected"]
                                 </span>
                                 <span class="d-flex align-items-center gap-1">
-                                    <span class="rounded-circle bg-secondary-subtle" style="width: 10px; height: 10px;"></span> Booked / Past
+                                    <span class="rounded-circle bg-secondary" style="width: 10px; height: 10px;"></span> @Loc["Book.Legend.Booked"]
+                                </span>
+                                <span class="d-flex align-items-center gap-1">
+                                    <span class="rounded-circle bg-secondary-subtle" style="width: 10px; height: 10px;"></span> @Loc["Book.Legend.Past"]
                                 </span>
                             </div>
                         </div>
@@ -247,7 +254,7 @@ else
                         <!-- Loading State for Slots -->
                         <div id="slots-loading" class="text-center py-5" style="display: none;">
                             <div class="spinner-border text-primary mb-2" role="status"></div>
-                            <div class="text-muted small fw-medium">Loading live availability from facility...</div>
+                            <div class="text-muted small fw-medium">@(Loc.IsArabic ? "جاري تحميل جدول المواعيد المباشر..." : "Loading live availability from facility...")</div>
                         </div>
 
                         <!-- Slots Grid Container (Rendered dynamically) -->
@@ -258,8 +265,8 @@ else
                         <!-- Empty State for Slots -->
                         <div id="slots-empty" class="text-center py-5 bg-light rounded-3 mt-3" style="display: none;">
                             <i class="bi bi-calendar-x text-muted fs-1 mb-2 d-block"></i>
-                            <h6 class="fw-bold text-dark mb-1">No Available Slots</h6>
-                            <p class="text-muted small mb-0">All slots for this date are booked or the court is closed. Please choose another date or duration.</p>
+                            <h6 class="fw-bold text-dark mb-1">@(Loc.IsArabic ? "لا توجد فترات متاحة" : "No Available Slots")</h6>
+                            <p class="text-muted small mb-0">@(Loc.IsArabic ? "جميع فترات هذا اليوم محجوزة أو الملعب مغلق. يرجى اختيار تاريخ أو مدة أخرى." : "All slots for this date are booked or the court is closed. Please choose another date or duration.")</p>
                         </div>
                     </div>
 
@@ -269,27 +276,27 @@ else
                 <div class="col-lg-4">
                     <div class="position-sticky" style="top: 85px;">
                         
-                        <div class="card border-0 shadow-sm p-4 mb-4" style="border-radius: var(--ps-radius-xl); background: #ffffff;">
-                            <h5 class="fw-bold text-dark mb-3 pb-2 border-bottom">Booking Summary</h5>
+                        <div class="card border-0 shadow-sm p-4 mb-4" style="border-radius: var(--ps-radius-xl);">
+                            <h5 class="fw-bold text-dark mb-3 pb-2 border-bottom">@Loc["Book.Step4.Title"]</h5>
 
                             <!-- Facility & Court -->
                             <div class="mb-3">
-                                <span class="text-muted small d-block">Facility & Pitch</span>
-                                <strong class="text-dark d-block">@(venue?.Name ?? "Sports Venue")</strong>
-                                <span class="text-muted small">@court.Name &bull; @court.SportType</span>
+                                <span class="text-muted small d-block">@Loc["Book.Summary.Court"]</span>
+                                <strong class="text-dark d-block">@(venue?.Name ?? Loc["Brand.Name"])</strong>
+                                <span class="text-muted small">@court.Name &bull; @Loc.Sport(court.SportType)</span>
                             </div>
 
                             <!-- Selected Date -->
                             <div class="mb-3">
-                                <span class="text-muted small d-block">Date</span>
+                                <span class="text-muted small d-block">@Loc["Book.Summary.Date"]</span>
                                 <strong id="summary-date" class="text-dark">--</strong>
                             </div>
 
                             <!-- Selected Slot & Duration -->
                             <div class="mb-3">
-                                <span class="text-muted small d-block">Time & Duration</span>
+                                <span class="text-muted small d-block">@Loc["Book.Summary.Time"] &amp; @Loc["Book.Summary.Duration"]</span>
                                 <div id="summary-time" class="fw-bold text-dark">
-                                    <span class="text-muted fst-italic fw-normal">Please select a time slot</span>
+                                    <span class="text-muted fst-italic fw-normal">@Loc["Book.Btn.SelectSlotFirst"]</span>
                                 </div>
                                 <span id="summary-duration" class="badge bg-light text-muted border mt-1" style="display: none;">
                                     @Model.DurationMinutes Min
@@ -299,40 +306,42 @@ else
                             <!-- Pricing Breakdown -->
                             <div class="p-3 bg-light rounded-3 mb-4">
                                 <div class="d-flex justify-content-between text-muted small mb-1">
-                                    <span>Base Rate</span>
+                                    <span>@Loc["Book.Summary.BaseRate"]</span>
                                     <span id="summary-base-price">--</span>
                                 </div>
                                 <div id="summary-peak-row" class="d-flex justify-content-between text-warning small mb-1" style="display: none;">
-                                    <span id="summary-peak-name">Peak Adjustment</span>
-                                    <span id="summary-peak-badge" class="badge bg-warning-subtle text-warning">Peak Rule</span>
+                                    <span id="summary-peak-name">@Loc["Book.Summary.PeakSurcharge"]</span>
+                                    <span id="summary-peak-badge" class="badge bg-warning-subtle text-warning">Peak</span>
                                 </div>
                                 <hr class="my-2 text-muted-subtle">
                                 <div class="d-flex justify-content-between align-items-baseline">
-                                    <span class="fw-bold text-dark">Total Price</span>
+                                    <span class="fw-bold text-dark">@Loc["Book.Summary.TotalPrice"]</span>
                                     <div>
                                         <span id="summary-total-price" class="fw-extrabold text-primary fs-3">--</span>
-                                        <span class="text-muted small fw-medium">EGP</span>
+                                        <span class="text-muted small fw-medium">@(Loc.IsArabic ? "ج.م" : "EGP")</span>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Special Notes -->
+                            <!-- Special Notes with Helper & Concrete Example -->
                             <div class="mb-3">
-                                <label for="booking-notes" class="form-label small fw-medium text-muted">Special Notes / Requests (Optional)</label>
+                                <label for="booking-notes" class="form-label small fw-bold text-dark mb-1">@Loc["Book.Notes.Label"]</label>
+                                <span class="ps-form-helper mb-1">@Loc["Book.Notes.Helper"]</span>
+                                <span class="ps-form-example mb-2">@Loc["Book.Notes.Example"]</span>
                                 <textarea id="booking-notes" 
                                           class="form-control form-control-sm bg-light border-0 shadow-none" 
                                           rows="2" 
-                                          placeholder="e.g. Bringing own ball, team bibs needed..."></textarea>
+                                          placeholder="@Loc["Book.Notes.Placeholder"]"></textarea>
                             </div>
 
                             <!-- Cancellation Policy Box -->
                             <div class="p-3 rounded-3 mb-4 bg-primary-subtle bg-opacity-25 border border-primary border-opacity-25 text-dark" style="font-size: 12px; line-height: 1.5;">
                                 <div class="d-flex align-items-center gap-1 text-primary fw-bold mb-1">
                                     <i class="bi bi-shield-check"></i>
-                                    <span>Cancellation Policy</span>
+                                    <span>@Loc["Details.Policy.Title"]</span>
                                 </div>
                                 <div id="summary-cancellation-desc">
-                                    @(venue?.CancellationPolicy?.PolicyDescription ?? "Free cancellation up to 24 hours prior to game start.")
+                                    @(venue?.CancellationPolicy?.PolicyDescription ?? Loc.T("Book.PolicyReminder", 24))
                                 </div>
                             </div>
 
@@ -345,7 +354,7 @@ else
                                         disabled
                                         onclick="submitBooking()">
                                     <span id="confirm-btn-text">
-                                        <i class="bi bi-calendar-check me-1"></i> Confirm &amp; Reserve Court
+                                        <i class="bi bi-calendar-check me-1"></i> @Loc["Book.Btn.Confirm"]
                                     </span>
                                 </button>
                             }
@@ -354,17 +363,17 @@ else
                                 var currentPath = $"/Courts/Book?courtId={court.Id}&venueId={court.VenueId}";
                                 <div class="card border border-warning-subtle bg-warning bg-opacity-10 p-3 rounded-3 text-center">
                                     <div class="d-flex align-items-center justify-content-center gap-2 text-warning-emphasis fw-bold small mb-2">
-                                        <i class="bi bi-lock-fill"></i> Sign In Required to Reserve
+                                        <i class="bi bi-lock-fill"></i> @(Loc.IsArabic ? "تسجيل الدخول مطلوب لإتمام الحجز" : "Sign In Required to Reserve")
                                     </div>
                                     <p class="text-muted small mb-3" style="font-size: 12px;">
-                                        You need a PlaySpot account to complete your booking.
+                                        @(Loc.IsArabic ? "تحتاج إلى تسجيل الدخول لحسابك لتأكيد الحجز الفوري." : "You need a PlaySpot account to complete your booking.")
                                     </p>
                                     <div class="d-flex flex-column gap-2">
                                         <a href="/Login?returnUrl=@System.Net.WebUtility.UrlEncode(currentPath)" class="ps-btn ps-btn-primary ps-btn-sm py-2 fw-bold text-center">
-                                            Sign In to Complete Booking
+                                            @Loc["Nav.SignIn"]
                                         </a>
                                         <a href="/Register" class="ps-btn ps-btn-outline ps-btn-sm py-2 text-center">
-                                            Create an Account
+                                            @Loc["Nav.GetStarted"]
                                         </a>
                                     </div>
                                 </div>
@@ -383,6 +392,7 @@ else
     <!-- ── Front-end Controller Script ───────────────────────────────── -->
     <script>
         const courtId = '@court.Id';
+        const isArabic = @(Loc.IsArabic ? "true" : "false");
         let selectedDate = '@Model.Date';
         let selectedDuration = @Model.DurationMinutes;
         let selectedSlot = null; // { startTime, endTime, effectivePrice, isPeak, appliedRuleName }
@@ -493,7 +503,7 @@ else
                 if (gridEl) gridEl.innerHTML = '';
                 if (emptyEl) {
                     emptyEl.style.display = 'block';
-                    emptyEl.querySelector('p').textContent = "Failed to load time slots. Please check your connection and retry.";
+                    emptyEl.querySelector('p').textContent = isArabic ? "فشل تحميل جدول المواعيد. يرجى التحقق من الاتصال وإعادة المحاولة." : "Failed to load time slots. Please check your connection and retry.";
                 }
             } finally {
                 if (loadingEl) loadingEl.style.display = 'none';
@@ -534,36 +544,36 @@ else
                 let clickHandler = '';
 
                 if (isAvailable) {
-                    cardClass += 'bg-white slot-available shadow-xs hover-elevation';
+                    cardClass += 'slot-available shadow-xs hover-elevation';
                     clickHandler = `onclick="selectSlot(${idx})"`;
                     priceHtml = `
                         <div class="mt-2 d-flex align-items-center justify-content-center gap-1">
-                            <span class="fw-bold text-dark fs-6">${slot.effectivePrice.toFixed(0)}</span>
-                            <span class="text-muted" style="font-size: 11px;">EGP</span>
+                            <span class="fw-bold text-success fs-6">${slot.effectivePrice.toFixed(0)}</span>
+                            <span class="text-muted" style="font-size: 11px;">${isArabic ? 'ج.م' : 'EGP'}</span>
                         </div>
                     `;
                     if (slot.isPeak) {
-                        statusBadge = `<span class="badge bg-warning text-dark position-absolute top-0 end-0 m-1 rounded-pill" style="font-size: 9px;">Peak</span>`;
+                        statusBadge = `<span class="badge bg-warning text-dark position-absolute top-0 end-0 m-1 rounded-pill" style="font-size: 9px;">${isArabic ? 'ذروة' : 'Peak'}</span>`;
                     }
                 } else if (isBooked) {
                     cardClass += 'bg-light text-muted slot-booked opacity-75';
-                    statusBadge = `<span class="badge bg-secondary-subtle text-secondary position-absolute top-0 end-0 m-1 rounded-pill" style="font-size: 9px;"><i class="bi bi-lock-fill"></i> Booked</span>`;
-                    priceHtml = `<span class="small text-muted d-block mt-2">Reserved</span>`;
+                    statusBadge = `<span class="badge bg-secondary-subtle text-secondary position-absolute top-0 end-0 m-1 rounded-pill" style="font-size: 9px;"><i class="bi bi-lock-fill"></i> ${isArabic ? 'محجوز' : 'Booked'}</span>`;
+                    priceHtml = `<span class="small text-muted d-block mt-2">${isArabic ? 'غير متاح' : 'Reserved'}</span>`;
                 } else if (isPast) {
                     cardClass += 'bg-light text-muted slot-past opacity-50';
-                    statusBadge = `<span class="badge bg-light text-muted border position-absolute top-0 end-0 m-1 rounded-pill" style="font-size: 9px;">Past</span>`;
+                    statusBadge = `<span class="badge bg-light text-muted border position-absolute top-0 end-0 m-1 rounded-pill" style="font-size: 9px;">${isArabic ? 'منقضي' : 'Past'}</span>`;
                     priceHtml = `<span class="small text-muted d-block mt-2">--</span>`;
                 } else {
                     cardClass += 'bg-light text-muted slot-closed opacity-50';
-                    statusBadge = `<span class="badge bg-danger-subtle text-danger position-absolute top-0 end-0 m-1 rounded-pill" style="font-size: 9px;">Closed</span>`;
-                    priceHtml = `<span class="small text-muted d-block mt-2">Closed</span>`;
+                    statusBadge = `<span class="badge bg-danger-subtle text-danger position-absolute top-0 end-0 m-1 rounded-pill" style="font-size: 9px;">${isArabic ? 'مغلق' : 'Closed'}</span>`;
+                    priceHtml = `<span class="small text-muted d-block mt-2">${isArabic ? 'مغلق' : 'Closed'}</span>`;
                 }
 
                 col.innerHTML = `
                     <div id="slot-card-${idx}" class="${cardClass}" style="cursor: ${isAvailable ? 'pointer' : 'not-allowed'}; transition: all 0.2s;" ${clickHandler}>
                         ${statusBadge}
                         <div class="fw-bold fs-6 text-dark">${startStr}</div>
-                        <div class="text-muted" style="font-size: 12px;">to ${endStr}</div>
+                        <div class="text-muted" style="font-size: 12px;">${isArabic ? 'إلى' : 'to'} ${endStr}</div>
                         ${priceHtml}
                     </div>
                 `;
@@ -603,12 +613,12 @@ else
 
             if (dateEl) {
                 const d = new Date(selectedDate + 'T00:00:00');
-                dateEl.textContent = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+                dateEl.textContent = d.toLocaleDateString(isArabic ? 'ar-EG' : 'en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
             }
 
             if (durEl) {
                 durEl.style.display = 'inline-block';
-                durEl.textContent = `${selectedDuration} Minutes`;
+                durEl.textContent = `${selectedDuration} ${isArabic ? 'دقيقة' : 'Minutes'}`;
             }
 
             if (selectedSlot) {
@@ -616,11 +626,11 @@ else
                 const eStr = formatTime(selectedSlot.endTime);
                 if (timeEl) timeEl.innerHTML = `<span class="text-dark fw-bold fs-5">${sStr} &mdash; ${eStr}</span>`;
 
-                if (baseEl) baseEl.textContent = `${selectedSlot.basePrice.toFixed(2)} EGP`;
+                if (baseEl) baseEl.textContent = `${selectedSlot.basePrice.toFixed(2)} ${isArabic ? 'ج.م' : 'EGP'}`;
 
                 if (selectedSlot.isPeak) {
                     if (peakRow) peakRow.style.display = 'flex';
-                    if (peakBadge) peakBadge.textContent = selectedSlot.appliedRuleName || 'Peak Surcharge';
+                    if (peakBadge) peakBadge.textContent = selectedSlot.appliedRuleName || (isArabic ? 'ساعة ذروة' : 'Peak Surcharge');
                 } else {
                     if (peakRow) peakRow.style.display = 'none';
                 }
@@ -629,7 +639,7 @@ else
 
                 if (confirmBtn) confirmBtn.disabled = false;
             } else {
-                if (timeEl) timeEl.innerHTML = `<span class="text-muted fst-italic fw-normal">Please select a time slot</span>`;
+                if (timeEl) timeEl.innerHTML = `<span class="text-muted fst-italic fw-normal">${isArabic ? 'يرجى تحديد فترة زمنية أولاً' : 'Please select a time slot'}</span>`;
                 if (baseEl) baseEl.textContent = '--';
                 if (peakRow) peakRow.style.display = 'none';
                 if (totalEl) totalEl.textContent = '--';
@@ -639,11 +649,10 @@ else
 
         function formatTime(t) {
             if (!t) return '';
-            // If TimeOnly string "HH:mm:ss" or "HH:mm"
             const parts = t.split(':');
             let h = parseInt(parts[0], 10);
             const m = parts[1];
-            const ampm = h >= 12 ? 'PM' : 'AM';
+            const ampm = isArabic ? (h >= 12 ? 'م' : 'ص') : (h >= 12 ? 'PM' : 'AM');
             h = h % 12;
             h = h ? h : 12; // 0 -> 12
             return `${h}:${m} ${ampm}`;
@@ -662,7 +671,7 @@ else
             isSubmitting = true;
             if (confirmBtn) {
                 confirmBtn.disabled = true;
-                if (btnText) btnText.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Reserving Court...';
+                if (btnText) btnText.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span> ${isArabic ? 'جاري تأكيد الحجز...' : 'Reserving Court...'}`;
             }
             if (conflictAlert) conflictAlert.style.display = 'none';
             if (generalAlert) generalAlert.style.display = 'none';
@@ -692,7 +701,6 @@ else
                 const result = await resp.json().catch(() => null);
 
                 if (resp.ok && result && result.success) {
-                    // Success! Redirect to confirmation page
                     window.location.href = result.redirectUrl || '/Bookings/Confirmation';
                     return;
                 }
@@ -701,22 +709,20 @@ else
                 if (resp.status === 409 || (result && result.isConflict)) {
                     if (conflictAlert) {
                         conflictAlert.style.display = 'block';
-                        const msg = result?.message || "This time slot was just booked by another player. Please select another available slot.";
+                        const msg = result?.message || (isArabic ? "قام لاعب آخر بحجز هذا الموعد للتو. يرجى اختيار فترة بديلة." : "This time slot was just booked by another player. Please select another available slot.");
                         document.getElementById('conflict-message').textContent = msg;
                     }
                     if (window.PlaySpot && PlaySpot.Toast) {
-                        PlaySpot.Toast.warning("Slot was just booked by someone else! Re-fetching availability...");
+                        PlaySpot.Toast.warning(isArabic ? "عفواً، هذه الفترة حُجزت للتو! جاري تحديث الجدول..." : "Slot was just booked by someone else! Re-fetching availability...");
                     }
 
-                    // Reset selected slot and auto-reload availability
                     selectedSlot = null;
                     updateSummaryView();
                     await loadAvailability(selectedDate, selectedDuration);
                     return;
                 }
 
-                // Other error
-                const errMsg = result?.message || `Booking failed (${resp.status}). Please try again.`;
+                const errMsg = result?.message || `${isArabic ? 'فشل إتمام الحجز' : 'Booking failed'} (${resp.status}).`;
                 if (generalAlert) {
                     generalAlert.style.display = 'block';
                     document.getElementById('general-error-message').textContent = errMsg;
@@ -729,14 +735,13 @@ else
                 console.error("Booking error:", err);
                 if (generalAlert) {
                     generalAlert.style.display = 'block';
-                    document.getElementById('general-error-message').textContent = "Network error: Unable to complete booking. Please verify your connection.";
+                    document.getElementById('general-error-message').textContent = isArabic ? "خطأ في الشبكة: تعذر إتمام الحجز. يرجى التحقق من اتصالك." : "Network error: Unable to complete booking. Please verify your connection.";
                 }
             } finally {
-                // Re-enable button on failure
                 isSubmitting = false;
                 if (confirmBtn) {
                     confirmBtn.disabled = (selectedSlot === null);
-                    if (btnText) btnText.innerHTML = '<i class="bi bi-calendar-check me-1"></i> Confirm &amp; Reserve Court';
+                    if (btnText) btnText.innerHTML = `<i class="bi bi-calendar-check me-1"></i> ${isArabic ? 'تأكيد وحجز الملعب' : 'Confirm & Reserve Court'}`;
                 }
             }
         }
@@ -744,18 +749,23 @@ else
 
     <style>
         .slot-card {
-            border: 2px solid #E2E8F0 !important;
+            border: 2px solid var(--ps-border-color, #E2E8F0) !important;
             user-select: none;
+            background: var(--ps-card-bg, #ffffff);
+        }
+        .slot-card.slot-available {
+            border-color: #10B981 !important;
+            border-width: 2px !important;
         }
         .slot-card.slot-available:hover {
             border-color: var(--ps-primary) !important;
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12) !important;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.16) !important;
         }
         .slot-card.selected {
             border-color: var(--ps-primary) !important;
-            background-color: #EFF6FF !important;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2) !important;
+            background-color: rgba(37, 99, 235, 0.12) !important;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25) !important;
         }
         .date-pill-btn:hover {
             border-color: var(--ps-primary) !important;

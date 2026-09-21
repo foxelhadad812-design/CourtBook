@@ -1,16 +1,16 @@
 @page "/Bookings/Details"
 @model CourtBook.Web.Pages.Bookings.DetailsModel
 @{
-    ViewData["Title"] = Model.Booking != null ? $"Booking {Model.Booking.BookingReference}" : "Booking Details";
+    ViewData["Title"] = Model.Booking != null ? $"{Loc["Bookings.Btn.Details"]} — {Model.Booking.BookingReference}" : Loc["Bookings.Btn.Details"];
 }
 
 <div class="container py-4 py-md-5">
     <!-- Breadcrumb -->
     <nav aria-label="breadcrumb" class="mb-4">
         <ol class="breadcrumb small">
-            <li class="breadcrumb-item"><a href="/" class="text-muted text-decoration-none">Home</a></li>
-            <li class="breadcrumb-item"><a href="/Bookings" class="text-muted text-decoration-none">My Bookings</a></li>
-            <li class="breadcrumb-item active text-primary" aria-current="page">@(Model.Booking?.BookingReference ?? "Details")</li>
+            <li class="breadcrumb-item"><a href="/" class="text-muted text-decoration-none">@Loc["Nav.Home"]</a></li>
+            <li class="breadcrumb-item"><a href="/Bookings" class="text-muted text-decoration-none">@Loc["Nav.MyBookings"]</a></li>
+            <li class="breadcrumb-item active text-primary" aria-current="page">@(Model.Booking?.BookingReference ?? Loc["Bookings.Btn.Details"])</li>
         </ol>
     </nav>
 
@@ -35,26 +35,26 @@
 
     @if (Model.IsNotFound)
     {
-        <div class="card bg-dark border-secondary border-opacity-25 shadow-sm rounded-4 p-5 text-center my-4">
+        <div class="card border-0 shadow-sm rounded-4 p-5 text-center my-4" style="border-radius: var(--ps-radius-xl);">
             <div class="card-body py-4">
                 <i class="bi bi-file-earmark-x display-3 text-danger mb-3"></i>
-                <h3 class="fw-bold text-light mb-2">Reservation Not Found</h3>
-                <p class="text-muted mb-4">The booking you are looking for does not exist or has been removed.</p>
+                <h3 class="fw-bold text-dark mb-2">@(Loc.IsArabic ? "الحجز غير موجود" : "Reservation Not Found")</h3>
+                <p class="text-muted mb-4">@(Loc.IsArabic ? "الحجز المطلوب غير متاح أو تم حذفه." : "The booking you are looking for does not exist or has been removed.")</p>
                 <a href="/Bookings" class="ps-btn ps-btn-primary ps-btn-md rounded-pill px-4">
-                    <i class="bi bi-arrow-left me-1"></i> Back to My Bookings
+                    <i class="bi bi-arrow-left me-1"></i> @Loc["Confirm.Btn.MyBookings"]
                 </a>
             </div>
         </div>
     }
     else if (Model.IsForbidden)
     {
-        <div class="card bg-dark border-secondary border-opacity-25 shadow-sm rounded-4 p-5 text-center my-4">
+        <div class="card border-0 shadow-sm rounded-4 p-5 text-center my-4" style="border-radius: var(--ps-radius-xl);">
             <div class="card-body py-4">
                 <i class="bi bi-shield-lock display-3 text-warning mb-3"></i>
-                <h3 class="fw-bold text-light mb-2">Access Restricted</h3>
-                <p class="text-muted mb-4">You do not have permission to view or manage this reservation. It belongs to another player account.</p>
+                <h3 class="fw-bold text-dark mb-2">@(Loc.IsArabic ? "غير مسموح بالوصول" : "Access Restricted")</h3>
+                <p class="text-muted mb-4">@(Loc.IsArabic ? "ليس لديك صلاحية لعرض أو إدارة هذا الحجز. الحجز يتبع حساب لاعب آخر." : "You do not have permission to view or manage this reservation. It belongs to another player account.")</p>
                 <a href="/Bookings" class="ps-btn ps-btn-primary ps-btn-md rounded-pill px-4">
-                    <i class="bi bi-arrow-left me-1"></i> Back to My Bookings
+                    <i class="bi bi-arrow-left me-1"></i> @Loc["Confirm.Btn.MyBookings"]
                 </a>
             </div>
         </div>
@@ -67,59 +67,59 @@
         var isCancelled = b.Status.Equals("Cancelled", StringComparison.OrdinalIgnoreCase);
 
         <!-- Booking Header Card -->
-        <div class="card bg-dark border-secondary border-opacity-25 shadow-sm rounded-4 p-4 mb-4">
+        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4" style="border-radius: var(--ps-radius-xl);">
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
                 <div>
                     <div class="d-flex align-items-center gap-2 mb-2">
-                        <span class="badge bg-secondary bg-opacity-25 text-light font-monospace fs-6 px-3 py-1">
+                        <span class="badge bg-light text-dark border font-monospace fs-6 px-3 py-1">
                             @b.BookingReference
                         </span>
                         @if (isConfirmed)
                         {
-                            <span class="badge bg-success bg-opacity-20 text-success border border-success border-opacity-25 rounded-pill px-3 py-1">
-                                <i class="bi bi-check-circle me-1"></i>Confirmed
+                            <span class="badge bg-success-subtle text-success border border-success border-opacity-25 rounded-pill px-3 py-1">
+                                <i class="bi bi-check-circle me-1"></i>@Loc.BookingStatus(b.Status)
                             </span>
                         }
                         else if (isCompleted)
                         {
-                            <span class="badge bg-info bg-opacity-20 text-info border border-info border-opacity-25 rounded-pill px-3 py-1">
-                                <i class="bi bi-flag me-1"></i>Completed
+                            <span class="badge bg-info-subtle text-info border border-info border-opacity-25 rounded-pill px-3 py-1">
+                                <i class="bi bi-flag me-1"></i>@Loc.BookingStatus(b.Status)
                             </span>
                         }
                         else if (isCancelled)
                         {
-                            <span class="badge bg-danger bg-opacity-20 text-danger border border-danger border-opacity-25 rounded-pill px-3 py-1">
-                                <i class="bi bi-x-circle me-1"></i>Cancelled
+                            <span class="badge bg-danger-subtle text-danger border border-danger border-opacity-25 rounded-pill px-3 py-1">
+                                <i class="bi bi-x-circle me-1"></i>@Loc.BookingStatus(b.Status)
                             </span>
                         }
                         else
                         {
-                            <span class="badge bg-warning bg-opacity-20 text-warning border border-warning border-opacity-25 rounded-pill px-3 py-1">
-                                @b.Status
+                            <span class="badge bg-warning-subtle text-warning border border-warning border-opacity-25 rounded-pill px-3 py-1">
+                                @Loc.BookingStatus(b.Status)
                             </span>
                         }
                     </div>
-                    <h2 class="h3 fw-bold text-light mb-1">@b.CourtName</h2>
+                    <h2 class="h3 fw-bold text-dark mb-1">@b.CourtName</h2>
                     <p class="text-muted mb-0 small">
                         <i class="bi bi-geo-alt me-1 text-primary"></i>@b.VenueName • @b.VenueCity
                     </p>
                 </div>
 
                 <div class="d-flex flex-wrap gap-2">
-                    <a href="/Bookings" class="btn btn-outline-light rounded-pill px-3 btn-sm">
-                        <i class="bi bi-arrow-left me-1"></i> All Bookings
+                    <a href="/Bookings" class="btn btn-outline-secondary rounded-pill px-3 btn-sm">
+                        <i class="bi bi-arrow-left me-1"></i> @Loc["Confirm.Btn.MyBookings"]
                     </a>
 
                     @if (b.CanCancel)
                     {
                         <button type="button" class="btn btn-danger rounded-pill px-3 btn-sm" onclick="openDetailsCancelModal('@b.Id')">
-                            <i class="bi bi-x-circle me-1"></i> Cancel Booking
+                            <i class="bi bi-x-circle me-1"></i> @Loc["Bookings.Btn.Cancel"]
                         </button>
                     }
                     else if (b.IsEligibleForReview)
                     {
-                        <a href="/Venues/Details?id=@b.VenueId#reviews" class="btn btn-warning rounded-pill px-3 btn-sm text-dark fw-medium">
-                            <i class="bi bi-star-fill me-1"></i> Write Review
+                        <a href="/Venues/Details?id=@b.VenueId#reviews-section" class="btn btn-warning rounded-pill px-3 btn-sm text-dark fw-medium">
+                            <i class="bi bi-star-fill me-1"></i> @Loc["Bookings.Btn.Review"]
                         </a>
                     }
                 </div>
@@ -130,85 +130,85 @@
             <!-- Left Column: Match & Venue Details -->
             <div class="col-12 col-lg-8">
                 <!-- Schedule Information -->
-                <div class="card bg-dark border-secondary border-opacity-25 shadow-sm rounded-4 p-4 mb-4">
-                    <h5 class="fw-bold text-light mb-3 d-flex align-items-center">
-                        <i class="bi bi-clock-history text-primary me-2"></i>Match Schedule
+                <div class="card border-0 shadow-sm rounded-4 p-4 mb-4" style="border-radius: var(--ps-radius-xl);">
+                    <h5 class="fw-bold text-dark mb-3 d-flex align-items-center">
+                        <i class="bi bi-clock-history text-primary me-2"></i>@(Loc.IsArabic ? "جدول موعد المباراة" : "Match Schedule")
                     </h5>
 
                     <div class="row g-3">
                         <div class="col-sm-6">
-                            <div class="bg-black bg-opacity-25 rounded-3 p-3 border border-secondary border-opacity-10">
-                                <div class="text-muted small mb-1">Date</div>
-                                <div class="fw-bold text-light fs-6">@b.StartTime.ToString("dddd, MMMM dd, yyyy")</div>
+                            <div class="bg-light rounded-3 p-3 border border-light-subtle">
+                                <div class="text-muted small mb-1">@Loc["Book.Summary.Date"]</div>
+                                <div class="fw-bold text-dark fs-6">@b.StartTime.ToString(Loc.IsArabic ? "dddd, dd MMMM yyyy" : "dddd, MMMM dd, yyyy")</div>
                             </div>
                         </div>
 
                         <div class="col-sm-6">
-                            <div class="bg-black bg-opacity-25 rounded-3 p-3 border border-secondary border-opacity-10">
-                                <div class="text-muted small mb-1">Time Slot</div>
-                                <div class="fw-bold text-light fs-6">
+                            <div class="bg-light rounded-3 p-3 border border-light-subtle">
+                                <div class="text-muted small mb-1">@Loc["Book.Summary.Time"]</div>
+                                <div class="fw-bold text-dark fs-6">
                                     @b.StartTime.ToString("HH:mm") - @b.EndTime.ToString("HH:mm")
-                                    <span class="badge bg-secondary bg-opacity-25 text-light small ms-2">
-                                        @((int)(b.EndTime - b.StartTime).TotalMinutes) mins
+                                    <span class="badge bg-light text-dark border small ms-2">
+                                        @((int)(b.EndTime - b.StartTime).TotalMinutes) @(Loc.IsArabic ? "دقيقة" : "mins")
                                     </span>
                                 </div>
                             </div>
                         </div>
 
                         <div class="col-sm-6">
-                            <div class="bg-black bg-opacity-25 rounded-3 p-3 border border-secondary border-opacity-10">
-                                <div class="text-muted small mb-1">Sport</div>
-                                <div class="fw-bold text-primary fs-6">@b.SportType</div>
+                            <div class="bg-light rounded-3 p-3 border border-light-subtle">
+                                <div class="text-muted small mb-1">@Loc["Book.Summary.Sport"]</div>
+                                <div class="fw-bold text-primary fs-6">@Loc.Sport(b.SportType)</div>
                             </div>
                         </div>
 
                         <div class="col-sm-6">
-                            <div class="bg-black bg-opacity-25 rounded-3 p-3 border border-secondary border-opacity-10">
-                                <div class="text-muted small mb-1">Reserved On</div>
-                                <div class="fw-bold text-light fs-6">@b.CreatedAt.ToString("MMM dd, yyyy - HH:mm")</div>
+                            <div class="bg-light rounded-3 p-3 border border-light-subtle">
+                                <div class="text-muted small mb-1">@(Loc.IsArabic ? "تاريخ إنشاء الحجز" : "Reserved On")</div>
+                                <div class="fw-bold text-dark fs-6">@b.CreatedAt.ToString("MMM dd, yyyy - HH:mm")</div>
                             </div>
                         </div>
                     </div>
 
                     @if (!string.IsNullOrWhiteSpace(b.Notes))
                     {
-                        <div class="mt-3 p-3 rounded-3 bg-black bg-opacity-25 border border-secondary border-opacity-10">
-                            <div class="text-muted small mb-1">Player Notes:</div>
-                            <div class="text-light small">@b.Notes</div>
+                        <div class="mt-3 p-3 rounded-3 bg-light border border-light-subtle">
+                            <div class="text-muted small mb-1">@(Loc.IsArabic ? "ملاحظات اللاعب:" : "Player Notes:")</div>
+                            <div class="text-dark small">@b.Notes</div>
                         </div>
                     }
 
                     @if (isCancelled && !string.IsNullOrWhiteSpace(b.CancellationReason))
                     {
-                        <div class="mt-3 p-3 rounded-3 bg-danger bg-opacity-10 border border-danger border-opacity-25">
-                            <div class="text-danger small fw-bold mb-1"><i class="bi bi-x-circle me-1"></i>Cancellation Information:</div>
-                            <div class="text-light small">@b.CancellationReason</div>
+                        <div class="mt-3 p-3 rounded-3 bg-danger-subtle border border-danger border-opacity-25">
+                            <div class="text-danger small fw-bold mb-1"><i class="bi bi-x-circle me-1"></i>@(Loc.IsArabic ? "بيانات الإلغاء:" : "Cancellation Information:")</div>
+                            <div class="text-dark small">@b.CancellationReason</div>
                             @if (b.CancelledAt.HasValue)
                             {
-                                <div class="text-muted small mt-1">Cancelled at: @b.CancelledAt.Value.ToString("MMM dd, yyyy - HH:mm")</div>
+                                <div class="text-muted small mt-1">@(Loc.IsArabic ? "تم الإلغاء في: " : "Cancelled at: ") @b.CancelledAt.Value.ToString("MMM dd, yyyy - HH:mm")</div>
                             }
                         </div>
                     }
                 </div>
 
                 <!-- Venue Location & Contact Card -->
-                <div class="card bg-dark border-secondary border-opacity-25 shadow-sm rounded-4 p-4">
+                <div class="card border-0 shadow-sm rounded-4 p-4" style="border-radius: var(--ps-radius-xl);">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="fw-bold text-light mb-0 d-flex align-items-center">
-                            <i class="bi bi-building text-primary me-2"></i>Venue Information
+                        <h5 class="fw-bold text-dark mb-0 d-flex align-items-center">
+                            <i class="bi bi-building text-primary me-2"></i>@Loc["Details.About.Title"]
                         </h5>
                         <a href="/Venues/Details?id=@b.VenueId" class="btn btn-outline-primary btn-sm rounded-pill">
-                            View Venue <i class="bi bi-arrow-right ms-1"></i>
+                            @Loc["Venues.Card.ViewFacility"] <i class="bi bi-arrow-right ms-1"></i>
                         </a>
                     </div>
 
-                    <div class="bg-black bg-opacity-25 rounded-3 p-3 border border-secondary border-opacity-10">
-                        <h6 class="fw-bold text-light mb-1">@b.VenueName</h6>
-                        <div class="text-muted small mb-2"><i class="bi bi-geo-alt text-primary me-1"></i>@b.VenueAddress, @b.VenueCity</div>
+                    <div class="bg-light rounded-3 p-3 border border-light-subtle">
+                        <h6 class="fw-bold text-dark mb-1">@b.VenueName</h6>
+                        <div class="text-muted small mb-2"><i class="bi bi-geo-alt text-danger me-1"></i>@b.VenueAddress, @b.VenueCity</div>
                         @if (!string.IsNullOrWhiteSpace(b.VenuePhone))
                         {
                             <div class="text-muted small">
-                                <i class="bi bi-telephone text-primary me-1"></i>
+                                <i class="bi bi-telephone text-success me-1"></i>
                                 <a href="tel:@b.VenuePhone" class="text-primary text-decoration-none">@b.VenuePhone</a>
                             </div>
                         }
@@ -219,47 +219,47 @@
             <!-- Right Column: Financial & Policy Cards -->
             <div class="col-12 col-lg-4">
                 <!-- Payment Summary Card -->
-                <div class="card bg-dark border-secondary border-opacity-25 shadow-sm rounded-4 p-4 mb-4">
-                    <h5 class="fw-bold text-light mb-3 d-flex align-items-center">
-                        <i class="bi bi-receipt text-primary me-2"></i>Payment Summary
+                <div class="card border-0 shadow-sm rounded-4 p-4 mb-4" style="border-radius: var(--ps-radius-xl);">
+                    <h5 class="fw-bold text-dark mb-3 d-flex align-items-center">
+                        <i class="bi bi-receipt text-primary me-2"></i>@Loc["Book.Step4.Title"]
                     </h5>
 
                     <div class="d-flex justify-content-between align-items-center mb-2 small">
-                        <span class="text-muted">Total Amount:</span>
-                        <span class="fw-bold text-light fs-5">EGP @b.TotalPrice.ToString("0.00")</span>
+                        <span class="text-muted">@Loc["Book.Summary.TotalPrice"]:</span>
+                        <span class="fw-bold text-primary fs-5">@Loc.FormatCurrency(b.TotalPrice)</span>
                     </div>
 
                     <div class="d-flex justify-content-between align-items-center mb-3 small">
-                        <span class="text-muted">Payment Status:</span>
-                        <span class="badge bg-secondary bg-opacity-25 text-light border border-secondary border-opacity-25">
-                            @b.PaymentStatus
+                        <span class="text-muted">@Loc["Book.Summary.PaymentMethod"]:</span>
+                        <span class="badge bg-light text-dark border">
+                            @Loc.PaymentStatus(b.PaymentStatus)
                         </span>
                     </div>
 
-                    <div class="p-2 rounded bg-black bg-opacity-25 border border-secondary border-opacity-10 text-muted small text-center">
-                        <i class="bi bi-info-circle me-1 text-primary"></i> Payment settled at facility reception upon arrival.
+                    <div class="p-2 rounded bg-light border text-muted small text-center">
+                        <i class="bi bi-info-circle me-1 text-primary"></i> @Loc["Book.Summary.PayAtVenue"]
                     </div>
                 </div>
 
                 <!-- Cancellation Policy Card -->
-                <div class="card bg-dark border-secondary border-opacity-25 shadow-sm rounded-4 p-4">
-                    <h5 class="fw-bold text-light mb-3 d-flex align-items-center">
-                        <i class="bi bi-shield-check text-primary me-2"></i>Cancellation Policy
+                <div class="card border-0 shadow-sm rounded-4 p-4" style="border-radius: var(--ps-radius-xl);">
+                    <h5 class="fw-bold text-dark mb-3 d-flex align-items-center">
+                        <i class="bi bi-shield-check text-primary me-2"></i>@Loc["Details.Policy.Title"]
                     </h5>
 
-                    <div class="bg-black bg-opacity-25 rounded-3 p-3 border border-secondary border-opacity-10 small mb-3">
+                    <div class="bg-light rounded-3 p-3 border border-light-subtle small mb-3">
                         <div class="d-flex justify-content-between mb-2">
-                            <span class="text-muted">Free Cancellation:</span>
-                            <span class="text-success fw-bold">Up to @b.FreeCancellationHours h before match</span>
+                            <span class="text-muted">@(Loc.IsArabic ? "نافذة الإلغاء المجاني:" : "Free Cancellation:")</span>
+                            <span class="text-success fw-bold">@Loc.T("Details.Policy.FreeWindow", b.FreeCancellationHours)</span>
                         </div>
                         <div class="d-flex justify-content-between">
-                            <span class="text-muted">Late Cancellation Fee:</span>
-                            <span class="text-warning fw-bold">@b.LateCancellationFeePercent%</span>
+                            <span class="text-muted">@(Loc.IsArabic ? "رسم الإلغاء المتأخر:" : "Late Fee:")</span>
+                            <span class="text-warning fw-bold">@Loc.T("Details.Policy.LateFee", b.LateCancellationFeePercent)</span>
                         </div>
                     </div>
 
                     <p class="text-muted small mb-0">
-                        @(b.CancellationPolicyDescription ?? $"Free cancellation is available up to {b.FreeCancellationHours} hours before match start. Afterwards, a {b.LateCancellationFeePercent}% late fee applies.")
+                        @(b.CancellationPolicyDescription ?? Loc.T("Book.PolicyReminder", b.FreeCancellationHours))
                     </p>
                 </div>
             </div>
@@ -270,18 +270,18 @@
 <!-- Details Page Cancellation Modal -->
 <div class="modal fade" id="detailsCancelModal" tabindex="-1" aria-labelledby="detailsCancelModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content bg-dark text-light border-secondary border-opacity-50 shadow-lg rounded-4">
-            <div class="modal-header border-secondary border-opacity-25 pb-3">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header pb-3">
                 <h5 class="modal-title fw-bold text-danger d-flex align-items-center" id="detailsCancelModalLabel">
-                    <i class="bi bi-exclamation-octagon-fill me-2"></i> Cancel Reservation
+                    <i class="bi bi-exclamation-octagon-fill me-2"></i> @Loc["Bookings.CancelModal.Title"]
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
             <div class="modal-body py-4">
                 <div id="detailsCancelLoading" class="text-center py-4">
                     <div class="spinner-border text-primary" role="status"></div>
-                    <div class="text-muted small mt-2">Checking cancellation policy...</div>
+                    <div class="text-muted small mt-2">@(Loc.IsArabic ? "جاري التحقق من السياسة..." : "Checking cancellation policy...")</div>
                 </div>
 
                 <div id="detailsCancelContent" class="d-none">
@@ -295,17 +295,17 @@
                         </div>
                     </div>
 
-                    <div class="bg-black bg-opacity-30 rounded-3 p-3 mb-3 border border-secondary border-opacity-10 small">
+                    <div class="bg-light rounded-3 p-3 mb-3 border small">
                         <div class="d-flex justify-content-between mb-1">
-                            <span class="text-muted">Booking Price:</span>
+                            <span class="text-muted">@Loc["Book.Summary.TotalPrice"]:</span>
                             <span class="fw-bold" id="detailsTotalPrice"></span>
                         </div>
                         <div class="d-flex justify-content-between mb-1 text-danger">
-                            <span>Cancellation Fee:</span>
+                            <span>@Loc["Bookings.CancelModal.FeeAmount"]</span>
                             <span class="fw-bold" id="detailsFee"></span>
                         </div>
-                        <div class="d-flex justify-content-between pt-2 border-top border-secondary border-opacity-15 fs-6 text-success fw-bold">
-                            <span>Estimated Refund:</span>
+                        <div class="d-flex justify-content-between pt-2 border-top fs-6 text-success fw-bold">
+                            <span>@Loc["Bookings.CancelModal.RefundAmount"]</span>
                             <span id="detailsRefund"></span>
                         </div>
                     </div>
@@ -313,14 +313,15 @@
                     <form method="post" asp-page-handler="Cancel" id="detailsCancelForm">
                         <input type="hidden" name="id" id="detailsCancelIdInput" />
                         <div class="mb-3">
-                            <label for="detailsReasonInput" class="form-label small text-muted">Reason for cancellation (optional):</label>
-                            <textarea name="reason" id="detailsReasonInput" class="form-control bg-dark text-light border-secondary border-opacity-50 small" rows="2" placeholder="e.g. Personal schedule conflict..."></textarea>
+                            <label for="detailsReasonInput" class="form-label small fw-bold text-dark mb-1">@(Loc.IsArabic ? "سبب الإلغاء (اختياري):" : "Reason for cancellation (optional):")</label>
+                            <span class="ps-form-example mb-2">@(Loc.IsArabic ? "مثال: تغيير موعد العمل أو إصابة مفاجئة" : "e.g. Work schedule change, injury, unexpected conflict")</span>
+                            <textarea name="reason" id="detailsReasonInput" class="form-control bg-light border-0 shadow-none small" rows="2" placeholder="@(Loc.IsArabic ? "اكتب سبب الإلغاء هنا..." : "e.g. Personal schedule conflict...")"></textarea>
                         </div>
 
-                        <div class="d-flex justify-content-end gap-2 pt-2 border-top border-secondary border-opacity-15">
-                            <button type="button" class="btn btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Keep Booking</button>
+                        <div class="d-flex justify-content-end gap-2 pt-2 border-top">
+                            <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">@Loc["Bookings.CancelModal.BackBtn"]</button>
                             <button type="submit" id="btnConfirmDetailsCancel" class="btn btn-danger rounded-pill px-4 fw-semibold">
-                                Confirm Cancellation
+                                @Loc["Bookings.CancelModal.ConfirmBtn"]
                             </button>
                         </div>
                     </form>
@@ -388,8 +389,8 @@
             if (!p.canCancel) {
                 alertBox.className = 'alert alert-danger mb-3 border-0 rounded-3 p-3';
                 icon.className = 'bi bi-x-octagon-fill text-danger fs-4 me-2';
-                headline.textContent = 'Cancellation Not Allowed';
-                message.textContent = p.reasonIfNotAllowed || 'This reservation cannot be cancelled.';
+                headline.textContent = '@(Loc.IsArabic ? "غير مسموح بالإلغاء" : "Cancellation Not Allowed")';
+                message.textContent = p.reasonIfNotAllowed || '@(Loc.IsArabic ? "لا يمكن إلغاء هذا الحجز وفق السياسة المعتمدة." : "This reservation cannot be cancelled.")';
                 confirmBtn.disabled = true;
                 return;
             }
@@ -398,13 +399,13 @@
             if (p.isFreeCancellation) {
                 alertBox.className = 'alert alert-success mb-3 border-0 rounded-3 p-3';
                 icon.className = 'bi bi-shield-check text-success fs-4 me-2';
-                headline.textContent = 'Free Cancellation Available';
-                message.textContent = `You are cancelling within the free cancellation window. You will receive a 100% refund.`;
+                headline.textContent = '@Loc["Bookings.CancelModal.Free"]';
+                message.textContent = `@(Loc.IsArabic ? "أنت تلغي الحجز ضمن فترة الإلغاء المجاني. ستحصل على استرداد 100%." : "You are cancelling within the free cancellation window. You will receive a 100% refund.")`;
             } else {
                 alertBox.className = 'alert alert-warning mb-3 border-0 rounded-3 p-3';
                 icon.className = 'bi bi-exclamation-triangle-fill text-warning fs-4 me-2';
-                headline.textContent = `Late Cancellation Fee Applies (${p.lateCancellationFeePercent}%)`;
-                message.textContent = `You are cancelling less than ${p.freeCancellationHours} hours before match start. A fee of EGP ${p.cancellationFee.toFixed(2)} applies.`;
+                headline.textContent = `@(Loc.IsArabic ? "تطبق رسوم إلغاء متأخر (" : "Late Cancellation Fee Applies (")${p.lateCancellationFeePercent}%)`;
+                message.textContent = `@(Loc.IsArabic ? "أنت تلغي الحجز في وقت متأخر. يطبق رسم إلغاء بقيمة " : "Late fee applies: ")EGP ${p.cancellationFee.toFixed(2)}.`;
             }
         } catch (err) {
             document.getElementById('detailsCancelLoading').classList.add('d-none');

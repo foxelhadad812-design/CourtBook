@@ -1,24 +1,24 @@
 @page "/Owner/Venues/Create"
 @model CourtBook.Web.Pages.Owner.Venues.CreateModel
 @{
-    ViewData["Title"] = "Register New Facility — PlaySpot Owner";
+    ViewData["Title"] = $"{Loc["Owner.Create.Title"]} — {Loc["Brand.Name"]}";
 }
 
 <div class="facility-create-page py-4">
     <div class="container" style="max-width: 860px;">
         @if (!Model.IsOwner)
         {
-            <div class="card border-0 shadow-lg text-center p-5 my-5" style="background: rgba(22, 27, 34, 0.9); border: 1px solid rgba(239, 68, 68, 0.3) !important; border-radius: 20px;">
+            <div class="card border-0 shadow-lg text-center p-5 my-5" style="border-radius: var(--ps-radius-2xl);">
                 <div class="display-1 text-danger mb-3">
                     <i class="bi bi-shield-lock-fill"></i>
                 </div>
-                <h2 class="text-white fw-bold mb-2">Access Restricted</h2>
-                <p class="text-secondary mx-auto mb-4" style="max-width: 500px;">
-                    This section is reserved for verified facility owners.
+                <h2 class="text-dark fw-bold mb-2">@(Loc.IsArabic ? "صلاحيات المالك مطلوبة" : "Access Restricted")</h2>
+                <p class="text-muted mx-auto mb-4" style="max-width: 500px;">
+                    @(Loc.IsArabic ? "هذا القسم مخصص لأصحاب ومسؤولي المنشآت الرياضية المسجلين." : "This section is reserved for verified facility owners.")
                 </p>
                 <div>
-                    <a href="/Login?returnUrl=/Owner/Venues/Create" class="btn btn-primary px-4 py-2 rounded-pill fw-semibold">
-                        Sign In as Owner
+                    <a href="/Login?returnUrl=/Owner/Venues/Create" class="ps-btn ps-btn-primary px-4 py-2 rounded-pill fw-semibold">
+                        @Loc["Nav.SignIn"]
                     </a>
                 </div>
             </div>
@@ -26,19 +26,20 @@
         else
         {
             <!-- Navigation Header -->
-            <div class="d-flex align-items-center justify-content-between mb-4 pb-2 border-bottom border-dark">
+            <div class="d-flex align-items-center justify-content-between mb-4 pb-2 border-bottom">
                 <div>
                     <nav aria-label="breadcrumb">
                         <ol class="breadcrumb mb-1">
-                            <li class="breadcrumb-item"><a href="/Owner" class="text-secondary text-decoration-none">Dashboard</a></li>
-                            <li class="breadcrumb-item"><a href="/Owner/Venues" class="text-secondary text-decoration-none">Facilities</a></li>
-                            <li class="breadcrumb-item active text-white" aria-current="page">New Facility</li>
+                            <li class="breadcrumb-item"><a href="/Owner" class="text-muted text-decoration-none">@Loc["Nav.OwnerDashboard"]</a></li>
+                            <li class="breadcrumb-item"><a href="/Owner/Venues" class="text-muted text-decoration-none">@Loc["Owner.Venues.Title"]</a></li>
+                            <li class="breadcrumb-item active text-dark" aria-current="page">@Loc["Owner.Venues.AddBtn"]</li>
                         </ol>
                     </nav>
-                    <h1 class="h3 text-white fw-bold mb-0">Register New Sports Facility</h1>
+                    <h1 class="h3 text-dark fw-bold mb-0">@Loc["Owner.Create.Title"]</h1>
+                    <p class="text-muted small mb-0 mt-1">@Loc["Owner.Create.Subtitle"]</p>
                 </div>
                 <a href="/Owner/Venues" class="btn btn-outline-secondary rounded-pill px-3">
-                    <i class="bi bi-x-lg me-1"></i> Cancel
+                    <i class="bi bi-x-lg me-1"></i> @Loc["Action.Cancel"]
                 </a>
             </div>
 
@@ -50,87 +51,117 @@
                 </div>
             }
 
-            <form method="post" class="card border-0 p-4 shadow-sm" style="background: rgba(22, 27, 34, 0.9); border: 1px solid rgba(255,255,255,0.1) !important; border-radius: 20px;">
+            <form method="post" class="card border-0 p-4 p-md-5 shadow-sm" style="border-radius: var(--ps-radius-xl);">
                 <!-- Section 1: Basic Information -->
                 <div class="mb-4">
-                    <h5 class="text-white fw-bold mb-3 d-flex align-items-center">
-                        <span class="badge bg-primary rounded-circle me-2 d-inline-flex align-items-center justify-content-center" style="width: 26px; height: 26px; font-size: 0.8rem;">1</span>
-                        Basic Facility Info
+                    <h5 class="text-dark fw-bold mb-3 d-flex align-items-center">
+                        <span class="badge bg-primary text-white rounded-circle me-2 d-inline-flex align-items-center justify-content-center" style="width: 26px; height: 26px; font-size: 0.8rem;">1</span>
+                        @(Loc.IsArabic ? "البيانات الأساسية للمنشأة" : "Basic Facility Info")
                     </h5>
                     <div class="row g-3">
+                        <!-- Facility Name -->
                         <div class="col-12">
-                            <label class="form-label text-secondary small fw-semibold">Facility Name <span class="text-danger">*</span></label>
-                            <input type="text" asp-for="Input.Name" class="form-control form-control-dark bg-dark text-white border-secondary" placeholder="e.g. النجوم سبورتس كلوب / Stars Sports Club" required />
+                            <label class="form-label text-dark small fw-semibold mb-1">@Loc["Owner.Create.Name"] <span class="text-danger">*</span></label>
+                            <span class="ps-form-helper mb-1">@Loc["Owner.Create.Name.Helper"]</span>
+                            <span class="ps-form-example mb-2">@Loc["Owner.Create.Name.Example"]</span>
+                            <input type="text" asp-for="Input.Name" class="form-control bg-light border-0 shadow-none py-2 rounded-3" placeholder="@Loc["Owner.Create.Name.Example"]" required />
                         </div>
+
+                        <!-- Description -->
                         <div class="col-12">
-                            <label class="form-label text-secondary small fw-semibold">Facility Description</label>
-                            <textarea asp-for="Input.Description" class="form-control form-control-dark bg-dark text-white border-secondary" rows="3" placeholder="Describe your facility, pitch quality, lighting, and general features for players..."></textarea>
+                            <label class="form-label text-dark small fw-semibold mb-1">@Loc["Owner.Create.Desc"]</label>
+                            <span class="ps-form-helper mb-1">@Loc["Owner.Create.Desc.Helper"]</span>
+                            <span class="ps-form-example mb-2">@Loc["Owner.Create.Desc.Example"]</span>
+                            <textarea asp-for="Input.Description" class="form-control bg-light border-0 shadow-none rounded-3" rows="3" placeholder="@Loc["Owner.Create.Desc.Example"]"></textarea>
                         </div>
+
+                        <!-- Contact Phone -->
                         <div class="col-md-4">
-                            <label class="form-label text-secondary small fw-semibold">Contact Phone <span class="text-danger">*</span></label>
-                            <input type="tel" asp-for="Input.Phone" class="form-control form-control-dark bg-dark text-white border-secondary" placeholder="010XXXXXXXX" />
+                            <label class="form-label text-dark small fw-semibold mb-1">@Loc["Owner.Create.Phone"] <span class="text-danger">*</span></label>
+                            <span class="ps-form-example mb-2">@Loc["Owner.Create.Phone.Example"]</span>
+                            <input type="tel" asp-for="Input.Phone" class="form-control bg-light border-0 shadow-none py-2 rounded-3" placeholder="@Loc["Owner.Create.Phone.Example"]" required />
                         </div>
+
+                        <!-- Contact Email -->
                         <div class="col-md-4">
-                            <label class="form-label text-secondary small fw-semibold">Facility Email</label>
-                            <input type="email" asp-for="Input.Email" class="form-control form-control-dark bg-dark text-white border-secondary" placeholder="info@venue.eg" />
+                            <label class="form-label text-dark small fw-semibold mb-1">@Loc["Owner.Create.Email"]</label>
+                            <span class="ps-form-example mb-2">@Loc["Owner.Create.Email.Example"]</span>
+                            <input type="email" asp-for="Input.Email" class="form-control bg-light border-0 shadow-none py-2 rounded-3" placeholder="@Loc["Owner.Create.Email.Example"]" />
                         </div>
+
+                        <!-- Website / Social -->
                         <div class="col-md-4">
-                            <label class="form-label text-secondary small fw-semibold">Website (optional)</label>
-                            <input type="url" asp-for="Input.Website" class="form-control form-control-dark bg-dark text-white border-secondary" placeholder="https://..." />
+                            <label class="form-label text-dark small fw-semibold mb-1">@Loc["Owner.Create.Website"]</label>
+                            <span class="ps-form-example mb-2">@Loc["Owner.Create.Website.Example"]</span>
+                            <input type="url" asp-for="Input.Website" class="form-control bg-light border-0 shadow-none py-2 rounded-3" placeholder="@Loc["Owner.Create.Website.Example"]" />
                         </div>
                     </div>
                 </div>
 
-                <hr class="border-secondary opacity-25 my-4" />
+                <hr class="my-4" />
 
                 <!-- Section 2: Location -->
                 <div class="mb-4">
-                    <h5 class="text-white fw-bold mb-3 d-flex align-items-center">
-                        <span class="badge bg-primary rounded-circle me-2 d-inline-flex align-items-center justify-content-center" style="width: 26px; height: 26px; font-size: 0.8rem;">2</span>
-                        Location & Coordinates
+                    <h5 class="text-dark fw-bold mb-3 d-flex align-items-center">
+                        <span class="badge bg-primary text-white rounded-circle me-2 d-inline-flex align-items-center justify-content-center" style="width: 26px; height: 26px; font-size: 0.8rem;">2</span>
+                        @(Loc.IsArabic ? "الموقع والعنوان" : "Location & Address")
                     </h5>
                     <div class="row g-3">
+                        <!-- City -->
                         <div class="col-md-6">
-                            <label class="form-label text-secondary small fw-semibold">City <span class="text-danger">*</span></label>
-                            <input type="text" asp-for="Input.City" class="form-control form-control-dark bg-dark text-white border-secondary" placeholder="e.g. Cairo, Giza, Alexandria" required />
+                            <label class="form-label text-dark small fw-semibold mb-1">@Loc["Owner.Create.City"] <span class="text-danger">*</span></label>
+                            <span class="ps-form-example mb-2">@Loc["Owner.Create.City.Example"]</span>
+                            <input type="text" asp-for="Input.City" class="form-control bg-light border-0 shadow-none py-2 rounded-3" placeholder="@Loc["Owner.Create.City.Example"]" required />
                         </div>
+
+                        <!-- Area -->
                         <div class="col-md-6">
-                            <label class="form-label text-secondary small fw-semibold">Area / District</label>
-                            <input type="text" asp-for="Input.Area" class="form-control form-control-dark bg-dark text-white border-secondary" placeholder="e.g. Maadi, New Cairo, Dokki, Smouha" />
+                            <label class="form-label text-dark small fw-semibold mb-1">@Loc["Owner.Create.Area"]</label>
+                            <span class="ps-form-example mb-2">@Loc["Owner.Create.Area.Example"]</span>
+                            <input type="text" asp-for="Input.Area" class="form-control bg-light border-0 shadow-none py-2 rounded-3" placeholder="@Loc["Owner.Create.Area.Example"]" />
                         </div>
+
+                        <!-- Address -->
                         <div class="col-12">
-                            <label class="form-label text-secondary small fw-semibold">Detailed Street Address <span class="text-danger">*</span></label>
-                            <input type="text" asp-for="Input.Address" class="form-control form-control-dark bg-dark text-white border-secondary" placeholder="Street number, landmark, nearby crossroads..." required />
+                            <label class="form-label text-dark small fw-semibold mb-1">@Loc["Owner.Create.Address"] <span class="text-danger">*</span></label>
+                            <span class="ps-form-example mb-2">@Loc["Owner.Create.Address.Example"]</span>
+                            <input type="text" asp-for="Input.Address" class="form-control bg-light border-0 shadow-none py-2 rounded-3" placeholder="@Loc["Owner.Create.Address.Example"]" required />
                         </div>
+
+                        <!-- Latitude -->
                         <div class="col-md-6">
-                            <label class="form-label text-secondary small fw-semibold">Latitude (optional)</label>
-                            <input type="number" step="any" asp-for="Input.Latitude" class="form-control form-control-dark bg-dark text-white border-secondary" placeholder="e.g. 30.0444" />
+                            <label class="form-label text-dark small fw-semibold mb-1">@Loc["Owner.Create.Lat"]</label>
+                            <span class="ps-form-example mb-2">@Loc["Owner.Create.Lat.Example"]</span>
+                            <input type="number" step="any" asp-for="Input.Latitude" class="form-control bg-light border-0 shadow-none py-2 rounded-3" placeholder="29.9737" />
                         </div>
+
+                        <!-- Longitude -->
                         <div class="col-md-6">
-                            <label class="form-label text-secondary small fw-semibold">Longitude (optional)</label>
-                            <input type="number" step="any" asp-for="Input.Longitude" class="form-control form-control-dark bg-dark text-white border-secondary" placeholder="e.g. 31.2357" />
+                            <label class="form-label text-dark small fw-semibold mb-1">@Loc["Owner.Create.Lng"]</label>
+                            <span class="ps-form-example mb-2">@Loc["Owner.Create.Lng.Example"]</span>
+                            <input type="number" step="any" asp-for="Input.Longitude" class="form-control bg-light border-0 shadow-none py-2 rounded-3" placeholder="30.9529" />
                         </div>
                     </div>
                 </div>
 
-                <hr class="border-secondary opacity-25 my-4" />
+                <hr class="my-4" />
 
                 <!-- Section 3: Amenities Selection -->
                 <div class="mb-4">
-                    <h5 class="text-white fw-bold mb-3 d-flex align-items-center">
-                        <span class="badge bg-primary rounded-circle me-2 d-inline-flex align-items-center justify-content-center" style="width: 26px; height: 26px; font-size: 0.8rem;">3</span>
-                        Available Amenities
+                    <h5 class="text-dark fw-bold mb-3 d-flex align-items-center">
+                        <span class="badge bg-primary text-white rounded-circle me-2 d-inline-flex align-items-center justify-content-center" style="width: 26px; height: 26px; font-size: 0.8rem;">3</span>
+                        @Loc["Owner.Create.Amenities"]
                     </h5>
-                    <p class="text-secondary small mb-3">Select the amenities and facilities provided at this venue:</p>
+                    <p class="text-muted small mb-3">@(Loc.IsArabic ? "حدد جميع المرافق والخدمات المتوفرة في المنشأة لجذب اللاعبين:" : "Select the amenities and facilities provided at this venue:")</p>
                     <div class="row g-2">
                         @foreach (var amenity in Model.AvailableAmenities)
                         {
                             <div class="col-sm-6 col-md-4">
-                                <div class="p-2 rounded-3 border border-dark bg-dark d-flex align-items-center">
+                                <div class="p-2 rounded-3 border bg-light d-flex align-items-center">
                                     <input class="form-check-input me-2 mt-0" type="checkbox" name="Input.AmenityIds" value="@amenity.Id" id="amenity_@amenity.Id" />
-                                    <label class="form-check-label text-light small d-flex align-items-center cursor-pointer w-100" for="amenity_@amenity.Id">
+                                    <label class="form-check-label text-dark small d-flex align-items-center cursor-pointer w-100" for="amenity_@amenity.Id">
                                         <i class="bi @amenity.Icon text-primary me-2 fs-6"></i>
-                                        @amenity.Name
+                                        @Loc.Amenity(amenity.Name)
                                     </label>
                                 </div>
                             </div>
@@ -139,10 +170,10 @@
                 </div>
 
                 <!-- Submit Button -->
-                <div class="d-flex justify-content-end gap-2 pt-3">
-                    <a href="/Owner/Venues" class="btn btn-outline-secondary rounded-pill px-4">Cancel</a>
-                    <button type="submit" class="btn btn-primary rounded-pill px-5 fw-semibold shadow-sm">
-                        <i class="bi bi-check2-circle me-1"></i> Create Facility
+                <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+                    <a href="/Owner/Venues" class="btn btn-light rounded-pill px-4">@Loc["Action.Cancel"]</a>
+                    <button type="submit" class="ps-btn ps-btn-primary rounded-pill px-5 fw-semibold shadow-sm">
+                        <i class="bi bi-check2-circle me-1"></i> @Loc["Owner.Create.Submit"]
                     </button>
                 </div>
             </form>

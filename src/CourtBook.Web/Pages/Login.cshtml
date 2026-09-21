@@ -1,36 +1,46 @@
 @page
 @model CourtBook.Web.Pages.LoginModel
 @{
-    ViewData["Title"] = "Login";
+    ViewData["Title"] = $"{Loc["Auth.Login.Title"]} — {Loc["Brand.Name"]}";
 }
 
 <div class="row justify-content-center py-5">
     <div class="col-md-5 col-lg-4">
-        <div class="card border-0 shadow-sm p-4">
+        <div class="card border-0 shadow-sm p-4" style="border-radius: var(--ps-radius-xl);">
             <div class="card-body">
                 <div class="text-center mb-4">
                     <div class="d-inline-flex align-items-center justify-content-center bg-primary text-white rounded-circle mb-3 shadow-sm" style="width: 60px; height: 60px;">
                         <i class="bi bi-box-arrow-in-right fs-2"></i>
                     </div>
-                    <h3 class="fw-bold">Welcome Back</h3>
-                    <p class="text-muted">Log in to your CourtBook account</p>
+                    <h3 class="fw-bold text-dark">@Loc["Auth.Login.Title"]</h3>
+                    <p class="text-muted small">@Loc["Auth.Login.Subtitle"]</p>
                 </div>
                 
                 @if (!string.IsNullOrEmpty(Model.ErrorMessage))
                 {
-                    <div class="alert alert-danger border-0 shadow-sm d-flex align-items-center"><i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i> <div>@Model.ErrorMessage</div></div>
+                    <div class="alert alert-danger border-0 shadow-sm d-flex align-items-center mb-3">
+                        <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+                        <div>@Model.ErrorMessage</div>
+                    </div>
                 }
                 
                 <form method="post">
                     <input type="hidden" asp-for="ReturnUrl" />
-                    <div class="form-floating mb-3">
-                        <input asp-for="Input.Email" class="form-control" type="email" placeholder="name@example.com" required />
-                        <label>Email address</label>
+                    
+                    <!-- Email Address with Helper & Example -->
+                    <div class="mb-3">
+                        <label asp-for="Input.Email" class="form-label text-dark fw-semibold small mb-1">@Loc["Auth.Login.EmailLabel"]</label>
+                        <span class="ps-form-helper mb-1">@Loc["Auth.Login.EmailHelper"]</span>
+                        <span class="ps-form-example mb-2">@Loc["Auth.Login.EmailExample"]</span>
+                        <input asp-for="Input.Email" class="form-control bg-light border-0 shadow-none py-2 rounded-3" type="email" placeholder="@Loc["Auth.Login.EmailExample"]" required />
                         <span asp-validation-for="Input.Email" class="text-danger small"></span>
                     </div>
-                    <div class="form-floating mb-3">
-                        <input asp-for="Input.Password" class="form-control" type="password" placeholder="Password" required />
-                        <label>Password</label>
+
+                    <!-- Password with Helper -->
+                    <div class="mb-3">
+                        <label asp-for="Input.Password" class="form-label text-dark fw-semibold small mb-1">@Loc["Auth.Login.PasswordLabel"]</label>
+                        <span class="ps-form-helper mb-1">@Loc["Auth.Login.PasswordHelper"]</span>
+                        <input asp-for="Input.Password" class="form-control bg-light border-0 shadow-none py-2 rounded-3" type="password" placeholder="••••••••" required />
                         <span asp-validation-for="Input.Password" class="text-danger small"></span>
                     </div>
 
@@ -38,17 +48,31 @@
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="rememberMe">
                             <label class="form-check-label text-muted small" for="rememberMe">
-                                Remember me
+                                @(Loc.IsArabic ? "تذكر بياناتي" : "Remember me")
                             </label>
                         </div>
-                        <a asp-page="/ForgotPassword" class="text-primary text-decoration-none small fw-medium">Forgot password?</a>
                     </div>
 
-                    <button type="submit" class="btn btn-primary btn-lg w-100 rounded-pill fw-bold shadow-sm">Log In</button>
+                    <button type="submit" class="ps-btn ps-btn-primary w-100 py-3 fw-bold shadow-sm">
+                        @Loc["Auth.Login.Btn"]
+                    </button>
                 </form>
+
+                <!-- Quick Test Credentials Box -->
+                <div class="mt-4 p-3 bg-light rounded-3 border small">
+                    <div class="fw-bold text-dark mb-1 d-flex align-items-center gap-1">
+                        <i class="bi bi-key-fill text-warning"></i> @Loc["Auth.Login.QuickTest"]
+                    </div>
+                    <div class="text-muted" style="font-size: 11px;">
+                        <div><strong>Owner:</strong> ahmed@example.com / Owner123!</div>
+                        <div><strong>Player:</strong> player1@example.com / Player123!</div>
+                    </div>
+                </div>
                 
                 <div class="text-center mt-4 pt-3 border-top">
-                    <p class="text-muted mb-0">Don't have an account? <a asp-page="/Register" class="text-primary text-decoration-none fw-bold">Sign up</a></p>
+                    <p class="text-muted mb-0 small">
+                        @Loc["Auth.Login.NoAccount"] <a asp-page="/Register" class="text-primary text-decoration-none fw-bold">@Loc["Auth.Login.SignUpLink"]</a>
+                    </p>
                 </div>
             </div>
         </div>

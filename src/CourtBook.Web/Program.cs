@@ -15,12 +15,23 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
 });
 
+builder.Services.AddSingleton<ITextLocalizer, TextLocalizer>();
+
 builder.Services.AddHttpClient<ApiClient>(client =>
 {
     client.BaseAddress = new Uri("http://localhost:5257");
 });
 
 var app = builder.Build();
+
+// Configure localization
+var supportedCultures = new[] { "en", "ar" };
+var localizationOptions = new RequestLocalizationOptions()
+    .SetDefaultCulture("en")
+    .AddSupportedCultures(supportedCultures)
+    .AddSupportedUICultures(supportedCultures);
+
+app.UseRequestLocalization(localizationOptions);
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())

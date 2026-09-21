@@ -1,19 +1,37 @@
 <!DOCTYPE html>
-<html lang="en" class="h-100">
+<html lang="@Loc.Lang" dir="@Loc.Direction" class="h-100">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="PlaySpot — Find courts, book slots, and join games near you." />
-    <title>@ViewData["Title"] — PlaySpot</title>
+    <meta name="description" content="@Loc["Brand.Tagline"]" />
+    <title>@ViewData["Title"] — @Loc["Brand.Name"]</title>
 
-    <!-- Google Fonts: Inter -->
+    <!-- Instant Theme Detection to prevent FOUT -->
+    <script>
+        (function() {
+            var saved = localStorage.getItem('playspot-theme');
+            var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            var theme = saved || (prefersDark ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-bs-theme', theme);
+        })();
+    </script>
+
+    <!-- Google Fonts: Inter & Cairo -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
-    <!-- Bootstrap 5 CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous" />
+    <!-- Bootstrap 5 CSS (Dynamic LTR / RTL) -->
+    @if (Loc.IsArabic)
+    {
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css"
+              integrity="sha384-dpuaG1suU0eT09tx5plTaGMLBsfDLzUUCIEKCFJYxSvKsts3PR14j4hKgl380062" crossorigin="anonymous" />
+    }
+    else
+    {
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+              integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous" />
+    }
 
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
@@ -41,29 +59,42 @@
         <!-- Brand -->
         <a class="ps-navbar-brand" href="/" aria-label="PlaySpot Home">
             <div class="brand-icon" aria-hidden="true">⚡</div>
-            PlaySpot
+            <span>@Loc["Brand.Name"]</span>
         </a>
 
         <!-- Desktop Nav Links -->
         <div class="ps-nav-links d-none d-lg-flex">
             <a class="ps-nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.Equals("/Index", StringComparison.OrdinalIgnoreCase) == true ? "active" : "")"
                href="/">
-                <i class="bi bi-house-door"></i> Home
+                <i class="bi bi-house-door"></i> @Loc["Nav.Home"]
             </a>
             <a class="ps-nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Venues", StringComparison.OrdinalIgnoreCase) == true ? "active" : "")"
                href="/venues">
-                <i class="bi bi-building"></i> Venues
+                <i class="bi bi-building"></i> @Loc["Nav.Venues"]
             </a>
             <a class="ps-nav-link" href="/venues">
-                <i class="bi bi-trophy"></i> Sports
+                <i class="bi bi-trophy"></i> @Loc["Nav.Sports"]
             </a>
             <a class="ps-nav-link" href="/venues">
-                <i class="bi bi-people"></i> Games
+                <i class="bi bi-people"></i> @Loc["Nav.Games"]
             </a>
         </div>
 
         <!-- Actions -->
-        <div class="ps-navbar-actions">
+        <div class="ps-navbar-actions d-flex align-items-center gap-2">
+            <!-- Theme toggle button -->
+            <button id="ps-theme-toggle" class="ps-btn ps-btn-ghost ps-btn-sm" type="button" aria-label="@Loc["Theme.Toggle"]" title="@Loc["Theme.Toggle"]">
+                <i class="bi bi-moon-stars-fill text-primary"></i>
+            </button>
+
+            <!-- Language switcher -->
+            <a href="/SetLanguage?culture=@(Loc.IsArabic ? "en" : "ar")&returnUrl=@Uri.EscapeDataString(Context.Request.Path + Context.Request.QueryString)"
+               class="ps-btn ps-btn-ghost ps-btn-sm d-flex align-items-center gap-1 fw-bold"
+               title="@(Loc.IsArabic ? "Switch to English" : "التحويل للغة العربية")">
+                <i class="bi bi-translate text-primary"></i>
+                <span>@Loc["Lang.Switch"]</span>
+            </a>
+
             @{
                 var userName  = Context.Session.GetString("UserName");
                 var userRole  = Context.Session.GetString("UserRole");
@@ -72,11 +103,6 @@
 
             @if (loggedIn)
             {
-                <!-- Notifications bell (placeholder for Phase 9) -->
-                <button class="ps-btn ps-btn-ghost ps-btn-sm d-none d-md-flex" title="Notifications">
-                    <i class="bi bi-bell"></i>
-                </button>
-
                 <!-- User dropdown -->
                 <div class="dropdown">
                     <button class="ps-btn ps-btn-secondary ps-btn-sm dropdown-toggle d-flex align-items-center gap-2"
@@ -97,30 +123,25 @@
                         {
                             <li>
                                 <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="/owner">
-                                    <i class="bi bi-speedometer2 text-primary"></i> Owner Dashboard
+                                    <i class="bi bi-speedometer2 text-primary"></i> @Loc["Nav.OwnerDashboard"]
                                 </a>
                             </li>
                             <li><hr class="dropdown-divider my-1"></li>
                         }
                         <li>
                             <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="/bookings">
-                                <i class="bi bi-calendar-check text-primary"></i> My Bookings
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="#">
-                                <i class="bi bi-heart text-primary"></i> Favorites
+                                <i class="bi bi-calendar-check text-primary"></i> @Loc["Nav.MyBookings"]
                             </a>
                         </li>
                         <li>
                             <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="/profile">
-                                <i class="bi bi-person text-primary"></i> Profile
+                                <i class="bi bi-person text-primary"></i> @Loc["Nav.Profile"]
                             </a>
                         </li>
                         <li><hr class="dropdown-divider my-1"></li>
                         <li>
                             <a class="dropdown-item d-flex align-items-center gap-2 py-2 text-danger" href="/logout">
-                                <i class="bi bi-box-arrow-right"></i> Sign out
+                                <i class="bi bi-box-arrow-right"></i> @Loc["Nav.SignOut"]
                             </a>
                         </li>
                     </ul>
@@ -128,9 +149,9 @@
             }
             else
             {
-                <a href="/login" class="ps-btn ps-btn-ghost ps-btn-sm d-none d-sm-flex">Sign in</a>
+                <a href="/login" class="ps-btn ps-btn-ghost ps-btn-sm d-none d-sm-flex">@Loc["Nav.SignIn"]</a>
                 <a href="/register" class="ps-btn ps-btn-primary ps-btn-sm">
-                    Get Started <i class="bi bi-arrow-right ms-1"></i>
+                    @Loc["Nav.GetStarted"] <i class="bi bi-arrow-right ms-1"></i>
                 </a>
             }
 
@@ -145,26 +166,26 @@
 
 <!-- Mobile menu -->
 <div id="ps-mobile-menu" class="ps-mobile-menu" role="navigation" aria-label="Mobile navigation">
-    <a class="ps-nav-link" href="/"><i class="bi bi-house-door me-2"></i>Home</a>
-    <a class="ps-nav-link" href="/venues"><i class="bi bi-building me-2"></i>Venues</a>
-    <a class="ps-nav-link" href="/venues"><i class="bi bi-trophy me-2"></i>Sports</a>
-    <a class="ps-nav-link" href="/venues"><i class="bi bi-people me-2"></i>Games</a>
+    <a class="ps-nav-link" href="/"><i class="bi bi-house-door me-2"></i>@Loc["Nav.Home"]</a>
+    <a class="ps-nav-link" href="/venues"><i class="bi bi-building me-2"></i>@Loc["Nav.Venues"]</a>
+    <a class="ps-nav-link" href="/venues"><i class="bi bi-trophy me-2"></i>@Loc["Nav.Sports"]</a>
+    <a class="ps-nav-link" href="/venues"><i class="bi bi-people me-2"></i>@Loc["Nav.Games"]</a>
     @if (loggedIn)
     {
         <hr class="my-2">
-        <a class="ps-nav-link" href="/bookings/mybookings"><i class="bi bi-calendar-check me-2"></i>My Bookings</a>
+        <a class="ps-nav-link" href="/bookings"><i class="bi bi-calendar-check me-2"></i>@Loc["Nav.MyBookings"]</a>
         @if (userRole == "Owner" || userRole == "Admin")
         {
-            <a class="ps-nav-link" href="/dashboard"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
+            <a class="ps-nav-link" href="/owner"><i class="bi bi-speedometer2 me-2"></i>@Loc["Nav.OwnerDashboard"]</a>
         }
-        <a class="ps-nav-link text-danger" href="/logout"><i class="bi bi-box-arrow-right me-2"></i>Sign out</a>
+        <a class="ps-nav-link text-danger" href="/logout"><i class="bi bi-box-arrow-right me-2"></i>@Loc["Nav.SignOut"]</a>
     }
     else
     {
         <hr class="my-2">
-        <a class="ps-nav-link" href="/login"><i class="bi bi-person me-2"></i>Sign in</a>
+        <a class="ps-nav-link" href="/login"><i class="bi bi-person me-2"></i>@Loc["Nav.SignIn"]</a>
         <a class="ps-nav-link fw-semibold" href="/register" style="color:var(--ps-primary)">
-            <i class="bi bi-person-plus me-2"></i>Get Started
+            <i class="bi bi-person-plus me-2"></i>@Loc["Nav.GetStarted"]
         </a>
     }
 </div>
@@ -181,21 +202,18 @@
      ══════════════════════════════════════════════════════════ -->
 <footer class="ps-footer" role="contentinfo">
     <div class="container">
-        <div class="row g-8">
+        <div class="row g-4">
 
             <!-- Brand column -->
-            <div class="col-lg-4 col-md-6 mb-5 mb-lg-0">
+            <div class="col-lg-4 col-md-6 mb-4 mb-lg-0">
                 <div class="ps-footer-brand">
-                    <span>⚡</span> PlaySpot
+                    <span>⚡</span> @Loc["Brand.Name"]
                 </div>
-                <p class="ps-footer-tagline">
-                    Find your court, book your slot, and own your game.
-                    Egypt's sports community, all in one place.
+                <p class="ps-footer-tagline mt-2">
+                    @Loc["Brand.Tagline"]
                 </p>
-                <!-- Social links -->
                 <div class="d-flex gap-3 mt-4">
-                    <a href="#" class="text-gray-500 hover:text-white" style="color:var(--ps-gray-500);"
-                       aria-label="Facebook">
+                    <a href="#" style="color:var(--ps-gray-500);" aria-label="Facebook">
                         <i class="bi bi-facebook fs-5"></i>
                     </a>
                     <a href="#" style="color:var(--ps-gray-500);" aria-label="Instagram">
@@ -208,62 +226,47 @@
             </div>
 
             <!-- Platform links -->
-            <div class="col-lg-2 col-md-3 col-6 mb-5 mb-lg-0">
-                <h6 class="ps-footer-heading">Platform</h6>
+            <div class="col-lg-2 col-md-3 col-6">
+                <h6 class="ps-footer-heading">@Loc["Nav.Venues"]</h6>
                 <ul class="ps-footer-links">
-                    <li><a href="/venues">Browse Venues</a></li>
-                    <li><a href="/venues">Find a Game</a></li>
-                    <li><a href="/register">Get Started</a></li>
-                    <li><a href="#">How It Works</a></li>
-                    <li><a href="#">Pricing</a></li>
+                    <li><a href="/venues">@Loc["Nav.Venues"]</a></li>
+                    <li><a href="/venues">@Loc["Nav.Sports"]</a></li>
+                    <li><a href="/register">@Loc["Nav.GetStarted"]</a></li>
                 </ul>
             </div>
 
             <!-- For Owners links -->
-            <div class="col-lg-2 col-md-3 col-6 mb-5 mb-lg-0">
-                <h6 class="ps-footer-heading">For Owners</h6>
+            <div class="col-lg-3 col-md-3 col-6">
+                <h6 class="ps-footer-heading">@(Loc.IsArabic ? "لأصحاب المنشآت" : "For Facility Owners")</h6>
                 <ul class="ps-footer-links">
-                    <li><a href="/register">List Your Venue</a></li>
-                    <li><a href="/dashboard">Owner Dashboard</a></li>
-                    <li><a href="#">Revenue Analytics</a></li>
-                    <li><a href="#">Booking Management</a></li>
-                    <li><a href="/contact">Contact Sales</a></li>
-                </ul>
-            </div>
-
-            <!-- Support links -->
-            <div class="col-lg-2 col-md-6 mb-5 mb-lg-0">
-                <h6 class="ps-footer-heading">Support</h6>
-                <ul class="ps-footer-links">
-                    <li><a href="/faq">FAQ</a></li>
-                    <li><a href="/contact">Contact Us</a></li>
-                    <li><a href="/about">About PlaySpot</a></li>
-                    <li><a href="/terms">Terms of Service</a></li>
-                    <li><a href="/privacy">Privacy Policy</a></li>
+                    <li><a href="/register">@(Loc.IsArabic ? "سجّل منشأتك الرياضية" : "List Your Facility")</a></li>
+                    <li><a href="/owner">@Loc["Nav.OwnerDashboard"]</a></li>
+                    <li><a href="/owner/venues">@(Loc.IsArabic ? "إدارة الملاعب والحجوزات" : "Manage Courts & Bookings")</a></li>
                 </ul>
             </div>
 
             <!-- Sports links -->
-            <div class="col-lg-2 col-md-6">
-                <h6 class="ps-footer-heading">Sports</h6>
+            <div class="col-lg-3 col-md-6">
+                <h6 class="ps-footer-heading">@Loc["Nav.Sports"]</h6>
                 <ul class="ps-footer-links">
-                    <li><a href="/venues">⚽ Football</a></li>
-                    <li><a href="/venues">🎾 Padel</a></li>
-                    <li><a href="/venues">🏸 Tennis</a></li>
-                    <li><a href="/venues">🏀 Basketball</a></li>
-                    <li><a href="/venues">🏐 Volleyball</a></li>
+                    <li><a href="/venues?sport=Football">⚽ @Loc.Sport("Football")</a></li>
+                    <li><a href="/venues?sport=Padel">🎾 @Loc.Sport("Padel")</a></li>
+                    <li><a href="/venues?sport=Tennis">🏸 @Loc.Sport("Tennis")</a></li>
+                    <li><a href="/venues?sport=Basketball">🏀 @Loc.Sport("Basketball")</a></li>
+                    <li><a href="/venues?sport=Volleyball">🏐 @Loc.Sport("Volleyball")</a></li>
+                    <li><a href="/venues?sport=Badminton">🏸 @Loc.Sport("Badminton")</a></li>
                 </ul>
             </div>
         </div>
 
         <hr class="ps-footer-divider" />
 
-        <div class="ps-footer-bottom">
+        <div class="ps-footer-bottom d-flex flex-wrap justify-content-between align-items-center py-2">
             <p class="ps-footer-copy mb-0">
-                &copy; @DateTime.Now.Year PlaySpot. All rights reserved.
+                &copy; @DateTime.Now.Year @Loc["Brand.Name"]. @(Loc.IsArabic ? "جميع الحقوق محفوظة." : "All rights reserved.")
             </p>
             <p class="ps-footer-copy mb-0">
-                Made with ❤️ for the Egyptian sports community.
+                @(Loc.IsArabic ? "صُنع بـ ❤️ لمجتمع الرياضة في مصر." : "Made with ❤️ for the Egyptian sports community.")
             </p>
         </div>
     </div>
@@ -282,3 +285,4 @@
 
 </body>
 </html>
+

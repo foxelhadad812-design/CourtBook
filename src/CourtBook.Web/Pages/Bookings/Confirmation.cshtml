@@ -1,7 +1,7 @@
 @page "{id:guid?}"
 @model CourtBook.Web.Pages.Bookings.ConfirmationModel
 @{
-    ViewData["Title"] = "Booking Confirmed";
+    ViewData["Title"] = $"{Loc["Confirm.Badge"]} — {Loc["Brand.Name"]}";
     var durationHours = (Model.EndTime - Model.StartTime).TotalHours;
 }
 
@@ -18,31 +18,31 @@
 
             <!-- Header -->
             <h1 class="fw-extrabold text-dark mb-2" style="font-size: 2.25rem; letter-spacing: -0.02em;">
-                Booking Confirmed!
+                @Loc["Confirm.Title"]
             </h1>
             <p class="text-muted mb-4 fs-5">
-                Your court has been successfully reserved. Get ready for your match!
+                @Loc["Confirm.Subtitle"]
             </p>
 
             <!-- Booking Reference Badge -->
             <div class="d-inline-flex align-items-center gap-2 bg-light border px-4 py-2 rounded-pill mb-4 shadow-xs">
-                <span class="text-muted small">Booking Reference:</span>
+                <span class="text-muted small">@Loc["Confirm.RefLabel"]:</span>
                 <strong class="text-primary font-monospace fs-6">@Model.BookingReference</strong>
             </div>
 
             <!-- Booking Details Card -->
-            <div class="card border-0 shadow-sm rounded-4 text-start mb-4 bg-white overflow-hidden" style="border-radius: var(--ps-radius-xl);">
+            <div class="card border-0 shadow-sm rounded-4 text-start mb-4 overflow-hidden" style="border-radius: var(--ps-radius-xl);">
                 <div class="card-body p-4 p-md-5">
                     <h5 class="fw-bold text-dark mb-4 pb-2 border-bottom d-flex align-items-center justify-content-between">
-                        <span>Reservation Summary</span>
+                        <span>@Loc["Book.Step4.Title"]</span>
                         <span class="badge bg-success-subtle text-success small">
-                            <i class="bi bi-patch-check-fill me-1"></i> Confirmed
+                            <i class="bi bi-patch-check-fill me-1"></i> @Loc["BookingStatus.Confirmed"]
                         </span>
                     </h5>
 
                     <!-- Venue & Court -->
                     <div class="mb-3 d-flex justify-content-between align-items-baseline">
-                        <span class="text-muted small">Facility</span>
+                        <span class="text-muted small">@Loc["Book.Summary.Court"]</span>
                         <div class="text-end">
                             <strong class="text-dark d-block">@Model.VenueName</strong>
                             <span class="text-muted small">@Model.VenueCity</span>
@@ -50,33 +50,33 @@
                     </div>
 
                     <div class="mb-3 d-flex justify-content-between align-items-baseline">
-                        <span class="text-muted small">Pitch / Court</span>
+                        <span class="text-muted small">@Loc["Details.Courts.Title"]</span>
                         <div class="text-end">
                             <strong class="text-dark">@Model.CourtName</strong>
-                            <span class="badge bg-light text-dark border ms-1" style="font-size: 11px;">@Model.SportType</span>
+                            <span class="badge bg-light text-dark border ms-1" style="font-size: 11px;">@Loc.Sport(Model.SportType)</span>
                         </div>
                     </div>
 
                     <!-- Date & Time -->
                     <div class="mb-3 d-flex justify-content-between align-items-baseline">
-                        <span class="text-muted small">Date</span>
-                        <strong class="text-dark">@Model.StartTime.ToString("dddd, MMMM dd, yyyy")</strong>
+                        <span class="text-muted small">@Loc["Book.Summary.Date"]</span>
+                        <strong class="text-dark">@Model.StartTime.ToString(Loc.IsArabic ? "dddd, dd MMMM yyyy" : "dddd, MMMM dd, yyyy")</strong>
                     </div>
 
                     <div class="mb-3 d-flex justify-content-between align-items-baseline">
-                        <span class="text-muted small">Time Slot</span>
+                        <span class="text-muted small">@Loc["Book.Summary.Time"]</span>
                         <strong class="text-dark">@Model.StartTime.ToString("hh:mm tt") &mdash; @Model.EndTime.ToString("hh:mm tt")</strong>
                     </div>
 
                     <div class="mb-3 d-flex justify-content-between align-items-baseline">
-                        <span class="text-muted small">Duration</span>
-                        <strong class="text-dark">@(durationHours >= 1 ? $"{durationHours:0.#} hr" : $"{durationHours * 60:0} min")</strong>
+                        <span class="text-muted small">@Loc["Book.Summary.Duration"]</span>
+                        <strong class="text-dark">@(durationHours >= 1 ? (Loc.IsArabic ? $"{durationHours:0.#} ساعة" : $"{durationHours:0.#} hr") : (Loc.IsArabic ? $"{durationHours * 60:0} دقيقة" : $"{durationHours * 60:0} min"))</strong>
                     </div>
 
                     <div class="mb-3 d-flex justify-content-between align-items-baseline">
-                        <span class="text-muted small">Payment Status</span>
+                        <span class="text-muted small">@Loc["Book.Summary.PaymentMethod"]</span>
                         <span class="badge bg-warning-subtle text-warning-emphasis fw-bold">
-                            @Model.PaymentStatus (Pay at Venue)
+                            @Loc.PaymentStatus(Model.PaymentStatus)
                         </span>
                     </div>
 
@@ -84,28 +84,34 @@
 
                     <!-- Total Price -->
                     <div class="d-flex justify-content-between align-items-baseline">
-                        <span class="text-muted fw-bold">Total Amount</span>
+                        <span class="text-muted fw-bold">@Loc["Book.Summary.TotalPrice"]</span>
                         <div>
-                            <span class="fs-2 fw-extrabold text-primary">@Model.TotalPrice</span>
-                            <span class="text-muted small fw-medium">EGP</span>
+                            @if (decimal.TryParse(Model.TotalPrice, out var parsedPrice))
+                            {
+                                <span class="fs-2 fw-extrabold text-primary">@Loc.FormatCurrency(parsedPrice)</span>
+                            }
+                            else
+                            {
+                                <span class="fs-2 fw-extrabold text-primary">@Model.TotalPrice</span>
+                            }
                         </div>
                     </div>
 
                     <!-- Cancellation Policy Note -->
                     <div class="p-3 bg-light rounded-3 mt-4 text-muted small" style="font-size: 12px; line-height: 1.5;">
                         <i class="bi bi-info-circle text-primary me-1"></i>
-                        <strong>Cancellation Policy:</strong> Free cancellation up to 24 hours before your match. You can manage or cancel this reservation from your account dashboard.
+                        <strong>@Loc["Details.Policy.Title"]:</strong> @Loc.T("Book.PolicyReminder", 24)
                     </div>
                 </div>
             </div>
 
             <!-- Action Buttons -->
             <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center">
-                <a href="/Bookings/MyBookings" class="ps-btn ps-btn-primary px-4 py-3 fw-bold">
-                    <i class="bi bi-journal-text me-1"></i> View My Bookings
+                <a href="/Bookings" class="ps-btn ps-btn-primary px-4 py-3 fw-bold">
+                    <i class="bi bi-journal-text me-1"></i> @Loc["Confirm.Btn.MyBookings"]
                 </a>
-                <a href="/venues" class="ps-btn ps-btn-outline px-4 py-3 bg-white">
-                    <i class="bi bi-compass me-1"></i> Browse More Venues
+                <a href="/venues" class="ps-btn ps-btn-outline px-4 py-3">
+                    <i class="bi bi-compass me-1"></i> @Loc["Confirm.Btn.BrowseMore"]
                 </a>
             </div>
 

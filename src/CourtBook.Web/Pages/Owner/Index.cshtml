@@ -1,7 +1,7 @@
 @page "/Owner"
 @model CourtBook.Web.Pages.Owner.IndexModel
 @{
-    ViewData["Title"] = "Facility Owner Dashboard";
+    ViewData["Title"] = $"{Loc["Owner.Title"]} — {Loc["Brand.Name"]}";
     var d = Model.Dashboard;
     var activeStatus = (Model.Status ?? "all").ToLowerInvariant();
 }
@@ -9,19 +9,19 @@
 <div class="container py-4 py-md-5">
     @if (Model.IsForbidden)
     {
-        <div class="card bg-dark border-secondary border-opacity-25 shadow-sm rounded-4 p-5 text-center my-4">
+        <div class="card border-0 shadow-sm rounded-4 p-5 text-center my-4" style="border-radius: var(--ps-radius-xl);">
             <div class="card-body py-4">
                 <i class="bi bi-shield-lock display-3 text-warning mb-3"></i>
-                <h3 class="fw-bold text-light mb-2">Facility Owner Access Required</h3>
+                <h3 class="fw-bold text-dark mb-2">@(Loc.IsArabic ? "صلاحيات مالك المنشأة مطلوبة" : "Facility Owner Access Required")</h3>
                 <p class="text-muted mx-auto mb-4" style="max-width: 480px;">
-                    This dashboard is restricted to registered sports facility owners and administrators. If you are an owner, please sign in with your facility credentials.
+                    @(Loc.IsArabic ? "هذه اللوحة مخصصة لأصحاب ومسؤولي المنشآت الرياضية المسجلة. يرجى تسجيل الدخول بحساب مالك المنشأة." : "This dashboard is restricted to registered sports facility owners and administrators. If you are an owner, please sign in with your facility credentials.")
                 </p>
                 <div class="d-flex justify-content-center gap-2">
-                    <a href="/Venues" class="ps-btn ps-btn-primary ps-btn-md rounded-pill px-4">
-                        <i class="bi bi-search me-1"></i> Browse Facilities
+                    <a href="/venues" class="ps-btn ps-btn-primary ps-btn-md rounded-pill px-4">
+                        <i class="bi bi-search me-1"></i> @Loc["Home.Featured.ViewAll"]
                     </a>
-                    <a href="/Logout" class="btn btn-outline-light rounded-pill px-4">
-                        Sign Out
+                    <a href="/Logout" class="btn btn-outline-secondary rounded-pill px-4">
+                        @Loc["Nav.SignOut"]
                     </a>
                 </div>
             </div>
@@ -30,25 +30,26 @@
     else
     {
         <!-- Header -->
-        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4 pb-3 border-bottom border-dark-subtle">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4 pb-3 border-bottom">
             <div>
                 <div class="d-flex align-items-center gap-2 mb-1">
-                    <span class="badge bg-primary bg-opacity-15 text-primary border border-primary border-opacity-25 px-2 py-1 rounded-pill small">
-                        <i class="bi bi-shield-check me-1"></i>Owner Portal
+                    <span class="badge bg-primary-subtle text-primary border border-primary border-opacity-25 px-2 py-1 rounded-pill small">
+                        <i class="bi bi-shield-check me-1"></i>@(Loc.IsArabic ? "بوابة الإدارة" : "Owner Portal")
                     </span>
-                    <span class="text-muted small">@DateTime.UtcNow.ToString("dddd, MMMM dd, yyyy")</span>
+                    <span class="text-muted small">@DateTime.UtcNow.ToString(Loc.IsArabic ? "dddd, dd MMMM yyyy" : "dddd, MMMM dd, yyyy")</span>
                 </div>
-                <h1 class="h2 fw-bold mb-0 text-light">Facility Owner Dashboard</h1>
+                <h1 class="h2 fw-bold mb-0 text-dark">@Loc["Owner.Title"]</h1>
+                <p class="text-muted small mb-0 mt-1">@Loc["Owner.Subtitle"]</p>
             </div>
             <div class="d-flex gap-2">
-                <a href="/Owner/Venues" class="btn btn-primary btn-sm rounded-pill px-3 fw-semibold">
-                    <i class="bi bi-building me-1"></i> Manage Facilities
+                <a href="/Owner/Venues" class="ps-btn ps-btn-primary ps-btn-sm rounded-pill px-3 fw-semibold">
+                    <i class="bi bi-building me-1"></i> @Loc["Owner.Venues.Title"]
                 </a>
-                <a href="/Owner/Venues/Create" class="btn btn-outline-light btn-sm rounded-pill px-3">
-                    <i class="bi bi-plus-lg me-1"></i> Add Facility
+                <a href="/Owner/Venues/Create" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                    <i class="bi bi-plus-lg me-1"></i> @Loc["Owner.Venues.AddBtn"]
                 </a>
-                <a href="/Venues" class="btn btn-outline-light btn-sm rounded-pill px-3">
-                    <i class="bi bi-eye me-1"></i> View Public Site
+                <a href="/venues" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                    <i class="bi bi-eye me-1"></i> @(Loc.IsArabic ? "معاينة المنصة" : "View Public Site")
                 </a>
             </div>
         </div>
@@ -68,87 +69,87 @@
             <div class="row g-3 mb-4">
                 <!-- Total Venues -->
                 <div class="col-6 col-md-4 col-xl-2">
-                    <div class="card bg-dark border-secondary border-opacity-25 shadow-sm rounded-4 p-3 h-100">
+                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100" style="border-radius: var(--ps-radius-xl);">
                         <div class="d-flex justify-content-between align-items-start mb-2">
-                            <span class="text-muted small">Total Venues</span>
-                            <span class="badge bg-primary bg-opacity-15 text-primary p-2 rounded-circle">
+                            <span class="text-muted small">@Loc["Owner.Kpi.Venues"]</span>
+                            <span class="badge bg-primary-subtle text-primary p-2 rounded-circle">
                                 <i class="bi bi-buildings"></i>
                             </span>
                         </div>
-                        <div class="fw-bold fs-3 text-light">@d.TotalVenues</div>
-                        <div class="text-muted small mt-1">Managed facilities</div>
+                        <div class="fw-bold fs-3 text-dark">@d.TotalVenues</div>
+                        <div class="text-muted small mt-1">@(Loc.IsArabic ? "منشآت مسجلة" : "Managed facilities")</div>
                     </div>
                 </div>
 
                 <!-- Total Courts -->
                 <div class="col-6 col-md-4 col-xl-2">
-                    <div class="card bg-dark border-secondary border-opacity-25 shadow-sm rounded-4 p-3 h-100">
+                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100" style="border-radius: var(--ps-radius-xl);">
                         <div class="d-flex justify-content-between align-items-start mb-2">
-                            <span class="text-muted small">Total Courts</span>
-                            <span class="badge bg-info bg-opacity-15 text-info p-2 rounded-circle">
+                            <span class="text-muted small">@Loc["Owner.Kpi.Courts"]</span>
+                            <span class="badge bg-info-subtle text-info p-2 rounded-circle">
                                 <i class="bi bi-grid-3x3"></i>
                             </span>
                         </div>
-                        <div class="fw-bold fs-3 text-light">@d.TotalCourts</div>
-                        <div class="text-muted small mt-1">Active courts</div>
+                        <div class="fw-bold fs-3 text-dark">@d.TotalCourts</div>
+                        <div class="text-muted small mt-1">@(Loc.IsArabic ? "ملاعب نشطة" : "Active courts")</div>
                     </div>
                 </div>
 
                 <!-- Upcoming Bookings -->
                 <div class="col-6 col-md-4 col-xl-2">
-                    <div class="card bg-dark border-secondary border-opacity-25 shadow-sm rounded-4 p-3 h-100">
+                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100" style="border-radius: var(--ps-radius-xl);">
                         <div class="d-flex justify-content-between align-items-start mb-2">
-                            <span class="text-muted small">Upcoming</span>
-                            <span class="badge bg-success bg-opacity-15 text-success p-2 rounded-circle">
+                            <span class="text-muted small">@Loc["Owner.Kpi.Upcoming"]</span>
+                            <span class="badge bg-success-subtle text-success p-2 rounded-circle">
                                 <i class="bi bi-calendar2-week"></i>
                             </span>
                         </div>
                         <div class="fw-bold fs-3 text-success">@d.UpcomingBookingsCount</div>
-                        <div class="text-muted small mt-1">Confirmed matches</div>
+                        <div class="text-muted small mt-1">@(Loc.IsArabic ? "حجوزات مؤكدة" : "Confirmed matches")</div>
                     </div>
                 </div>
 
                 <!-- Completed Matches -->
                 <div class="col-6 col-md-4 col-xl-2">
-                    <div class="card bg-dark border-secondary border-opacity-25 shadow-sm rounded-4 p-3 h-100">
+                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100" style="border-radius: var(--ps-radius-xl);">
                         <div class="d-flex justify-content-between align-items-start mb-2">
-                            <span class="text-muted small">Completed</span>
-                            <span class="badge bg-secondary bg-opacity-25 text-light p-2 rounded-circle">
+                            <span class="text-muted small">@Loc["Owner.Kpi.Completed"]</span>
+                            <span class="badge bg-light text-dark border p-2 rounded-circle">
                                 <i class="bi bi-check2-circle"></i>
                             </span>
                         </div>
-                        <div class="fw-bold fs-3 text-light">@d.CompletedBookingsCount</div>
-                        <div class="text-muted small mt-1">Historical games</div>
+                        <div class="fw-bold fs-3 text-dark">@d.CompletedBookingsCount</div>
+                        <div class="text-muted small mt-1">@(Loc.IsArabic ? "مباريات مكتملة" : "Historical games")</div>
                     </div>
                 </div>
 
                 <!-- Cancelled Bookings -->
                 <div class="col-6 col-md-4 col-xl-2">
-                    <div class="card bg-dark border-secondary border-opacity-25 shadow-sm rounded-4 p-3 h-100">
+                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100" style="border-radius: var(--ps-radius-xl);">
                         <div class="d-flex justify-content-between align-items-start mb-2">
-                            <span class="text-muted small">Cancelled</span>
-                            <span class="badge bg-danger bg-opacity-15 text-danger p-2 rounded-circle">
+                            <span class="text-muted small">@Loc["Owner.Kpi.Cancelled"]</span>
+                            <span class="badge bg-danger-subtle text-danger p-2 rounded-circle">
                                 <i class="bi bi-x-circle"></i>
                             </span>
                         </div>
                         <div class="fw-bold fs-3 text-danger">@d.CancelledBookingsCount</div>
-                        <div class="text-muted small mt-1">Refunded / Late fee</div>
+                        <div class="text-muted small mt-1">@(Loc.IsArabic ? "ملغاة / رسوم تأخير" : "Refunded / Late fee")</div>
                     </div>
                 </div>
 
                 <!-- Total Revenue -->
                 <div class="col-6 col-md-4 col-xl-2">
-                    <div class="card bg-dark border-secondary border-opacity-25 shadow-sm rounded-4 p-3 h-100 border-start border-3 border-start-success">
+                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100 border-start border-3 border-start-success" style="border-radius: var(--ps-radius-xl);">
                         <div class="d-flex justify-content-between align-items-start mb-2">
-                            <span class="text-muted small">Total Revenue</span>
-                            <span class="badge bg-success bg-opacity-15 text-success p-2 rounded-circle">
+                            <span class="text-muted small">@Loc["Owner.Kpi.Revenue"]</span>
+                            <span class="badge bg-success-subtle text-success p-2 rounded-circle">
                                 <i class="bi bi-cash-coin"></i>
                             </span>
                         </div>
-                        <div class="fw-bold fs-4 text-success text-truncate" title="EGP @d.TotalRevenue.ToString("0.00")">
-                            EGP @d.TotalRevenue.ToString("N0")
+                        <div class="fw-bold fs-4 text-success text-truncate" title="@Loc.FormatCurrency(d.TotalRevenue)">
+                            @Loc.FormatCurrency(d.TotalRevenue)
                         </div>
-                        <div class="text-muted small mt-1">All-time revenue</div>
+                        <div class="text-muted small mt-1">@(Loc.IsArabic ? "إجمالي الدخل" : "All-time revenue")</div>
                     </div>
                 </div>
             </div>
@@ -156,36 +157,36 @@
             <!-- ANALYTICS WIDGETS ROW (4 CARDS) -->
             <div class="row g-3 mb-5">
                 <div class="col-12 col-md-6 col-xl-3">
-                    <div class="card bg-dark border-secondary border-opacity-25 rounded-4 p-3 h-100">
-                        <div class="text-muted small mb-1"><i class="bi bi-calendar-month me-1 text-primary"></i>Revenue This Month</div>
-                        <div class="fw-bold fs-4 text-light">EGP @d.RevenueThisMonth.ToString("N2")</div>
-                        <div class="text-muted small mt-1">Current calendar month</div>
+                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100" style="border-radius: var(--ps-radius-xl);">
+                        <div class="text-muted small mb-1"><i class="bi bi-calendar-month me-1 text-primary"></i>@Loc["Owner.Analytics.Month"]</div>
+                        <div class="fw-bold fs-4 text-dark">@Loc.FormatCurrency(d.RevenueThisMonth)</div>
+                        <div class="text-muted small mt-1">@(Loc.IsArabic ? "الشهر الميلادي الحالي" : "Current calendar month")</div>
                     </div>
                 </div>
 
                 <div class="col-12 col-md-6 col-xl-3">
-                    <div class="card bg-dark border-secondary border-opacity-25 rounded-4 p-3 h-100">
-                        <div class="text-muted small mb-1"><i class="bi bi-graph-up me-1 text-info"></i>Revenue This Week</div>
-                        <div class="fw-bold fs-4 text-light">EGP @d.RevenueThisWeek.ToString("N2")</div>
-                        <div class="text-muted small mt-1">From Sunday to Saturday</div>
+                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100" style="border-radius: var(--ps-radius-xl);">
+                        <div class="text-muted small mb-1"><i class="bi bi-graph-up me-1 text-info"></i>@Loc["Owner.Analytics.Week"]</div>
+                        <div class="fw-bold fs-4 text-dark">@Loc.FormatCurrency(d.RevenueThisWeek)</div>
+                        <div class="text-muted small mt-1">@(Loc.IsArabic ? "الأسبوع الحالي" : "Current week")</div>
                     </div>
                 </div>
 
                 <div class="col-12 col-md-6 col-xl-3">
-                    <div class="card bg-dark border-secondary border-opacity-25 rounded-4 p-3 h-100">
-                        <div class="text-muted small mb-1"><i class="bi bi-clock me-1 text-warning"></i>Matches Scheduled Today</div>
-                        <div class="fw-bold fs-4 text-light">@d.BookingsToday</div>
-                        <div class="text-muted small mt-1">Active match slots today</div>
+                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100" style="border-radius: var(--ps-radius-xl);">
+                        <div class="text-muted small mb-1"><i class="bi bi-clock me-1 text-warning"></i>@Loc["Owner.Analytics.Today"]</div>
+                        <div class="fw-bold fs-4 text-dark">@d.BookingsToday</div>
+                        <div class="text-muted small mt-1">@(Loc.IsArabic ? "فترات مباريات اليوم" : "Active match slots today")</div>
                     </div>
                 </div>
 
                 <div class="col-12 col-md-6 col-xl-3">
-                    <div class="card bg-dark border-secondary border-opacity-25 rounded-4 p-3 h-100">
-                        <div class="text-muted small mb-1"><i class="bi bi-trophy me-1 text-warning"></i>Top Booked Court</div>
-                        <div class="fw-bold fs-5 text-light text-truncate" title="@d.MostBookedCourtName">
-                            @(string.IsNullOrWhiteSpace(d.MostBookedCourtName) ? "None" : d.MostBookedCourtName)
+                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100" style="border-radius: var(--ps-radius-xl);">
+                        <div class="text-muted small mb-1"><i class="bi bi-trophy me-1 text-warning"></i>@Loc["Owner.Analytics.TopCourt"]</div>
+                        <div class="fw-bold fs-5 text-dark text-truncate" title="@d.MostBookedCourtName">
+                            @(string.IsNullOrWhiteSpace(d.MostBookedCourtName) ? (Loc.IsArabic ? "لا يوجد بعد" : "None") : d.MostBookedCourtName)
                         </div>
-                        <div class="text-muted small mt-1">@d.MostBookedCourtCount total bookings</div>
+                        <div class="text-muted small mt-1">@d.MostBookedCourtCount @(Loc.IsArabic ? "حجز إجمالي" : "total bookings")</div>
                     </div>
                 </div>
             </div>
@@ -194,11 +195,11 @@
             <div class="mb-5">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <div>
-                        <h3 class="h4 fw-bold text-light mb-0">Managed Facilities</h3>
-                        <p class="text-muted small mb-0">Your registered sports centers and courts</p>
+                        <h3 class="h4 fw-bold text-dark mb-0">@Loc["Owner.Venues.Title"]</h3>
+                        <p class="text-muted small mb-0">@(Loc.IsArabic ? "مجمعاتك وملاعبك الرياضية المتاحة للحجز" : "Your registered sports centers and courts")</p>
                     </div>
-                    <span class="badge bg-secondary bg-opacity-25 text-light px-3 py-2 rounded-pill">
-                        @d.Venues.Count @(d.Venues.Count == 1 ? "Venue" : "Venues")
+                    <span class="badge bg-light text-dark border px-3 py-2 rounded-pill">
+                        @d.Venues.Count @(Loc.IsArabic ? "منشأة" : (d.Venues.Count == 1 ? "Venue" : "Venues"))
                     </span>
                 </div>
 
@@ -208,17 +209,17 @@
                         @foreach (var v in d.Venues)
                         {
                             <div class="col-12 col-md-6 col-lg-4">
-                                <div class="card bg-dark border-secondary border-opacity-25 shadow-sm rounded-4 h-100 overflow-hidden">
+                                <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden" style="border-radius: var(--ps-radius-xl);">
                                     <div class="card-body p-4">
                                         <div class="d-flex justify-content-between align-items-start mb-2">
-                                            <h5 class="fw-bold text-light mb-0 text-truncate" title="@v.Name">@v.Name</h5>
+                                            <h5 class="fw-bold text-dark mb-0 text-truncate" title="@v.Name">@v.Name</h5>
                                             @if (v.IsActive)
                                             {
-                                                <span class="badge bg-success bg-opacity-15 text-success border border-success border-opacity-25 rounded-pill px-2 py-1 small">Active</span>
+                                                <span class="badge bg-success-subtle text-success border border-success border-opacity-25 rounded-pill px-2 py-1 small">@(Loc.IsArabic ? "نشطة" : "Active")</span>
                                             }
                                             else
                                             {
-                                                <span class="badge bg-secondary bg-opacity-25 text-muted rounded-pill px-2 py-1 small">Inactive</span>
+                                                <span class="badge bg-secondary-subtle text-muted rounded-pill px-2 py-1 small">@(Loc.IsArabic ? "متوقفة" : "Inactive")</span>
                                             }
                                         </div>
 
@@ -229,33 +230,33 @@
                                         <div class="d-flex flex-wrap gap-1 mb-3">
                                             @foreach (var s in v.Sports)
                                             {
-                                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill small px-2 py-0-5">@s</span>
+                                                <span class="badge bg-primary-subtle text-primary border border-primary border-opacity-25 rounded-pill small px-2 py-0-5">@Loc.Sport(s)</span>
                                             }
                                         </div>
 
-                                        <div class="bg-black bg-opacity-25 rounded-3 p-3 mb-3 border border-secondary border-opacity-10 small">
+                                        <div class="bg-light rounded-3 p-3 mb-3 border border-light-subtle small">
                                             <div class="d-flex justify-content-between mb-1">
-                                                <span class="text-muted">Courts:</span>
-                                                <span class="fw-bold text-light">@v.TotalCourts</span>
+                                                <span class="text-muted">@Loc["Owner.Kpi.Courts"]:</span>
+                                                <span class="fw-bold text-dark">@v.TotalCourts</span>
                                             </div>
                                             <div class="d-flex justify-content-between mb-1">
-                                                <span class="text-muted">Rating:</span>
-                                                <span class="text-warning fw-bold">@v.AverageRating.ToString("0.0") ★ (@v.TotalReviews reviews)</span>
+                                                <span class="text-muted">@(Loc.IsArabic ? "التقييم:" : "Rating:")</span>
+                                                <span class="text-warning fw-bold">@v.AverageRating.ToString("0.0") ★ (@v.TotalReviews)</span>
                                             </div>
                                             <div class="d-flex justify-content-between">
-                                                <span class="text-muted">Upcoming Games:</span>
+                                                <span class="text-muted">@Loc["Owner.Kpi.Upcoming"]:</span>
                                                 <span class="text-success fw-bold">@v.UpcomingBookingsCount</span>
                                             </div>
                                         </div>
 
                                         <div class="d-flex gap-2">
-                                            <a href="/Owner/Venues/Manage?id=@v.Id" class="btn btn-sm btn-primary rounded-pill px-3 fw-semibold">
-                                                <i class="bi bi-gear-fill me-1"></i> Manage
+                                            <a href="/Owner/Venues/Manage?id=@v.Id" class="ps-btn ps-btn-primary ps-btn-sm flex-grow-1 rounded-pill py-2 text-center">
+                                                <i class="bi bi-gear-fill me-1"></i> @Loc["Owner.Venues.ManageBtn"]
                                             </a>
-                                            <a href="/Venues/Details?id=@v.Id" class="btn btn-sm btn-outline-light flex-grow-1 rounded-pill">
-                                                <i class="bi bi-box-arrow-up-right me-1"></i> Public Page
+                                            <a href="/Venues/Details?id=@v.Id" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-2" title="@(Loc.IsArabic ? "معاينة الصفحة العامة" : "Preview Public Page")">
+                                                <i class="bi bi-box-arrow-up-right"></i>
                                             </a>
-                                            <a href="/Owner?venueId=@v.Id" class="btn btn-sm btn-outline-secondary rounded-pill px-3" title="Filter Bookings">
+                                            <a href="/Owner?venueId=@v.Id" class="btn btn-sm btn-outline-secondary rounded-pill px-3" title="@(Loc.IsArabic ? "تصفية الحجوزات" : "Filter Bookings")">
                                                 <i class="bi bi-filter"></i>
                                             </a>
                                         </div>
@@ -267,8 +268,8 @@
                 }
                 else
                 {
-                    <div class="card bg-dark border-secondary border-opacity-25 rounded-4 p-4 text-center">
-                        <p class="text-muted mb-0">You have not registered any sports facilities yet.</p>
+                    <div class="card border-0 shadow-sm rounded-4 p-4 text-center" style="border-radius: var(--ps-radius-xl);">
+                        <p class="text-muted mb-0">@(Loc.IsArabic ? "لم تقم بتسجيل أي منشآت رياضية حتى الآن." : "You have not registered any sports facilities yet.")</p>
                     </div>
                 }
             </div>
@@ -277,8 +278,8 @@
             <div class="mb-4">
                 <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-3">
                     <div>
-                        <h3 class="h4 fw-bold text-light mb-0">Court Reservations</h3>
-                        <p class="text-muted small mb-0">Live bookings for your managed courts</p>
+                        <h3 class="h4 fw-bold text-dark mb-0">@Loc["Owner.Reservations.Title"]</h3>
+                        <p class="text-muted small mb-0">@(Loc.IsArabic ? "جدول الحجوزات المباشر لجميع ملاعبك" : "Live bookings for your managed courts")</p>
                     </div>
 
                     <!-- Filter Controls -->
@@ -286,30 +287,30 @@
                         <!-- Status Navigation Pills -->
                         <div class="nav nav-pills gap-1" role="tablist">
                             <a href="/Owner?status=all@(Model.VenueId.HasValue ? $"&venueId={Model.VenueId}" : "")"
-                               class="nav-link @(activeStatus == "all" ? "active bg-primary text-black fw-bold" : "text-muted") py-1 px-3 rounded-pill small">
-                                All
+                               class="nav-link @(activeStatus == "all" ? "active bg-primary text-white fw-bold" : "text-muted") py-1 px-3 rounded-pill small">
+                                @Loc.T("Bookings.Tab.All", "")
                             </a>
                             <a href="/Owner?status=upcoming@(Model.VenueId.HasValue ? $"&venueId={Model.VenueId}" : "")"
-                               class="nav-link @(activeStatus == "upcoming" ? "active bg-primary text-black fw-bold" : "text-muted") py-1 px-3 rounded-pill small">
-                                Upcoming
+                               class="nav-link @(activeStatus == "upcoming" ? "active bg-primary text-white fw-bold" : "text-muted") py-1 px-3 rounded-pill small">
+                                @Loc.T("Bookings.Tab.Upcoming", "")
                             </a>
                             <a href="/Owner?status=completed@(Model.VenueId.HasValue ? $"&venueId={Model.VenueId}" : "")"
-                               class="nav-link @(activeStatus == "completed" ? "active bg-primary text-black fw-bold" : "text-muted") py-1 px-3 rounded-pill small">
-                                Completed
+                               class="nav-link @(activeStatus == "completed" ? "active bg-primary text-white fw-bold" : "text-muted") py-1 px-3 rounded-pill small">
+                                @Loc.T("Bookings.Tab.Completed", "")
                             </a>
                             <a href="/Owner?status=cancelled@(Model.VenueId.HasValue ? $"&venueId={Model.VenueId}" : "")"
-                               class="nav-link @(activeStatus == "cancelled" ? "active bg-primary text-black fw-bold" : "text-muted") py-1 px-3 rounded-pill small">
-                                Cancelled
+                               class="nav-link @(activeStatus == "cancelled" ? "active bg-primary text-white fw-bold" : "text-muted") py-1 px-3 rounded-pill small">
+                                @Loc.T("Bookings.Tab.Cancelled", "")
                             </a>
                         </div>
 
                         <!-- Venue Filter Dropdown -->
                         @if (d.Venues.Count > 1)
                         {
-                            <select class="form-select form-select-sm bg-dark text-light border-secondary border-opacity-50 rounded-pill"
+                            <select class="form-select form-select-sm bg-light border-0 fw-medium shadow-none rounded-pill"
                                     style="width: 180px;"
                                     onchange="window.location.href='/Owner?status=@activeStatus&venueId=' + this.value">
-                                <option value="">All Venues</option>
+                                <option value="">@Loc["Owner.Reservations.FilterVenue"]</option>
                                 @foreach (var ven in d.Venues)
                                 {
                                     <option value="@ven.Id" selected="@(Model.VenueId == ven.Id)">@ven.Name</option>
@@ -321,18 +322,18 @@
 
                 @if (Model.PagedBookings.Items.Any())
                 {
-                    <div class="card bg-dark border-secondary border-opacity-25 shadow-sm rounded-4 overflow-hidden mb-4">
+                    <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4" style="border-radius: var(--ps-radius-xl);">
                         <div class="table-responsive">
-                            <table class="table table-dark table-hover align-middle mb-0">
-                                <thead class="table-black border-secondary border-opacity-25 small text-muted">
+                            <table class="table align-middle mb-0">
+                                <thead class="table-light small text-muted">
                                     <tr>
-                                        <th class="ps-4 py-3">Reference</th>
-                                        <th class="py-3">Facility / Court</th>
-                                        <th class="py-3">Customer / Player</th>
-                                        <th class="py-3">Date & Time</th>
-                                        <th class="py-3">Price</th>
-                                        <th class="py-3">Payment</th>
-                                        <th class="pe-4 py-3 text-end">Status</th>
+                                        <th class="ps-4 py-3">@Loc["Confirm.RefLabel"]</th>
+                                        <th class="py-3">@Loc["Book.Summary.Court"]</th>
+                                        <th class="py-3">@(Loc.IsArabic ? "العميل / اللاعب" : "Customer / Player")</th>
+                                        <th class="py-3">@Loc["Book.Summary.Date"] &amp; @Loc["Book.Summary.Time"]</th>
+                                        <th class="py-3">@Loc["Book.Summary.TotalPrice"]</th>
+                                        <th class="py-3">@Loc["Book.Summary.PaymentMethod"]</th>
+                                        <th class="pe-4 py-3 text-end">@(Loc.IsArabic ? "الحالة" : "Status")</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -347,11 +348,11 @@
                                                 <span class="font-monospace small text-primary fw-semibold">@b.BookingReference</span>
                                             </td>
                                             <td class="py-3">
-                                                <div class="fw-bold text-light">@b.CourtName</div>
-                                                <div class="text-muted small">@b.VenueName • <span class="badge bg-secondary bg-opacity-25 text-light px-1 py-0-5 font-size-11">@b.SportType</span></div>
+                                                <div class="fw-bold text-dark">@b.CourtName</div>
+                                                <div class="text-muted small">@b.VenueName • <span class="badge bg-light text-dark border px-1 py-0-5 font-size-11">@Loc.Sport(b.SportType)</span></div>
                                             </td>
                                             <td class="py-3">
-                                                <div class="text-light fw-medium">@b.PlayerName</div>
+                                                <div class="text-dark fw-medium">@b.PlayerName</div>
                                                 @if (!string.IsNullOrWhiteSpace(b.PlayerPhone))
                                                 {
                                                     <div class="small">
@@ -362,40 +363,40 @@
                                                 }
                                             </td>
                                             <td class="py-3">
-                                                <div class="text-light fw-medium">@b.StartTime.ToString("MMM dd, yyyy")</div>
-                                                <div class="text-muted small">@b.StartTime.ToString("HH:mm") - @b.EndTime.ToString("HH:mm") (@b.DurationMinutes mins)</div>
+                                                <div class="text-dark fw-medium">@b.StartTime.ToString(Loc.IsArabic ? "dd MMM yyyy" : "MMM dd, yyyy")</div>
+                                                <div class="text-muted small">@b.StartTime.ToString("HH:mm") - @b.EndTime.ToString("HH:mm") (@b.DurationMinutes @(Loc.IsArabic ? "دقيقة" : "mins"))</div>
                                             </td>
                                             <td class="py-3 fw-bold text-primary">
-                                                EGP @b.TotalPrice.ToString("0.00")
+                                                @Loc.FormatCurrency(b.TotalPrice)
                                             </td>
                                             <td class="py-3">
-                                                <span class="badge bg-secondary bg-opacity-25 text-light small px-2 py-1">
-                                                    @b.PaymentStatus
+                                                <span class="badge bg-light text-dark border small px-2 py-1">
+                                                    @Loc.PaymentStatus(b.PaymentStatus)
                                                 </span>
                                             </td>
                                             <td class="pe-4 py-3 text-end">
                                                 @if (isConf)
                                                 {
-                                                    <span class="badge bg-success bg-opacity-20 text-success border border-success border-opacity-25 rounded-pill px-3 py-1 small">
-                                                        Confirmed
+                                                    <span class="badge bg-success-subtle text-success border border-success border-opacity-25 rounded-pill px-3 py-1 small">
+                                                        @Loc.BookingStatus(b.BookingStatus)
                                                     </span>
                                                 }
                                                 else if (isComp)
                                                 {
-                                                    <span class="badge bg-info bg-opacity-20 text-info border border-info border-opacity-25 rounded-pill px-3 py-1 small">
-                                                        Completed
+                                                    <span class="badge bg-info-subtle text-info border border-info border-opacity-25 rounded-pill px-3 py-1 small">
+                                                        @Loc.BookingStatus(b.BookingStatus)
                                                     </span>
                                                 }
                                                 else if (isCanc)
                                                 {
-                                                    <span class="badge bg-danger bg-opacity-20 text-danger border border-danger border-opacity-25 rounded-pill px-3 py-1 small">
-                                                        Cancelled
+                                                    <span class="badge bg-danger-subtle text-danger border border-danger border-opacity-25 rounded-pill px-3 py-1 small">
+                                                        @Loc.BookingStatus(b.BookingStatus)
                                                     </span>
                                                 }
                                                 else
                                                 {
-                                                    <span class="badge bg-warning bg-opacity-20 text-warning rounded-pill px-3 py-1 small">
-                                                        @b.BookingStatus
+                                                    <span class="badge bg-warning-subtle text-warning rounded-pill px-3 py-1 small">
+                                                        @Loc.BookingStatus(b.BookingStatus)
                                                     </span>
                                                 }
                                             </td>
@@ -412,16 +413,16 @@
                         <nav aria-label="Owner Bookings navigation" class="mt-3">
                             <ul class="pagination justify-content-center gap-1">
                                 <li class="page-item @(!Model.PagedBookings.HasPreviousPage ? "disabled" : "")">
-                                    <a class="page-link bg-dark text-light border-secondary border-opacity-25 rounded-pill px-3"
+                                    <a class="page-link border-0 rounded-pill px-3 shadow-none"
                                        href="/Owner?status=@activeStatus@(Model.VenueId.HasValue ? $"&venueId={Model.VenueId}" : "")&p=@(Model.P - 1)">
-                                        <i class="bi bi-chevron-left"></i> Prev
+                                        <i class="bi bi-chevron-left"></i> @Loc["Venues.Pagination.Previous"]
                                     </a>
                                 </li>
 
                                 @for (int pIdx = 1; pIdx <= Model.PagedBookings.TotalPages; pIdx++)
                                 {
                                     <li class="page-item @(pIdx == Model.P ? "active" : "")">
-                                        <a class="page-link @(pIdx == Model.P ? "bg-primary text-black fw-bold" : "bg-dark text-light") border-secondary border-opacity-25 rounded-circle text-center mx-1"
+                                        <a class="page-link border-0 rounded-circle text-center mx-1 shadow-none @(pIdx == Model.P ? "bg-primary text-white fw-bold" : "text-dark")"
                                            style="width: 38px; height: 38px; line-height: 22px;"
                                            href="/Owner?status=@activeStatus@(Model.VenueId.HasValue ? $"&venueId={Model.VenueId}" : "")&p=@pIdx">
                                             @pIdx
@@ -430,9 +431,9 @@
                                 }
 
                                 <li class="page-item @(!Model.PagedBookings.HasNextPage ? "disabled" : "")">
-                                    <a class="page-link bg-dark text-light border-secondary border-opacity-25 rounded-pill px-3"
+                                    <a class="page-link border-0 rounded-pill px-3 shadow-none"
                                        href="/Owner?status=@activeStatus@(Model.VenueId.HasValue ? $"&venueId={Model.VenueId}" : "")&p=@(Model.P + 1)">
-                                        Next <i class="bi bi-chevron-right"></i>
+                                        @Loc["Venues.Pagination.Next"] <i class="bi bi-chevron-right"></i>
                                     </a>
                                 </li>
                             </ul>
@@ -441,10 +442,10 @@
                 }
                 else
                 {
-                    <div class="card bg-dark border-secondary border-opacity-25 rounded-4 p-5 text-center">
+                    <div class="card border-0 shadow-sm rounded-4 p-5 text-center" style="border-radius: var(--ps-radius-xl);">
                         <i class="bi bi-inbox display-4 text-muted mb-3 opacity-50"></i>
-                        <h5 class="fw-bold text-light mb-1">No Bookings Recorded</h5>
-                        <p class="text-muted small mb-0">No reservations currently match your selected status or facility filters.</p>
+                        <h5 class="fw-bold text-dark mb-1">@(Loc.IsArabic ? "لا توجد حجوزات مسجلة" : "No Bookings Recorded")</h5>
+                        <p class="text-muted small mb-0">@(Loc.IsArabic ? "لا توجد حجوزات تطابق حالة البحث الحالية." : "No reservations currently match your selected status or facility filters.")</p>
                     </div>
                 }
             </div>

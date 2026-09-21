@@ -1101,3 +1101,418 @@ button { cursor: pointer; }
   border-color: var(--ps-gray-200);
   border-radius: var(--ps-radius-xl);
 }
+
+/* ──────────────────────────────────────────────────────────────
+   21. DARK MODE SYSTEM (Slate / Charcoal + Electric Blue & Amber)
+   ────────────────────────────────────────────────────────────── */
+[data-bs-theme="dark"] {
+  --ps-white:           #1E293B;
+  --ps-gray-50:         #0B0F19; /* Main page background */
+  --ps-gray-100:        #111827; /* Surface cards, navbar */
+  --ps-gray-200:        #1F2937; /* Borders, dividing lines */
+  --ps-gray-300:        #374151; /* Form control borders */
+  --ps-gray-400:        #4B5563;
+  --ps-gray-500:        #94A3B8; /* Muted text */
+  --ps-gray-600:        #CBD5E1;
+  --ps-gray-700:        #E2E8F0;
+  --ps-gray-800:        #F1F5F9;
+  --ps-gray-900:        #F8FAFC; /* Primary text */
+
+  --ps-primary-50:      #1E293B;
+  --ps-primary-100:     #1E3A8A;
+  --ps-primary-200:     #1D4ED8;
+
+  --ps-accent-50:       #312E81;
+  --ps-accent-100:      #78350F;
+
+  --ps-shadow-xs:       0 1px 2px rgba(0,0,0,0.4);
+  --ps-shadow-sm:       0 1px 3px rgba(0,0,0,0.5);
+  --ps-shadow:          0 4px 6px rgba(0,0,0,0.5);
+  --ps-shadow-md:       0 10px 15px rgba(0,0,0,0.5);
+  --ps-shadow-lg:       0 20px 25px rgba(0,0,0,0.6);
+
+  color-scheme: dark;
+}
+
+[data-bs-theme="dark"] body {
+  background-color: var(--ps-gray-50);
+  color: var(--ps-gray-900);
+}
+
+[data-bs-theme="dark"] .ps-navbar {
+  background-color: rgba(17, 24, 39, 0.95);
+  border-bottom-color: var(--ps-gray-200);
+}
+
+[data-bs-theme="dark"] .ps-card,
+[data-bs-theme="dark"] .card {
+  background-color: var(--ps-gray-100);
+  border-color: var(--ps-gray-200);
+  color: var(--ps-gray-900);
+}
+
+[data-bs-theme="dark"] .ps-form-control,
+[data-bs-theme="dark"] .form-control,
+[data-bs-theme="dark"] .form-select {
+  background-color: var(--ps-gray-100);
+  border-color: var(--ps-gray-300);
+  color: var(--ps-gray-900);
+}
+
+[data-bs-theme="dark"] .form-control:focus,
+[data-bs-theme="dark"] .form-select:focus {
+  background-color: var(--ps-gray-100);
+  border-color: var(--ps-primary-light);
+  color: var(--ps-gray-900);
+  box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25);
+}
+
+[data-bs-theme="dark"] .dropdown-menu {
+  background-color: var(--ps-gray-100);
+  border-color: var(--ps-gray-200);
+}
+
+[data-bs-theme="dark"] .dropdown-item {
+  color: var(--ps-gray-800);
+}
+
+[data-bs-theme="dark"] .dropdown-item:hover {
+  background-color: var(--ps-gray-200);
+  color: var(--ps-gray-900);
+}
+
+[data-bs-theme="dark"] .table {
+  --bs-table-bg: transparent;
+  --bs-table-color: var(--ps-gray-900);
+  --bs-table-border-color: var(--ps-gray-200);
+}
+
+[data-bs-theme="dark"] .modal-content {
+  background-color: var(--ps-gray-100);
+  border-color: var(--ps-gray-200);
+  color: var(--ps-gray-900);
+}
+
+[data-bs-theme="dark"] .ps-slot {
+  background-color: var(--ps-gray-100);
+  border-color: var(--ps-gray-200);
+  color: var(--ps-gray-800);
+}
+
+[data-bs-theme="dark"] .ps-slot.available {
+  background-color: rgba(5, 150, 105, 0.18);
+  border-color: rgba(5, 150, 105, 0.5);
+  color: #34D399;
+}
+
+[data-bs-theme="dark"] .ps-slot.available:hover {
+  background-color: rgba(5, 150, 105, 0.35);
+  border-color: #34D399;
+}
+
+[data-bs-theme="dark"] .ps-slot.selected {
+  background-color: var(--ps-primary);
+  border-color: var(--ps-primary-light);
+  color: #FFFFFF;
+}
+
+[data-bs-theme="dark"] .ps-slot.booked {
+  background-color: rgba(31, 41, 55, 0.6);
+  border-color: var(--ps-gray-200);
+  color: var(--ps-gray-500);
+}
+
+[data-bs-theme="dark"] .ps-slot.past {
+  background-color: rgba(17, 24, 39, 0.4);
+  border-color: var(--ps-gray-200);
+  color: var(--ps-gray-500);
+}
+
+[data-bs-theme="dark"] .ps-btn-secondary {
+  background-color: var(--ps-gray-200);
+  border-color: var(--ps-gray-300);
+  color: var(--ps-gray-800);
+}
+
+[data-bs-theme="dark"] .ps-btn-secondary:hover {
+  background-color: var(--ps-gray-300);
+  color: var(--ps-gray-900);
+}
+
+[data-bs-theme="dark"] .ps-btn-ghost {
+  color: var(--ps-gray-400);
+}
+
+[data-bs-theme="dark"] .ps-btn-ghost:hover {
+  background-color: var(--ps-gray-200);
+  color: var(--ps-gray-900);
+}
+
+/* ──────────────────────────────────────────────────────────────
+   22. RTL OVERRIDES (Cairo Typography & Logical Direction)
+   ────────────────────────────────────────────────────────────── */
+[dir="rtl"] {
+  --ps-font: 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  text-align: right;
+}
+
+[dir="rtl"] body {
+  font-family: var(--ps-font);
+}
+
+[dir="rtl"] .bi-arrow-right,
+[dir="rtl"] .bi-chevron-right,
+[dir="rtl"] .bi-box-arrow-in-right,
+[dir="rtl"] .bi-box-arrow-right {
+  transform: scaleX(-1);
+  display: inline-block;
+}
+
+[dir="rtl"] .bi-arrow-left,
+[dir="rtl"] .bi-chevron-left {
+  transform: scaleX(-1);
+  display: inline-block;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   23. CONTEXTUAL GUIDANCE & FORM EXAMPLES
+   ────────────────────────────────────────────────────────────── */
+.ps-form-helper {
+  font-size: 0.8125rem;
+  color: var(--ps-gray-500);
+  margin-top: 0.25rem;
+  line-height: 1.4;
+  display: block;
+}
+
+.ps-form-example {
+  font-size: 0.775rem;
+  color: var(--ps-primary);
+  margin-top: 0.2rem;
+  font-weight: 500;
+  display: block;
+}
+
+[data-bs-theme="dark"] .ps-form-example {
+  color: var(--ps-primary-light);
+}
+
+/* ──────────────────────────────────────────────────────────────
+   24. 16:9 VENUE CARDS & PHOTO GALLERY
+   ────────────────────────────────────────────────────────────── */
+.ps-venue-card-img-wrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-top-left-radius: var(--ps-radius-xl);
+  border-top-right-radius: var(--ps-radius-xl);
+  background-color: var(--ps-gray-200);
+}
+
+.ps-venue-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ps-venue-card:hover .ps-venue-card-img {
+  transform: scale(1.05);
+}
+
+.ps-venue-badge-overlay {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 2;
+}
+
+[dir="rtl"] .ps-venue-badge-overlay {
+  left: auto;
+  right: 12px;
+}
+
+.ps-venue-price-overlay {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  z-index: 2;
+  background: rgba(17, 24, 39, 0.85);
+  backdrop-filter: blur(8px);
+  color: #FFFFFF;
+  padding: 4px 10px;
+  border-radius: var(--ps-radius-full);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+[dir="rtl"] .ps-venue-price-overlay {
+  right: auto;
+  left: 12px;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   25. DARK MODE THEME ([data-bs-theme="dark"])
+   ────────────────────────────────────────────────────────────── */
+[data-bs-theme="dark"] {
+  --ps-body-bg:          #0B0F19;
+  --ps-body-color:       #F3F4F6;
+  --ps-surface-bg:       #111827;
+  --ps-elevated-bg:      #1F2937;
+  --ps-border-color:     #374151;
+  --ps-text-muted:       #9CA3AF;
+  --ps-card-bg:          #111827;
+  --ps-input-bg:         #1F2937;
+  --ps-input-border:     #374151;
+
+  background-color: var(--ps-body-bg) !important;
+  color: var(--ps-body-color);
+}
+
+[data-bs-theme="dark"] body {
+  background-color: var(--ps-body-bg) !important;
+  color: var(--ps-body-color) !important;
+}
+
+[data-bs-theme="dark"] .bg-white {
+  background-color: var(--ps-surface-bg) !important;
+}
+
+[data-bs-theme="dark"] .bg-light {
+  background-color: var(--ps-elevated-bg) !important;
+}
+
+[data-bs-theme="dark"] .card {
+  background-color: var(--ps-surface-bg) !important;
+  border-color: var(--ps-border-color) !important;
+  color: var(--ps-body-color);
+}
+
+[data-bs-theme="dark"] .ps-card {
+  background-color: var(--ps-surface-bg) !important;
+  border-color: var(--ps-border-color) !important;
+  color: var(--ps-body-color);
+}
+
+[data-bs-theme="dark"] .text-dark {
+  color: #F9FAFB !important;
+}
+
+[data-bs-theme="dark"] .text-muted {
+  color: var(--ps-text-muted) !important;
+}
+
+[data-bs-theme="dark"] .border,
+[data-bs-theme="dark"] .border-top,
+[data-bs-theme="dark"] .border-bottom,
+[data-bs-theme="dark"] .border-start,
+[data-bs-theme="dark"] .border-end {
+  border-color: var(--ps-border-color) !important;
+}
+
+[data-bs-theme="dark"] .form-control,
+[data-bs-theme="dark"] .form-select {
+  background-color: var(--ps-input-bg) !important;
+  border-color: var(--ps-input-border) !important;
+  color: #F9FAFB !important;
+}
+
+[data-bs-theme="dark"] .form-control:focus,
+[data-bs-theme="dark"] .form-select:focus {
+  background-color: var(--ps-input-bg) !important;
+  border-color: var(--ps-primary) !important;
+  color: #F9FAFB !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25) !important;
+}
+
+[data-bs-theme="dark"] .form-control::placeholder {
+  color: #6B7280 !important;
+}
+
+[data-bs-theme="dark"] .table {
+  color: var(--ps-body-color) !important;
+  border-color: var(--ps-border-color) !important;
+}
+
+[data-bs-theme="dark"] .table > :not(caption) > * > * {
+  background-color: var(--ps-surface-bg) !important;
+  border-color: var(--ps-border-color) !important;
+  color: var(--ps-body-color) !important;
+}
+
+[data-bs-theme="dark"] .modal-content {
+  background-color: var(--ps-surface-bg) !important;
+  border-color: var(--ps-border-color) !important;
+  color: var(--ps-body-color) !important;
+}
+
+[data-bs-theme="dark"] .dropdown-menu {
+  background-color: var(--ps-elevated-bg) !important;
+  border-color: var(--ps-border-color) !important;
+}
+
+[data-bs-theme="dark"] .dropdown-item {
+  color: var(--ps-body-color) !important;
+}
+
+[data-bs-theme="dark"] .dropdown-item:hover {
+  background-color: #374151 !important;
+}
+
+[data-bs-theme="dark"] .nav-tabs .nav-link.active {
+  background-color: var(--ps-surface-bg) !important;
+  border-color: var(--ps-border-color) var(--ps-border-color) var(--ps-surface-bg) !important;
+  color: var(--ps-primary) !important;
+}
+
+[data-bs-theme="dark"] .ps-navbar {
+  background-color: rgba(17, 24, 39, 0.95) !important;
+  border-bottom: 1px solid var(--ps-border-color) !important;
+}
+
+[data-bs-theme="dark"] .ps-footer {
+  background-color: #070A10 !important;
+  border-top: 1px solid var(--ps-border-color) !important;
+}
+
+[data-bs-theme="dark"] .ps-form-helper {
+  color: #9CA3AF !important;
+}
+
+[data-bs-theme="dark"] .ps-form-example {
+  background-color: rgba(31, 41, 55, 0.8) !important;
+  border-color: #374151 !important;
+  color: #A5B4FC !important;
+}
+
+[data-bs-theme="dark"] .ps-form-example code {
+  color: #60A5FA !important;
+}
+
+[data-bs-theme="dark"] .ps-hero-badge {
+  background-color: rgba(30, 58, 138, 0.4) !important;
+  color: #93C5FD !important;
+  border-color: rgba(59, 130, 246, 0.3) !important;
+}
+
+[data-bs-theme="dark"] .ps-slot-btn.available {
+  background-color: #1F2937 !important;
+  border-color: #374151 !important;
+  color: #F3F4F6 !important;
+}
+
+[data-bs-theme="dark"] .ps-slot-btn.available:hover {
+  background-color: #2563EB !important;
+  border-color: #2563EB !important;
+  color: #FFFFFF !important;
+}
+
+[data-bs-theme="dark"] .ps-slot-btn.booked,
+[data-bs-theme="dark"] .ps-slot-btn.past {
+  background-color: #111827 !important;
+  border-color: #1F2937 !important;
+  color: #4B5563 !important;
+}
+
+

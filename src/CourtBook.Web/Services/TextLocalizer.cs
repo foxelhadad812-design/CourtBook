@@ -1,0 +1,766 @@
+using System.Globalization;
+
+namespace CourtBook.Web.Services;
+
+public class TextLocalizer : ITextLocalizer
+{
+    public bool IsArabic => CultureInfo.CurrentUICulture.Name.StartsWith("ar", StringComparison.OrdinalIgnoreCase);
+    public string Direction => IsArabic ? "rtl" : "ltr";
+    public string Lang => IsArabic ? "ar" : "en";
+    public string CurrentCulture => IsArabic ? "ar" : "en";
+
+    public string this[string key] => T(key);
+
+    public string T(string key, params object[] args)
+    {
+        if (string.IsNullOrEmpty(key)) return string.Empty;
+
+        var dict = IsArabic ? _ar : _en;
+        if (!dict.TryGetValue(key, out var translation))
+        {
+            if (!_en.TryGetValue(key, out translation))
+            {
+                translation = key;
+            }
+        }
+
+        if (args != null && args.Length > 0)
+        {
+            try
+            {
+                return string.Format(translation, args);
+            }
+            catch
+            {
+                return translation;
+            }
+        }
+
+        return translation;
+    }
+
+    public string Sport(string? sport)
+    {
+        if (string.IsNullOrWhiteSpace(sport)) return string.Empty;
+        var key = $"Sport.{sport.Trim()}";
+        return T(key);
+    }
+
+    public string BookingStatus(string? status)
+    {
+        if (string.IsNullOrWhiteSpace(status)) return string.Empty;
+        return T($"BookingStatus.{status.Trim()}");
+    }
+
+    public string PaymentStatus(string? status)
+    {
+        if (string.IsNullOrWhiteSpace(status)) return string.Empty;
+        return T($"PaymentStatus.{status.Trim()}");
+    }
+
+    public string Amenity(string? amenity)
+    {
+        if (string.IsNullOrWhiteSpace(amenity)) return string.Empty;
+        return T($"Amenity.{amenity.Trim()}");
+    }
+
+    public string SlotStatus(string? status)
+    {
+        if (string.IsNullOrWhiteSpace(status)) return string.Empty;
+        return T($"SlotStatus.{status.Trim()}");
+    }
+
+    public string DayOfWeek(DayOfWeek day)
+    {
+        return T($"Day.{day}");
+    }
+
+    public string FormatCurrency(decimal amount)
+    {
+        return IsArabic ? $"{amount:N0} ج.م" : $"EGP {amount:N0}";
+    }
+
+    // ── DICTIONARIES ──────────────────────────────────────────────────────────
+
+    private static readonly Dictionary<string, string> _en = new(StringComparer.OrdinalIgnoreCase)
+    {
+        // Brand & Header
+        ["Brand.Name"] = "PlaySpot",
+        ["Brand.Tagline"] = "Find courts, book slots, and join games near you.",
+        ["Nav.Home"] = "Home",
+        ["Nav.Venues"] = "Venues",
+        ["Nav.Sports"] = "Sports",
+        ["Nav.Games"] = "Games",
+        ["Nav.MyBookings"] = "My Bookings",
+        ["Nav.Favorites"] = "Favorites",
+        ["Nav.Profile"] = "Profile",
+        ["Nav.OwnerDashboard"] = "Owner Dashboard",
+        ["Nav.SignIn"] = "Sign in",
+        ["Nav.SignOut"] = "Sign out",
+        ["Nav.GetStarted"] = "Get Started",
+        ["Nav.Notifications"] = "Notifications",
+        ["Theme.Toggle"] = "Toggle theme",
+        ["Lang.Switch"] = "العربية",
+
+        // Sports
+        ["Sport.Football"] = "Football",
+        ["Sport.Padel"] = "Padel",
+        ["Sport.Tennis"] = "Tennis",
+        ["Sport.Basketball"] = "Basketball",
+        ["Sport.Volleyball"] = "Volleyball",
+        ["Sport.Badminton"] = "Badminton",
+
+        // Amenities
+        ["Amenity.Free Parking"] = "Free Parking",
+        ["Amenity.Showers & Lockers"] = "Showers & Lockers",
+        ["Amenity.Pro Floodlights"] = "Pro Floodlights",
+        ["Amenity.Sports Cafe & Lounge"] = "Sports Cafe & Lounge",
+        ["Amenity.Free Wi-Fi"] = "Free Wi-Fi",
+        ["Amenity.Equipment Rental"] = "Equipment Rental",
+        ["Amenity.Air Conditioned"] = "Air Conditioned",
+        ["Amenity.Spectator Seating"] = "Spectator Seating",
+
+        // Days of week
+        ["Day.Saturday"] = "Saturday",
+        ["Day.Sunday"] = "Sunday",
+        ["Day.Monday"] = "Monday",
+        ["Day.Tuesday"] = "Tuesday",
+        ["Day.Wednesday"] = "Wednesday",
+        ["Day.Thursday"] = "Thursday",
+        ["Day.Friday"] = "Friday",
+
+        // Booking & Payment Statuses
+        ["BookingStatus.Upcoming"] = "Upcoming",
+        ["BookingStatus.Confirmed"] = "Confirmed",
+        ["BookingStatus.Completed"] = "Completed",
+        ["BookingStatus.Cancelled"] = "Cancelled",
+        ["BookingStatus.Pending"] = "Pending",
+        ["PaymentStatus.Pending"] = "Pay at Venue",
+        ["PaymentStatus.Completed"] = "Paid",
+        ["PaymentStatus.Refunded"] = "Refunded",
+        ["PaymentStatus.Failed"] = "Failed",
+        ["PaymentStatus.Cancelled"] = "Cancelled",
+
+        // Slot Statuses
+        ["SlotStatus.Available"] = "Available",
+        ["SlotStatus.Booked"] = "Booked",
+        ["SlotStatus.Past"] = "Past",
+        ["SlotStatus.Selected"] = "Selected",
+        ["SlotStatus.Closed"] = "Closed",
+
+        // Home Page
+        ["Home.Hero.Badge"] = "⚡ The Sports Booking Platform in Egypt",
+        ["Home.Hero.Title1"] = "Find Your Court.",
+        ["Home.Hero.Title2"] = "Book in Seconds.",
+        ["Home.Hero.Subtitle"] = "Discover verified football, padel, tennis, and basketball facilities across Cairo, Giza, Fayoum, and Alexandria with instant real-time booking.",
+        ["Home.Search.Keyword"] = "Search facilities, clubs, or areas...",
+        ["Home.Search.Keyword.Example"] = "e.g. Stars Club, Maadi, 5th Settlement",
+        ["Home.Search.Sport"] = "All Sports",
+        ["Home.Search.City"] = "All Cities",
+        ["Home.Search.Button"] = "Find Courts",
+        ["Home.Categories.Title"] = "Explore by Sport",
+        ["Home.Categories.Subtitle"] = "Choose your game and discover top-tier tournament facilities.",
+        ["Home.Featured.Title"] = "Featured Sports Facilities",
+        ["Home.Featured.Subtitle"] = "Hand-picked, verified courts with professional lighting, turf, and amenities.",
+        ["Home.Featured.ViewAll"] = "Browse All Facilities",
+        ["Home.OwnerCta.Title"] = "Are You a Facility Owner?",
+        ["Home.OwnerCta.Subtitle"] = "Maximize your court bookings, prevent double bookings, and manage real-time availability with zero hassle.",
+        ["Home.OwnerCta.Button"] = "List Your Facility Free",
+
+        // Venues Discovery Page
+        ["Venues.PageTitle"] = "Explore Sports Facilities",
+        ["Venues.PageSubtitle"] = "Discover {0} verified sports arenas with tournament-grade surfaces and amenities.",
+        ["Venues.Filter.Title"] = "Filters",
+        ["Venues.Filter.Clear"] = "Clear all",
+        ["Venues.Filter.SearchLabel"] = "Search Facility or Area",
+        ["Venues.Filter.SearchPlaceholder"] = "e.g. Nogoom Club, Degla Maadi...",
+        ["Venues.Filter.SportLabel"] = "Sport",
+        ["Venues.Filter.CityLabel"] = "City / Region",
+        ["Venues.Filter.PriceLabel"] = "Max Price per Hour",
+        ["Venues.Filter.RatingLabel"] = "Minimum Rating",
+        ["Venues.Filter.Apply"] = "Apply Filters",
+        ["Venues.Sort.Label"] = "Sort by:",
+        ["Venues.Sort.Rating"] = "Highest Rated",
+        ["Venues.Sort.PriceAsc"] = "Price: Low to High",
+        ["Venues.Sort.PriceDesc"] = "Price: High to Low",
+        ["Venues.Sort.Newest"] = "Newest Facilities",
+        ["Venues.Sort.Name"] = "Facility Name (A-Z)",
+        ["Venues.Card.Verified"] = "Verified Facility",
+        ["Venues.Card.CourtsCount"] = "{0} Courts",
+        ["Venues.Card.StartingFrom"] = "Starting from",
+        ["Venues.Card.PerHour"] = "/ hour",
+        ["Venues.Card.ViewFacility"] = "View Facility",
+        ["Venues.Empty.Title"] = "No Facilities Found",
+        ["Venues.Empty.Message"] = "We couldn't find any sports facilities matching your selected filters. Try broadening your criteria or resetting filters.",
+        ["Venues.Empty.Reset"] = "Reset All Filters",
+        ["Venues.Pagination.Previous"] = "Previous",
+        ["Venues.Pagination.Next"] = "Next",
+        ["Venues.Pagination.Showing"] = "Showing {0} of {1} facilities",
+
+        // Venue Details Page
+        ["Details.VerifiedBadge"] = "Verified Sports Facility",
+        ["Details.ReviewsCount"] = "({0} verified player reviews)",
+        ["Details.BookCourtCta"] = "Book a Court Now",
+        ["Details.Tab.Overview"] = "Overview & Courts",
+        ["Details.Tab.Amenities"] = "Amenities & Services",
+        ["Details.Tab.Hours"] = "Opening Schedule",
+        ["Details.Tab.Reviews"] = "Verified Reviews",
+        ["Details.About.Title"] = "About the Facility",
+        ["Details.Courts.Title"] = "Available Courts & Pitches",
+        ["Details.Courts.Subtitle"] = "Choose a court below to inspect live slot availability and reserve your match.",
+        ["Details.Court.Indoor"] = "Indoor Court",
+        ["Details.Court.Outdoor"] = "Outdoor Pitch",
+        ["Details.Court.Capacity"] = "Up to {0} players",
+        ["Details.Court.Surface"] = "Surface",
+        ["Details.Court.BookNow"] = "Select & Book Court",
+        ["Details.Amenities.Title"] = "Facility Amenities",
+        ["Details.Hours.Title"] = "Weekly Operating Hours",
+        ["Details.Hours.OpenToday"] = "Open Today: {0} - {1}",
+        ["Details.Hours.ClosedToday"] = "Closed Today",
+        ["Details.Location.Title"] = "Location & Directions",
+        ["Details.Location.OpenMaps"] = "Open in Google Maps",
+        ["Details.Policy.Title"] = "Cancellation Policy",
+        ["Details.Policy.FreeWindow"] = "Free cancellation up to {0} hours before match time.",
+        ["Details.Policy.LateFee"] = "Late cancellations incur a {0}% fee.",
+        ["Details.Reviews.Title"] = "Player Reviews & Ratings",
+        ["Details.Reviews.BasedOn"] = "Based on {0} verified bookings",
+        ["Details.Reviews.Quality"] = "Court Quality",
+        ["Details.Reviews.Cleanliness"] = "Cleanliness",
+        ["Details.Reviews.Staff"] = "Staff & Hospitality",
+        ["Details.Reviews.Value"] = "Value for Money",
+        ["Details.Reviews.ManagementResponse"] = "Facility Management Response",
+        ["Details.Reviews.NoReviews"] = "No player reviews yet. Be the first to book a court and share your feedback!",
+
+        // Court Booking Page
+        ["Book.Title"] = "Book Court",
+        ["Book.Step1.Title"] = "Step 1: Choose Your Match Date",
+        ["Book.Step1.Helper"] = "Pick from the upcoming 7 days or use the calendar to select any future date.",
+        ["Book.Step1.Example"] = "Example: Today or this Friday evening",
+        ["Book.Step2.Title"] = "Step 2: Choose Match Duration",
+        ["Book.Step2.Helper"] = "Availability and prices automatically adjust to 60, 90, or 120 minutes.",
+        ["Book.Step2.60min"] = "60 Minutes (Standard)",
+        ["Book.Step2.90min"] = "90 Minutes (Recommended for Padel)",
+        ["Book.Step2.120min"] = "120 Minutes (Full Match / 2 Hours)",
+        ["Book.Step3.Title"] = "Step 3: Select an Available Time Slot",
+        ["Book.Step3.Helper"] = "Click on an available green slot to reserve your match time.",
+        ["Book.Legend.Available"] = "Available (Click to Select)",
+        ["Book.Legend.Booked"] = "Booked / Reserved",
+        ["Book.Legend.Past"] = "Past Slot",
+        ["Book.Legend.Selected"] = "Your Selected Slot",
+        ["Book.Legend.Closed"] = "Facility Closed",
+        ["Book.Step4.Title"] = "Step 4: Booking Summary",
+        ["Book.Summary.Court"] = "Court",
+        ["Book.Summary.Sport"] = "Sport",
+        ["Book.Summary.Date"] = "Date",
+        ["Book.Summary.Time"] = "Time Slot",
+        ["Book.Summary.Duration"] = "Duration",
+        ["Book.Summary.BaseRate"] = "Base Court Rate",
+        ["Book.Summary.PeakSurcharge"] = "Peak Hour Surcharge",
+        ["Book.Summary.TotalPrice"] = "Total Price",
+        ["Book.Summary.PaymentMethod"] = "Payment Method",
+        ["Book.Summary.PayAtVenue"] = "Pay in cash or card at the facility reception",
+        ["Book.Notes.Label"] = "Special Requests / Match Notes (Optional)",
+        ["Book.Notes.Helper"] = "Let the facility staff know if you need specific balls, bibs, or warm-up setup.",
+        ["Book.Notes.Example"] = "Example: Please prepare two match balls and 10 training bibs.",
+        ["Book.Notes.Placeholder"] = "Enter any special requests for the facility team...",
+        ["Book.Step5.Title"] = "Step 5: Confirm Your Reservation",
+        ["Book.Btn.Confirm"] = "Confirm & Book Court",
+        ["Book.Btn.Processing"] = "Processing Reservation...",
+        ["Book.Btn.SelectSlotFirst"] = "Please select an available time slot above",
+        ["Book.Conflict.Title"] = "Slot Already Taken!",
+        ["Book.Conflict.Message"] = "Another player just reserved this time slot. We have refreshed the schedule—please select an alternative slot below.",
+        ["Book.PolicyReminder"] = "Free cancellation up to {0}h before start time. Instant SMS & email confirmation.",
+
+        // Confirmation Page
+        ["Confirm.Badge"] = "Booking Confirmed Successfully!",
+        ["Confirm.Title"] = "You're Ready to Play!",
+        ["Confirm.Subtitle"] = "Your court is reserved. We've sent the confirmation details to your account.",
+        ["Confirm.RefLabel"] = "Booking Reference",
+        ["Confirm.PaymentStatus"] = "Payment: Pay at Venue Reception",
+        ["Confirm.Btn.MyBookings"] = "View My Bookings",
+        ["Confirm.Btn.BrowseMore"] = "Browse More Facilities",
+
+        // My Bookings Page
+        ["Bookings.Title"] = "My Court Bookings",
+        ["Bookings.Subtitle"] = "Track and manage your upcoming matches, past games, and cancellation policies.",
+        ["Bookings.Tab.Upcoming"] = "Upcoming Matches ({0})",
+        ["Bookings.Tab.Completed"] = "Completed Games ({0})",
+        ["Bookings.Tab.Cancelled"] = "Cancelled ({0})",
+        ["Bookings.Tab.All"] = "All Bookings ({0})",
+        ["Bookings.SportFilter"] = "Filter by Sport",
+        ["Bookings.Btn.Details"] = "View Details",
+        ["Bookings.Btn.Cancel"] = "Cancel Booking",
+        ["Bookings.Btn.Review"] = "Write Review",
+        ["Bookings.Empty.Upcoming"] = "No upcoming matches scheduled. Time to hit the court!",
+        ["Bookings.Empty.Completed"] = "No completed matches yet.",
+        ["Bookings.Empty.Cancelled"] = "No cancelled bookings.",
+        ["Bookings.CancelModal.Title"] = "Confirm Cancellation",
+        ["Bookings.CancelModal.Subtitle"] = "Review the refund policy before finalizing your cancellation.",
+        ["Bookings.CancelModal.Free"] = "Within Free Cancellation Window: 100% full refund (0 fee).",
+        ["Bookings.CancelModal.Late"] = "Late Cancellation Policy: A {0}% cancellation fee ({1}) applies.",
+        ["Bookings.CancelModal.RefundAmount"] = "Refund Amount:",
+        ["Bookings.CancelModal.FeeAmount"] = "Cancellation Fee:",
+        ["Bookings.CancelModal.ConfirmBtn"] = "Confirm Cancellation",
+        ["Bookings.CancelModal.BackBtn"] = "Keep My Booking",
+
+        // User Profile Page
+        ["Profile.Title"] = "Player Profile",
+        ["Profile.Subtitle"] = "Manage your player bio, skill level, and sport matchmaking preferences.",
+        ["Profile.Tab.Overview"] = "Player Card",
+        ["Profile.Tab.Edit"] = "Edit Profile & Preferences",
+        ["Profile.Stats.Matches"] = "Matches Played",
+        ["Profile.Stats.Skill"] = "Skill Level",
+        ["Profile.Stats.Sport"] = "Primary Sport",
+        ["Profile.Field.Name"] = "Full Name",
+        ["Profile.Field.Name.Helper"] = "Your name as seen by facility managers and community teammates.",
+        ["Profile.Field.Name.Example"] = "Example: Ahmed Mohamed",
+        ["Profile.Field.Phone"] = "Mobile Number",
+        ["Profile.Field.Phone.Helper"] = "Your active Egyptian number for booking SMS reminders.",
+        ["Profile.Field.Phone.Example"] = "Example: 01012345678",
+        ["Profile.Field.Bio"] = "Player Bio",
+        ["Profile.Field.Bio.Helper"] = "Share a short bio about your playing experience and weekly match routine.",
+        ["Profile.Field.Bio.Example"] = "Example: Passionate padel and football player looking for competitive matches in Maadi and New Cairo.",
+        ["Profile.Field.SkillLevel"] = "Skill Level",
+        ["Profile.Field.Skill.Beginner"] = "Beginner (New to the sport)",
+        ["Profile.Field.Skill.Intermediate"] = "Intermediate (Regular matches)",
+        ["Profile.Field.Skill.Advanced"] = "Advanced (Tournament player)",
+        ["Profile.Field.PreferredCities"] = "Preferred Cities / Areas",
+        ["Profile.Field.PreferredDays"] = "Preferred Playing Days",
+        ["Profile.Field.PreferredTimes"] = "Preferred Time Slots",
+        ["Profile.Btn.Save"] = "Save Profile Changes",
+
+        // Auth (Login / Register)
+        ["Auth.Login.Title"] = "Welcome Back",
+        ["Auth.Login.Subtitle"] = "Log in to your PlaySpot player or owner account.",
+        ["Auth.Login.EmailLabel"] = "Email Address",
+        ["Auth.Login.EmailHelper"] = "Enter the email associated with your account.",
+        ["Auth.Login.EmailExample"] = "Example: ahmed@example.com",
+        ["Auth.Login.PasswordLabel"] = "Password",
+        ["Auth.Login.PasswordHelper"] = "Enter your secret password.",
+        ["Auth.Login.Btn"] = "Log In",
+        ["Auth.Login.NoAccount"] = "Don't have an account yet?",
+        ["Auth.Login.SignUpLink"] = "Create Free Account",
+        ["Auth.Login.QuickTest"] = "Quick Test Credentials:",
+        ["Auth.Register.Title"] = "Join PlaySpot Egypt",
+        ["Auth.Register.Subtitle"] = "Book premium courts, join matches, or manage your sports facility.",
+        ["Auth.Register.RoleLabel"] = "Account Type",
+        ["Auth.Register.RolePlayer"] = "Player / Athlete (Book courts & join games)",
+        ["Auth.Register.RoleOwner"] = "Facility Owner (List & manage courts)",
+        ["Auth.Register.Btn"] = "Create Account",
+        ["Auth.Register.HaveAccount"] = "Already have an account?",
+
+        // Owner Section
+        ["Owner.Title"] = "Facility Owner Dashboard",
+        ["Owner.Subtitle"] = "Live revenue, reservation occupancy, and multi-facility management.",
+        ["Owner.Kpi.Venues"] = "Active Facilities",
+        ["Owner.Kpi.Courts"] = "Total Courts",
+        ["Owner.Kpi.Upcoming"] = "Upcoming Bookings",
+        ["Owner.Kpi.Completed"] = "Completed Games",
+        ["Owner.Kpi.Cancelled"] = "Cancelled Bookings",
+        ["Owner.Kpi.Revenue"] = "Total Revenue",
+        ["Owner.Analytics.Month"] = "Revenue This Month",
+        ["Owner.Analytics.Week"] = "Revenue This Week",
+        ["Owner.Analytics.Today"] = "Matches Today",
+        ["Owner.Analytics.TopCourt"] = "Most Booked Court",
+        ["Owner.Venues.Title"] = "Your Sports Facilities",
+        ["Owner.Venues.AddBtn"] = "Add New Facility",
+        ["Owner.Venues.ManageBtn"] = "Manage Facility",
+        ["Owner.Reservations.Title"] = "Court Reservations",
+        ["Owner.Reservations.FilterVenue"] = "All Facilities",
+        ["Owner.Reservations.FilterStatus"] = "All Statuses",
+        ["Owner.Create.Title"] = "Add New Sports Facility",
+        ["Owner.Create.Subtitle"] = "Fill in your venue details, contact information, and available amenities.",
+        ["Owner.Create.Name"] = "Facility Name",
+        ["Owner.Create.Name.Helper"] = "The commercial name displayed to players.",
+        ["Owner.Create.Name.Example"] = "Example: Nile Champions Sports Club",
+        ["Owner.Create.Desc"] = "Facility Description",
+        ["Owner.Create.Desc.Helper"] = "Describe your courts, turf condition, floodlights, and location highlights.",
+        ["Owner.Create.Desc.Example"] = "Example: Modern 5-a-side football turf and 3 panoramic padel courts with tournament floodlights and air-conditioned players lounge.",
+        ["Owner.Create.City"] = "City / Governorate",
+        ["Owner.Create.City.Example"] = "Example: 6th of October City / Giza",
+        ["Owner.Create.Area"] = "Area / District",
+        ["Owner.Create.Area.Example"] = "Example: Al Mehwar Central Axis",
+        ["Owner.Create.Address"] = "Street Address",
+        ["Owner.Create.Address.Example"] = "Example: 25 El Gomhoria St., Next to Hyper One",
+        ["Owner.Create.Phone"] = "Phone / WhatsApp",
+        ["Owner.Create.Phone.Example"] = "Example: 01011112222",
+        ["Owner.Create.Email"] = "Facility Contact Email",
+        ["Owner.Create.Email.Example"] = "Example: info@nilechampions.eg",
+        ["Owner.Create.Website"] = "Website / Social Media (Optional)",
+        ["Owner.Create.Website.Example"] = "Example: https://instagram.com/nilechampions",
+        ["Owner.Create.Lat"] = "Latitude (Coordinates)",
+        ["Owner.Create.Lat.Example"] = "Example: 29.9737 (from Google Maps)",
+        ["Owner.Create.Lng"] = "Longitude (Coordinates)",
+        ["Owner.Create.Lng.Example"] = "Example: 30.9529 (from Google Maps)",
+        ["Owner.Create.Amenities"] = "Select Available Amenities",
+        ["Owner.Create.Submit"] = "Create Sports Facility",
+        ["Owner.Manage.Tab.Info"] = "Facility Info & Location",
+        ["Owner.Manage.Tab.Courts"] = "Courts & Pitches ({0})",
+        ["Owner.Manage.Tab.Amenities"] = "Amenities & Services",
+        ["Owner.Manage.Tab.Gallery"] = "Photo Gallery",
+        ["Owner.Manage.Tab.Hours"] = "Weekly Operating Hours",
+        ["Owner.Court.AddTitle"] = "Add New Court to Facility",
+        ["Owner.Court.Name"] = "Court Name",
+        ["Owner.Court.Name.Example"] = "Example: Center Court 1 (Padel)",
+        ["Owner.Court.Sport"] = "Sport",
+        ["Owner.Court.Surface"] = "Surface Type",
+        ["Owner.Court.Surface.Example"] = "Example: FIFA Certified 50mm Artificial Turf",
+        ["Owner.Court.Capacity"] = "Player Capacity",
+        ["Owner.Court.Capacity.Example"] = "Example: 4 for Padel, 10 for 5-a-side Football",
+        ["Owner.Court.Price"] = "Hourly Rate (EGP)",
+        ["Owner.Court.Price.Example"] = "Example: 300",
+        ["Owner.Court.IsIndoor"] = "Indoor / Covered Court",
+        ["Owner.Court.Submit"] = "Add Court",
+
+        // Common Actions
+        ["Action.Save"] = "Save Changes",
+        ["Action.Cancel"] = "Cancel",
+        ["Action.Delete"] = "Delete",
+        ["Action.Edit"] = "Edit",
+        ["Action.Back"] = "Back",
+        ["Action.Confirm"] = "Confirm",
+        ["Action.Search"] = "Search",
+        ["Action.Clear"] = "Clear"
+    };
+
+    private static readonly Dictionary<string, string> _ar = new(StringComparer.OrdinalIgnoreCase)
+    {
+        // Brand & Header
+        ["Brand.Name"] = "بلاي سبوت",
+        ["Brand.Tagline"] = "احجز ملاعبك، نظّم مبارياتك، والعب مع مجتمع الرياضة في مصر.",
+        ["Nav.Home"] = "الرئيسية",
+        ["Nav.Venues"] = "الملاعب والمنشآت",
+        ["Nav.Sports"] = "الرياضات",
+        ["Nav.Games"] = "المباريات",
+        ["Nav.MyBookings"] = "حجوزاتي",
+        ["Nav.Favorites"] = "المفضلة",
+        ["Nav.Profile"] = "ملفي الشخصي",
+        ["Nav.OwnerDashboard"] = "لوحة تحكم المالك",
+        ["Nav.SignIn"] = "تسجيل الدخول",
+        ["Nav.SignOut"] = "تسجيل الخروج",
+        ["Nav.GetStarted"] = "ابدأ الآن",
+        ["Nav.Notifications"] = "الإشعارات",
+        ["Theme.Toggle"] = "تبديل المظهر (ليلي / نهاري)",
+        ["Lang.Switch"] = "English",
+
+        // Sports
+        ["Sport.Football"] = "كرة قدم",
+        ["Sport.Padel"] = "بادل",
+        ["Sport.Tennis"] = "تنس أرضي",
+        ["Sport.Basketball"] = "كرة سلة",
+        ["Sport.Volleyball"] = "كرة طائرة",
+        ["Sport.Badminton"] = "كرة ريشة",
+
+        // Amenities
+        ["Amenity.Free Parking"] = "موقف سيارات مجاني",
+        ["Amenity.Showers & Lockers"] = "غرف تبديل ودش",
+        ["Amenity.Pro Floodlights"] = "إضاءة ملاعب احترافية",
+        ["Amenity.Sports Cafe & Lounge"] = "كافيه واستراحة رياضية",
+        ["Amenity.Free Wi-Fi"] = "واي فاي مجاني",
+        ["Amenity.Equipment Rental"] = "تأجير معدات وكرات",
+        ["Amenity.Air Conditioned"] = "صالة مكيفة",
+        ["Amenity.Spectator Seating"] = "مدرجات جماهير",
+
+        // Days of week
+        ["Day.Saturday"] = "السبت",
+        ["Day.Sunday"] = "الأحد",
+        ["Day.Monday"] = "الاثنين",
+        ["Day.Tuesday"] = "الثلاثاء",
+        ["Day.Wednesday"] = "الأربعاء",
+        ["Day.Thursday"] = "الخميس",
+        ["Day.Friday"] = "الجمعة",
+
+        // Booking & Payment Statuses
+        ["BookingStatus.Upcoming"] = "قادم",
+        ["BookingStatus.Confirmed"] = "مؤكد",
+        ["BookingStatus.Completed"] = "مكتمل",
+        ["BookingStatus.Cancelled"] = "ملغي",
+        ["BookingStatus.Pending"] = "قيد الانتظار",
+        ["PaymentStatus.Pending"] = "الدفع في المنشأة",
+        ["PaymentStatus.Completed"] = "تم الدفع",
+        ["PaymentStatus.Refunded"] = "مسترد",
+        ["PaymentStatus.Failed"] = "فشل الدفع",
+        ["PaymentStatus.Cancelled"] = "ملغي",
+
+        // Slot Statuses
+        ["SlotStatus.Available"] = "متاح للحجز",
+        ["SlotStatus.Booked"] = "محجوز",
+        ["SlotStatus.Past"] = "فترة منقضية",
+        ["SlotStatus.Selected"] = "فترتك المختارة",
+        ["SlotStatus.Closed"] = "المنشأة مغلقة",
+
+        // Home Page
+        ["Home.Hero.Badge"] = "⚡ منصة حجز الملاعب الأولى في مصر",
+        ["Home.Hero.Title1"] = "ملعبك المفضل.",
+        ["Home.Hero.Title2"] = "احجزه في ثوانٍ.",
+        ["Home.Hero.Subtitle"] = "استكشف ملاعب كرة القدم والبادل والتنس والسلة المعتمدة في القاهرة، الجيزة، الفيوم، والإسكندرية مع حجز فوري ومؤكد لحظياً.",
+        ["Home.Search.Keyword"] = "ابحث بالاسم، النادي، أو المنطقة...",
+        ["Home.Search.Keyword.Example"] = "مثال: نادي النجوم، دجلة المعادي، التجمع الخامس",
+        ["Home.Search.Sport"] = "كل الرياضات",
+        ["Home.Search.City"] = "كل المدن",
+        ["Home.Search.Button"] = "ابحث عن الملاعب",
+        ["Home.Categories.Title"] = "تصفح حسب الرياضة",
+        ["Home.Categories.Subtitle"] = "اختر رياضتك المفضلة واكتشف أفضل الملاعب المجهزة للبطولات.",
+        ["Home.Featured.Title"] = "المنشآت الرياضية المميزة",
+        ["Home.Featured.Subtitle"] = "ملاعب مختارة ومعتمدة بأعلى معايير الإضاءة الليلية، النجيل الصناعي، والخدمات.",
+        ["Home.Featured.ViewAll"] = "استعراض جميع الملاعب",
+        ["Home.OwnerCta.Title"] = "هل تمتلك منشأة أو ملاعب رياضية؟",
+        ["Home.OwnerCta.Subtitle"] = "ارفع إشغال ملاعبك، امنع تضارب الحجوزات، وأدِر مواعيدك لحظياً بدون أي عناء أو مكالمات هاتفية متكررة.",
+        ["Home.OwnerCta.Button"] = "سجّل منشأتك مجاناً",
+
+        // Venues Discovery Page
+        ["Venues.PageTitle"] = "استكشاف الملاعب والمنشآت",
+        ["Venues.PageSubtitle"] = "اكتشف {0} منشأة رياضية معتمدة بأرضيات احترافية وكافة الخدمات.",
+        ["Venues.Filter.Title"] = "تصفية البحث",
+        ["Venues.Filter.Clear"] = "إعادة ضبط",
+        ["Venues.Filter.SearchLabel"] = "اسم المنشأة أو المنطقة",
+        ["Venues.Filter.SearchPlaceholder"] = "مثال: نادي المستقبل، المعادي...",
+        ["Venues.Filter.SportLabel"] = "الرياضة",
+        ["Venues.Filter.CityLabel"] = "المدينة / المحافظة",
+        ["Venues.Filter.PriceLabel"] = "الحد الأقصى لسعر الساعة",
+        ["Venues.Filter.RatingLabel"] = "التقييم الأدنى",
+        ["Venues.Filter.Apply"] = "تطبيق الفلاتر",
+        ["Venues.Sort.Label"] = "ترتيب حسب:",
+        ["Venues.Sort.Rating"] = "الأعلى تقييماً",
+        ["Venues.Sort.PriceAsc"] = "السعر: من الأقل للأعلى",
+        ["Venues.Sort.PriceDesc"] = "السعر: من الأعلى للأقل",
+        ["Venues.Sort.Newest"] = "الأحدث إضافة",
+        ["Venues.Sort.Name"] = "اسم المنشأة (أ-ي)",
+        ["Venues.Card.Verified"] = "منشأة معتمدة",
+        ["Venues.Card.CourtsCount"] = "{0} ملاعب",
+        ["Venues.Card.StartingFrom"] = "يبدأ من",
+        ["Venues.Card.PerHour"] = "/ ساعة",
+        ["Venues.Card.ViewFacility"] = "عرض المنشأة",
+        ["Venues.Empty.Title"] = "لم نعثر على ملاعب مطابقة",
+        ["Venues.Empty.Message"] = "لا توجد منشآت رياضية تطابق معايير البحث الحالية. جرب توسيع نطاق البحث أو إعادة ضبط الفلاتر.",
+        ["Venues.Empty.Reset"] = "إعادة ضبط الفلاتر",
+        ["Venues.Pagination.Previous"] = "السابق",
+        ["Venues.Pagination.Next"] = "التالي",
+        ["Venues.Pagination.Showing"] = "عرض {0} من إجمالي {1} منشأة",
+
+        // Venue Details Page
+        ["Details.VerifiedBadge"] = "منشأة رياضية معتمدة",
+        ["Details.ReviewsCount"] = "({0} تقييم حقيقي من اللاعبين)",
+        ["Details.BookCourtCta"] = "احجز ملعبك الآن",
+        ["Details.Tab.Overview"] = "نظرة عامة والملاعب",
+        ["Details.Tab.Amenities"] = "المرافق والخدمات",
+        ["Details.Tab.Hours"] = "مواعيد العمل",
+        ["Details.Tab.Reviews"] = "تقييمات اللاعبين",
+        ["Details.About.Title"] = "عن المنشأة الرياضية",
+        ["Details.Courts.Title"] = "الملاعب المتاحة للحجز",
+        ["Details.Courts.Subtitle"] = "اختر الملعب للاطلاع على المواعيد المتاحة وحساب السعر المباشر.",
+        ["Details.Court.Indoor"] = "صالة مغطاة",
+        ["Details.Court.Outdoor"] = "ملعب مفتوح",
+        ["Details.Court.Capacity"] = "يتسع لـ {0} لاعبين",
+        ["Details.Court.Surface"] = "نوع الأرضية",
+        ["Details.Court.BookNow"] = "اختيار وحجز الملعب",
+        ["Details.Amenities.Title"] = "الخدمات والمرافق المتاحة",
+        ["Details.Hours.Title"] = "جدول مواعيد العمل الأسبوعي",
+        ["Details.Hours.OpenToday"] = "مفتوح اليوم: {0} - {1}",
+        ["Details.Hours.ClosedToday"] = "مغلق اليوم",
+        ["Details.Location.Title"] = "الموقع والاتجاهات",
+        ["Details.Location.OpenMaps"] = "فتح في خرائط Google",
+        ["Details.Policy.Title"] = "سياسة الإلغاء والاسترداد",
+        ["Details.Policy.FreeWindow"] = "إلغاء مجاني كامل حتى {0} ساعة قبل موعد المباراة.",
+        ["Details.Policy.LateFee"] = "الإلغاء المتأخر يخصم رسم {0}% من قيمة الحجز.",
+        ["Details.Reviews.Title"] = "تقييمات ومراجعات اللاعبين",
+        ["Details.Reviews.BasedOn"] = "بناءً على {0} حجز حقيقي ومؤكد",
+        ["Details.Reviews.Quality"] = "جودة الملعب",
+        ["Details.Reviews.Cleanliness"] = "النظافة والمرافق",
+        ["Details.Reviews.Staff"] = "تعامل الإدارة والاستقبال",
+        ["Details.Reviews.Value"] = "القيمة مقابل السعر",
+        ["Details.Reviews.ManagementResponse"] = "رد إدارة المنشأة",
+        ["Details.Reviews.NoReviews"] = "لا توجد تقييمات بعد. كن أول لاعب يحجز ويشارك تجربته!",
+
+        // Court Booking Page
+        ["Book.Title"] = "حجز الملعب",
+        ["Book.Step1.Title"] = "الخطوة 1: اختر موعد المباراة",
+        ["Book.Step1.Helper"] = "اختر من الأيام السبعة القادمة أو استخدم التقويم لاختيار أي تاريخ مستقبلي.",
+        ["Book.Step1.Example"] = "مثال: اليوم أو الجمعة القادمة",
+        ["Book.Step2.Title"] = "الخطوة 2: حدد مدة اللعب",
+        ["Book.Step2.Helper"] = "يعاد حساب الفترات والأسعار تلقائياً حسب المدة (60 أو 90 أو 120 دقيقة).",
+        ["Book.Step2.60min"] = "60 دقيقة (ساعة واحدة)",
+        ["Book.Step2.90min"] = "90 دقيقة (ساعة ونصف - موصى به للبادل)",
+        ["Book.Step2.120min"] = "120 دقيقة (ساعتان - مباراة كاملة)",
+        ["Book.Step3.Title"] = "الخطوة 3: اختر الفترة الزمنية المتاحة",
+        ["Book.Step3.Helper"] = "اضغط على أي فترة خضراء متاحة لتحديد موعد بدء مباراتك.",
+        ["Book.Legend.Available"] = "متاح (اضغط للاختيار)",
+        ["Book.Legend.Booked"] = "محجوز مسبقاً",
+        ["Book.Legend.Past"] = "فترة منقضية",
+        ["Book.Legend.Selected"] = "فترتك المحددة",
+        ["Book.Legend.Closed"] = "المنشأة مغلقة",
+        ["Book.Step4.Title"] = "الخطوة 4: ملخص تفاصيل الحجز",
+        ["Book.Summary.Court"] = "الملعب",
+        ["Book.Summary.Sport"] = "الرياضة",
+        ["Book.Summary.Date"] = "التاريخ",
+        ["Book.Summary.Time"] = "الفترة",
+        ["Book.Summary.Duration"] = "المدة",
+        ["Book.Summary.BaseRate"] = "سعر الساعة الأساسي",
+        ["Book.Summary.PeakSurcharge"] = "إضافة ساعات الذروة",
+        ["Book.Summary.TotalPrice"] = "المبلغ الإجمالي",
+        ["Book.Summary.PaymentMethod"] = "طريقة الدفع",
+        ["Book.Summary.PayAtVenue"] = "الدفع نقداً أو بالفيزا في استقبال المنشأة",
+        ["Book.Notes.Label"] = "طلبات خاصة أو ملاحظات للمنشأة (اختياري)",
+        ["Book.Notes.Helper"] = "أخبر إدارة الملعب إذا كنت بحاجة لكرات معينة، تيشيرتات تمرين، أو كرات إضافية.",
+        ["Book.Notes.Example"] = "مثال: يرجى تجهيز كرتين مباراة و10 تيشيرتات تدريب.",
+        ["Book.Notes.Placeholder"] = "اكتب أي طلبات خاصة لإدارة الملعب هنا...",
+        ["Book.Step5.Title"] = "الخطوة 5: تأكيد الحجز",
+        ["Book.Btn.Confirm"] = "تأكيد وحجز الملعب",
+        ["Book.Btn.Processing"] = "جاري تأكيد الحجز...",
+        ["Book.Btn.SelectSlotFirst"] = "يرجى تحديد فترة زمنية متاحة أولاً",
+        ["Book.Conflict.Title"] = "عفواً، هذه الفترة حُجزت للتو!",
+        ["Book.Conflict.Message"] = "قام لاعب آخر بحجز هذا الموعد قبل ثوانٍ قليلة. تم تحديث جدول المواعيد تلقائياً—يرجى اختيار فترة بديلة.",
+        ["Book.PolicyReminder"] = "إلغاء مجاني حتى {0} ساعة قبل الموعد. تأكيد فوري عبر الرسائل وحسابك الشخصي.",
+
+        // Confirmation Page
+        ["Confirm.Badge"] = "تم تأكيد حجز الملعب بنجاح!",
+        ["Confirm.Title"] = "ملعبك جاهز للمباراة!",
+        ["Confirm.Subtitle"] = "تم حجز الملعب وتأكيده رسمياً في سجلات المنشأة وتم إرسال التفاصيل لحسابك.",
+        ["Confirm.RefLabel"] = "كود الحجز المرجعي",
+        ["Confirm.PaymentStatus"] = "طريقة الدفع: الدفع في استقبال المنشأة",
+        ["Confirm.Btn.MyBookings"] = "استعراض حجوزاتي",
+        ["Confirm.Btn.BrowseMore"] = "استكشاف ملاعب أخرى",
+
+        // My Bookings Page
+        ["Bookings.Title"] = "إدارة حجوزاتي",
+        ["Bookings.Subtitle"] = "متابعة المباريات القادمة، السجل السابق، وإمكانية إلغاء الحجز وسياسات الاسترداد.",
+        ["Bookings.Tab.Upcoming"] = "المباريات القادمة ({0})",
+        ["Bookings.Tab.Completed"] = "المباريات المكتملة ({0})",
+        ["Bookings.Tab.Cancelled"] = "الحجوزات الملغاة ({0})",
+        ["Bookings.Tab.All"] = "كل الحجوزات ({0})",
+        ["Bookings.SportFilter"] = "تصفية حسب الرياضة",
+        ["Bookings.Btn.Details"] = "عرض التفاصيل",
+        ["Bookings.Btn.Cancel"] = "إلغاء الحجز",
+        ["Bookings.Btn.Review"] = "تقييم التجربة",
+        ["Bookings.Empty.Upcoming"] = "لا توجد مباريات قادمة محجوزة. حان وقت النزول للملعب!",
+        ["Bookings.Empty.Completed"] = "لا توجد مباريات مكتملة في سجلك حتى الآن.",
+        ["Bookings.Empty.Cancelled"] = "لا توجد حجوزات ملغاة.",
+        ["Bookings.CancelModal.Title"] = "تأكيد إلغاء الحجز",
+        ["Bookings.CancelModal.Subtitle"] = "يرجى مراجعة تفاصيل سياسة الاسترداد قبل تأكيد الإلغاء نهائياً.",
+        ["Bookings.CancelModal.Free"] = "أنت داخل فترة الإلغاء المجاني: استرداد كامل 100% (بدون أي رسوم).",
+        ["Bookings.CancelModal.Late"] = "سياسة الإلغاء المتأخر: يطبق رسم إلغاء {0}% بقيمة ({1}).",
+        ["Bookings.CancelModal.RefundAmount"] = "المبلغ المسترد:",
+        ["Bookings.CancelModal.FeeAmount"] = "رسم الإلغاء:",
+        ["Bookings.CancelModal.ConfirmBtn"] = "تأكيد إلغاء الحجز",
+        ["Bookings.CancelModal.BackBtn"] = "الاحتفاظ بالحجز",
+
+        // User Profile Page
+        ["Profile.Title"] = "الملف الشخصي للاعب",
+        ["Profile.Subtitle"] = "إدارة بياناتك، مستوى مهاراتك، وتفضيلات مواعيد اللعب والرياضات المفضلة.",
+        ["Profile.Tab.Overview"] = "بطاقة اللاعب",
+        ["Profile.Tab.Edit"] = "تعديل البيانات والتفضيلات",
+        ["Profile.Stats.Matches"] = "المباريات الملعوبة",
+        ["Profile.Stats.Skill"] = "مستوى المهارة",
+        ["Profile.Stats.Sport"] = "الرياضة الأساسية",
+        ["Profile.Field.Name"] = "الاسم بالكامل",
+        ["Profile.Field.Name.Helper"] = "اسمك كما يظهر لإدارة الملاعب وزملائك في المباريات.",
+        ["Profile.Field.Name.Example"] = "مثال: أحمد محمد مصطفى",
+        ["Profile.Field.Phone"] = "رقم الموبايل",
+        ["Profile.Field.Phone.Helper"] = "رقم هاتفك النشط لتلقي تذكيرات وتأكيدات الحجز.",
+        ["Profile.Field.Phone.Example"] = "مثال: 01012345678",
+        ["Profile.Field.Bio"] = "نبذة عن اللاعب",
+        ["Profile.Field.Bio.Helper"] = "شارك نبذة مختصرة عن خبرتك الرياضية وروتينك الأسبوعي في اللعب.",
+        ["Profile.Field.Bio.Example"] = "مثال: لاعب بادل وكرة قدم، ألعب مباريات أسبوعية تنافسية في المعادي والقاهرة الجديدة.",
+        ["Profile.Field.SkillLevel"] = "مستوى اللعب",
+        ["Profile.Field.Skill.Beginner"] = "مبتدئ (بداية ممارسة الرياضة)",
+        ["Profile.Field.Skill.Intermediate"] = "متوسط (لعب مباريات دورية)",
+        ["Profile.Field.Skill.Advanced"] = "متقدم (مستوى بطولات وتنافسي)",
+        ["Profile.Field.PreferredCities"] = "المناطق والمدن المفضلة",
+        ["Profile.Field.PreferredDays"] = "أيام اللعب المفضلة",
+        ["Profile.Field.PreferredTimes"] = "الأوقات المفضلة",
+        ["Profile.Btn.Save"] = "حفظ التعديلات",
+
+        // Auth (Login / Register)
+        ["Auth.Login.Title"] = "تسجيل الدخول",
+        ["Auth.Login.Subtitle"] = "أهلاً بك مجدداً! سجّل دخولك لحساب اللاعب أو مالك المنشأة.",
+        ["Auth.Login.EmailLabel"] = "البريد الإلكتروني",
+        ["Auth.Login.EmailHelper"] = "أدخل بريدك الإلكتروني المسجل في المنصة.",
+        ["Auth.Login.EmailExample"] = "مثال: ahmed@example.com",
+        ["Auth.Login.PasswordLabel"] = "كلمة المرور",
+        ["Auth.Login.PasswordHelper"] = "أدخل كلمة المرور السرية الخاصة بحسابك.",
+        ["Auth.Login.Btn"] = "تسجيل الدخول",
+        ["Auth.Login.NoAccount"] = "ليس لديك حساب بعد؟",
+        ["Auth.Login.SignUpLink"] = "إنشاء حساب مجاني جديد",
+        ["Auth.Login.QuickTest"] = "بيانات تجريبية سريعة للفحص:",
+        ["Auth.Register.Title"] = "انضم إلى بلاي سبوت",
+        ["Auth.Register.Subtitle"] = "احجز أرقى الملاعب، شارك في المباريات، أو أدِر منشأتك الرياضية.",
+        ["Auth.Register.RoleLabel"] = "نوع الحساب",
+        ["Auth.Register.RolePlayer"] = "لاعب / رياضي (حجز الملاعب والمباريات)",
+        ["Auth.Register.RoleOwner"] = "مالك منشأة (إدارة وإدراج الملاعب)",
+        ["Auth.Register.Btn"] = "إنشاء الحساب",
+        ["Auth.Register.HaveAccount"] = "لديك حساب بالفعل؟",
+
+        // Owner Section
+        ["Owner.Title"] = "لوحة تحكم مالك المنشآت",
+        ["Owner.Subtitle"] = "متابعة الإيرادات المباشرة، نسب إشغال الملاعب، وإدارة المنشآت المتعددة.",
+        ["Owner.Kpi.Venues"] = "المنشآت النشطة",
+        ["Owner.Kpi.Courts"] = "إجمالي الملاعب",
+        ["Owner.Kpi.Upcoming"] = "الحجوزات القادمة",
+        ["Owner.Kpi.Completed"] = "المباريات المكتملة",
+        ["Owner.Kpi.Cancelled"] = "الحجوزات الملغاة",
+        ["Owner.Kpi.Revenue"] = "إجمالي الإيرادات",
+        ["Owner.Analytics.Month"] = "إيرادات الشهر الحالي",
+        ["Owner.Analytics.Week"] = "إيرادات الأسبوع الحالي",
+        ["Owner.Analytics.Today"] = "مباريات اليوم",
+        ["Owner.Analytics.TopCourt"] = "الملعب الأكثر حجوزات",
+        ["Owner.Venues.Title"] = "منشآتك الرياضية",
+        ["Owner.Venues.AddBtn"] = "إضافة منشأة جديدة",
+        ["Owner.Venues.ManageBtn"] = "إدارة المنشأة",
+        ["Owner.Reservations.Title"] = "جدول حجوزات الملاعب",
+        ["Owner.Reservations.FilterVenue"] = "جميع المنشآت",
+        ["Owner.Reservations.FilterStatus"] = "جميع الحالات",
+        ["Owner.Create.Title"] = "إضافة منشأة رياضية جديدة",
+        ["Owner.Create.Subtitle"] = "أدخل بيانات المنشأة، وسائل الاتصال، والمرافق والخدمات المتوفرة.",
+        ["Owner.Create.Name"] = "اسم المنشأة الرياضية",
+        ["Owner.Create.Name.Helper"] = "الاسم التجاري الذي سيظهر للاعبين في البحث والحجز.",
+        ["Owner.Create.Name.Example"] = "مثال: نادي أبطال النيل الرياضي",
+        ["Owner.Create.Desc"] = "وصف المنشأة",
+        ["Owner.Create.Desc.Helper"] = "صف جودة الملاعب والنجيل الصناعي والإضاءة واستراحة اللاعبين.",
+        ["Owner.Create.Desc.Example"] = "مثال: مجمع رياضي حديث يضم ملعبين كرة قدم خماسي و3 ملاعب بادل بانورامية مع كافيه واستراحة مكيفة.",
+        ["Owner.Create.City"] = "المدينة / المحافظة",
+        ["Owner.Create.City.Example"] = "مثال: مدينة 6 أكتوبر / الجيزة",
+        ["Owner.Create.Area"] = "المنطقة / الحي",
+        ["Owner.Create.Area.Example"] = "مثال: المحور المركزي - الحي المتميز",
+        ["Owner.Create.Address"] = "العنوان بالتفصيل",
+        ["Owner.Create.Address.Example"] = "مثال: شارع 25 الجمهورية، بجوار هايبر وان",
+        ["Owner.Create.Phone"] = "رقم الموبايل / واتساب",
+        ["Owner.Create.Phone.Example"] = "مثال: 01011112222",
+        ["Owner.Create.Email"] = "البريد الإلكتروني للمنشأة",
+        ["Owner.Create.Email.Example"] = "مثال: info@nilechampions.eg",
+        ["Owner.Create.Website"] = "الموقع أو صفحة السوشيال ميديا (اختياري)",
+        ["Owner.Create.Website.Example"] = "مثال: https://facebook.com/nilechampions",
+        ["Owner.Create.Lat"] = "خط العرض (Latitude)",
+        ["Owner.Create.Lat.Example"] = "مثال: 29.9737 (من خرائط Google)",
+        ["Owner.Create.Lng"] = "خط الطول (Longitude)",
+        ["Owner.Create.Lng.Example"] = "مثال: 30.9529 (من خرائط Google)",
+        ["Owner.Create.Amenities"] = "المرافق والخدمات المتاحة",
+        ["Owner.Create.Submit"] = "إنشاء وحفظ المنشأة",
+        ["Owner.Manage.Tab.Info"] = "بيانات المنشأة والموقع",
+        ["Owner.Manage.Tab.Courts"] = "الملاعب والصالات ({0})",
+        ["Owner.Manage.Tab.Amenities"] = "المرافق والخدمات",
+        ["Owner.Manage.Tab.Gallery"] = "معرض الصور",
+        ["Owner.Manage.Tab.Hours"] = "مواعيد العمل الأسبوعية",
+        ["Owner.Court.AddTitle"] = "إضافة ملعب جديد للمنشأة",
+        ["Owner.Court.Name"] = "اسم الملعب",
+        ["Owner.Court.Name.Example"] = "مثال: ملعب بادل 1 (الرئيسي)",
+        ["Owner.Court.Sport"] = "نوع الرياضة",
+        ["Owner.Court.Surface"] = "نوع الأرضية",
+        ["Owner.Court.Surface.Example"] = "مثال: نجيل صناعي تركي 50 ملم معتمد",
+        ["Owner.Court.Capacity"] = "سعة اللاعبين",
+        ["Owner.Court.Capacity.Example"] = "مثال: 4 للبادل، 10 لكرة القدم الخماسي",
+        ["Owner.Court.Price"] = "سعر الساعة (ج.م)",
+        ["Owner.Court.Price.Example"] = "مثال: 300",
+        ["Owner.Court.IsIndoor"] = "صالة مغطاة / ملعب داخلي",
+        ["Owner.Court.Submit"] = "إضافة الملعب",
+
+        // Common Actions
+        ["Action.Save"] = "حفظ التعديلات",
+        ["Action.Cancel"] = "إلغاء",
+        ["Action.Delete"] = "حذف",
+        ["Action.Edit"] = "تعديل",
+        ["Action.Back"] = "رجوع",
+        ["Action.Confirm"] = "تأكيد",
+        ["Action.Search"] = "بحث",
+        ["Action.Clear"] = "مسح"
+    };
+}

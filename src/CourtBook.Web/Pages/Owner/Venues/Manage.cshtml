@@ -1,39 +1,39 @@
 @page "/Owner/Venues/Manage"
 @model CourtBook.Web.Pages.Owner.Venues.ManageModel
 @{
-    ViewData["Title"] = Model.Venue != null ? $"Manage {Model.Venue.Name} — PlaySpot Owner" : "Facility Not Found";
+    ViewData["Title"] = Model.Venue != null ? $"{Loc["Owner.Venues.ManageBtn"]} — {Model.Venue.Name}" : Loc["Venues.Empty.Title"];
 }
 
 <div class="facility-manage-page py-4">
     <div class="container-xl">
         @if (!Model.IsOwner)
         {
-            <div class="card border-0 shadow-lg text-center p-5 my-5" style="background: rgba(22, 27, 34, 0.9); border: 1px solid rgba(239, 68, 68, 0.3) !important; border-radius: 20px;">
+            <div class="card border-0 shadow-lg text-center p-5 my-5" style="border-radius: var(--ps-radius-2xl);">
                 <div class="display-1 text-danger mb-3">
                     <i class="bi bi-shield-lock-fill"></i>
                 </div>
-                <h2 class="text-white fw-bold mb-2">Access Denied (403 Forbidden)</h2>
-                <p class="text-secondary mx-auto mb-4" style="max-width: 500px;">
-                    You do not have permission to manage this sports facility. It belongs to another registered owner account.
+                <h2 class="text-dark fw-bold mb-2">@(Loc.IsArabic ? "تم رفض الوصول (403)" : "Access Denied (403 Forbidden)")</h2>
+                <p class="text-muted mx-auto mb-4" style="max-width: 500px;">
+                    @(Loc.IsArabic ? "ليس لديك صلاحية لإدارة هذه المنشأة الرياضية. المنشأة تتبع حساب مالك آخر." : "You do not have permission to manage this sports facility. It belongs to another registered owner account.")
                 </p>
                 <div>
                     <a href="/Owner/Venues" class="btn btn-outline-secondary px-4 py-2 rounded-pill fw-semibold">
-                        <i class="bi bi-arrow-left me-1"></i> Back to My Facilities
+                        <i class="bi bi-arrow-left me-1"></i> @(Loc.IsArabic ? "العودة لمنشآتي" : "Back to My Facilities")
                     </a>
                 </div>
             </div>
         }
         else if (Model.Venue is null)
         {
-            <div class="card border-0 shadow-sm text-center p-5 my-5" style="background: rgba(22, 27, 34, 0.7); border: 1px dashed rgba(255,255,255,0.15) !important; border-radius: 20px;">
-                <div class="display-1 text-secondary mb-3"><i class="bi bi-building-x"></i></div>
-                <h2 class="text-white fw-bold mb-2">Facility Not Found</h2>
-                <p class="text-secondary mx-auto mb-4" style="max-width: 450px;">
-                    The facility you requested does not exist or has been removed.
+            <div class="card border-0 shadow-sm text-center p-5 my-5" style="border-radius: var(--ps-radius-xl);">
+                <div class="display-1 text-muted mb-3"><i class="bi bi-building-x"></i></div>
+                <h2 class="text-dark fw-bold mb-2">@(Loc.IsArabic ? "المنشأة غير موجودة" : "Facility Not Found")</h2>
+                <p class="text-muted mx-auto mb-4" style="max-width: 450px;">
+                    @(Loc.IsArabic ? "المنشأة المطلوبة غير موجودة أو تم حذفها." : "The facility you requested does not exist or has been removed.")
                 </p>
                 <div>
-                    <a href="/Owner/Venues" class="btn btn-primary px-4 py-2 rounded-pill fw-semibold">
-                        <i class="bi bi-arrow-left me-1"></i> Back to Facilities
+                    <a href="/Owner/Venues" class="ps-btn ps-btn-primary px-4 py-2 rounded-pill fw-semibold">
+                        <i class="bi bi-arrow-left me-1"></i> @(Loc.IsArabic ? "العودة للمنشآت" : "Back to Facilities")
                     </a>
                 </div>
             </div>
@@ -41,47 +41,47 @@
         else
         {
             <!-- Navigation Breadcrumbs -->
-            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4 pb-3 border-bottom border-dark">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4 pb-3 border-bottom">
                 <div>
                     <nav aria-label="breadcrumb">
                         <ol class="breadcrumb mb-1">
-                            <li class="breadcrumb-item"><a href="/Owner" class="text-secondary text-decoration-none">Dashboard</a></li>
-                            <li class="breadcrumb-item"><a href="/Owner/Venues" class="text-secondary text-decoration-none">Facilities</a></li>
-                            <li class="breadcrumb-item active text-white" aria-current="page">@Model.Venue.Name</li>
+                            <li class="breadcrumb-item"><a href="/Owner" class="text-muted text-decoration-none">@Loc["Nav.OwnerDashboard"]</a></li>
+                            <li class="breadcrumb-item"><a href="/Owner/Venues" class="text-muted text-decoration-none">@Loc["Owner.Venues.Title"]</a></li>
+                            <li class="breadcrumb-item active text-dark" aria-current="page">@Model.Venue.Name</li>
                         </ol>
                     </nav>
                     <div class="d-flex align-items-center gap-2">
-                        <h1 class="h3 text-white fw-bold mb-0">@Model.Venue.Name</h1>
+                        <h1 class="h3 text-dark fw-bold mb-0">@Model.Venue.Name</h1>
                         @if (Model.Venue.IsActive)
                         {
-                            <span class="badge bg-success bg-opacity-75 rounded-pill px-2 py-1 small">
-                                <i class="bi bi-check-circle-fill me-1"></i> Active
+                            <span class="badge bg-success-subtle text-success border border-success border-opacity-25 rounded-pill px-2 py-1 small">
+                                <i class="bi bi-check-circle-fill me-1"></i> @(Loc.IsArabic ? "نشطة" : "Active")
                             </span>
                         }
                         else
                         {
-                            <span class="badge bg-danger bg-opacity-75 rounded-pill px-2 py-1 small">
-                                <i class="bi bi-pause-circle-fill me-1"></i> Inactive
+                            <span class="badge bg-danger-subtle text-danger border border-danger border-opacity-25 rounded-pill px-2 py-1 small">
+                                <i class="bi bi-pause-circle-fill me-1"></i> @(Loc.IsArabic ? "متوقفة" : "Inactive")
                             </span>
                         }
                         @if (Model.Venue.IsVerified)
                         {
-                            <span class="badge bg-primary bg-opacity-75 rounded-pill px-2 py-1 small">
-                                <i class="bi bi-patch-check-fill me-1"></i> Verified
+                            <span class="badge bg-primary-subtle text-primary border border-primary border-opacity-25 rounded-pill px-2 py-1 small">
+                                <i class="bi bi-patch-check-fill me-1"></i> @Loc["Details.VerifiedBadge"]
                             </span>
                         }
                     </div>
-                    <div class="text-secondary small mt-1">
-                        <i class="bi bi-geo-alt me-1 text-primary"></i>@Model.Venue.Address, @Model.Venue.Area, @Model.Venue.City
+                    <div class="text-muted small mt-1">
+                        <i class="bi bi-geo-alt me-1 text-danger"></i>@Model.Venue.Address, @Model.Venue.Area, @Model.Venue.City
                     </div>
                 </div>
 
                 <div class="d-flex gap-2">
-                    <a href="/Venues/Details/@Model.Venue.Id" target="_blank" class="btn btn-outline-secondary rounded-pill px-3" title="View Public Page">
-                        <i class="bi bi-box-arrow-up-right me-1"></i> View Live
+                    <a href="/Venues/Details?id=@Model.Venue.Id" target="_blank" class="btn btn-outline-secondary rounded-pill px-3" title="@(Loc.IsArabic ? "معاينة الصفحة العامة" : "View Live")">
+                        <i class="bi bi-box-arrow-up-right me-1"></i> @(Loc.IsArabic ? "معاينة مباشرة" : "View Live")
                     </a>
                     <a href="/Owner/Venues" class="btn btn-outline-secondary rounded-pill px-3">
-                        <i class="bi bi-arrow-left me-1"></i> Back
+                        <i class="bi bi-arrow-left me-1"></i> @Loc["Action.Back"]
                     </a>
                 </div>
             </div>
@@ -105,30 +105,30 @@
             }
 
             <!-- Tabs Navigation -->
-            <ul class="nav nav-pills gap-2 mb-4 p-2 rounded-4" style="background: rgba(22, 27, 34, 0.7); border: 1px solid rgba(255,255,255,0.08);">
+            <ul class="nav nav-pills gap-2 mb-4 p-2 rounded-4 card border-0 shadow-sm flex-row">
                 <li class="nav-item">
-                    <a class="nav-link rounded-pill px-3 py-2 fw-semibold @(Model.ActiveTab == "details" ? "active bg-primary text-white" : "text-secondary")" href="?id=@Model.Id&activeTab=details">
-                        <i class="bi bi-info-circle me-1"></i> Facility Info
+                    <a class="nav-link rounded-pill px-3 py-2 fw-semibold @(Model.ActiveTab == "details" ? "active bg-primary text-white" : "text-muted")" href="?id=@Model.Id&activeTab=details">
+                        <i class="bi bi-info-circle me-1"></i> @Loc["Owner.Manage.Tab.Info"]
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link rounded-pill px-3 py-2 fw-semibold @(Model.ActiveTab == "courts" ? "active bg-primary text-white" : "text-secondary")" href="?id=@Model.Id&activeTab=courts">
-                        <i class="bi bi-grid-3x3 me-1"></i> Courts & Pitches <span class="badge bg-dark ms-1">@Model.Venue.Courts.Count</span>
+                    <a class="nav-link rounded-pill px-3 py-2 fw-semibold @(Model.ActiveTab == "courts" ? "active bg-primary text-white" : "text-muted")" href="?id=@Model.Id&activeTab=courts">
+                        <i class="bi bi-grid-3x3 me-1"></i> @Loc.T("Owner.Manage.Tab.Courts", Model.Venue.Courts.Count)
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link rounded-pill px-3 py-2 fw-semibold @(Model.ActiveTab == "amenities" ? "active bg-primary text-white" : "text-secondary")" href="?id=@Model.Id&activeTab=amenities">
-                        <i class="bi bi-stars me-1"></i> Amenities <span class="badge bg-dark ms-1">@Model.Venue.Amenities.Count</span>
+                    <a class="nav-link rounded-pill px-3 py-2 fw-semibold @(Model.ActiveTab == "amenities" ? "active bg-primary text-white" : "text-muted")" href="?id=@Model.Id&activeTab=amenities">
+                        <i class="bi bi-stars me-1"></i> @Loc["Owner.Manage.Tab.Amenities"] <span class="badge bg-light text-dark ms-1">@Model.Venue.Amenities.Count</span>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link rounded-pill px-3 py-2 fw-semibold @(Model.ActiveTab == "images" ? "active bg-primary text-white" : "text-secondary")" href="?id=@Model.Id&activeTab=images">
-                        <i class="bi bi-images me-1"></i> Photo Gallery <span class="badge bg-dark ms-1">@Model.Venue.Images.Count</span>
+                    <a class="nav-link rounded-pill px-3 py-2 fw-semibold @(Model.ActiveTab == "images" ? "active bg-primary text-white" : "text-muted")" href="?id=@Model.Id&activeTab=images">
+                        <i class="bi bi-images me-1"></i> @Loc["Owner.Manage.Tab.Gallery"] <span class="badge bg-light text-dark ms-1">@Model.Venue.Images.Count</span>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link rounded-pill px-3 py-2 fw-semibold @(Model.ActiveTab == "hours" ? "active bg-primary text-white" : "text-secondary")" href="?id=@Model.Id&activeTab=hours">
-                        <i class="bi bi-clock me-1"></i> Operating Hours
+                    <a class="nav-link rounded-pill px-3 py-2 fw-semibold @(Model.ActiveTab == "hours" ? "active bg-primary text-white" : "text-muted")" href="?id=@Model.Id&activeTab=hours">
+                        <i class="bi bi-clock me-1"></i> @Loc["Owner.Manage.Tab.Hours"]
                     </a>
                 </li>
             </ul>
@@ -138,60 +138,70 @@
             {
                 <div class="row g-4">
                     <div class="col-lg-8">
-                        <div class="card border-0 p-4 shadow-sm" style="background: rgba(22, 27, 34, 0.9); border: 1px solid rgba(255,255,255,0.08) !important; border-radius: 18px;">
-                            <h5 class="text-white fw-bold mb-3">Facility General Details</h5>
+                        <div class="card border-0 p-4 p-md-5 shadow-sm" style="border-radius: var(--ps-radius-xl);">
+                            <h5 class="text-dark fw-bold mb-3">@Loc["Owner.Manage.Tab.Info"]</h5>
                             <form method="post" asp-page-handler="UpdateDetails" asp-route-id="@Model.Id">
                                 <div class="row g-3">
                                     <div class="col-12">
-                                        <label class="form-label text-secondary small fw-semibold">Facility Name <span class="text-danger">*</span></label>
-                                        <input type="text" asp-for="DetailsInput.Name" class="form-control bg-dark text-white border-secondary" required />
+                                        <label class="form-label text-dark small fw-semibold mb-1">@Loc["Owner.Create.Name"] <span class="text-danger">*</span></label>
+                                        <span class="ps-form-example mb-2">@Loc["Owner.Create.Name.Example"]</span>
+                                        <input type="text" asp-for="DetailsInput.Name" class="form-control bg-light border-0 shadow-none py-2 rounded-3" required />
                                     </div>
                                     <div class="col-12">
-                                        <label class="form-label text-secondary small fw-semibold">Description</label>
-                                        <textarea asp-for="DetailsInput.Description" class="form-control bg-dark text-white border-secondary" rows="3"></textarea>
+                                        <label class="form-label text-dark small fw-semibold mb-1">@Loc["Owner.Create.Desc"]</label>
+                                        <span class="ps-form-example mb-2">@Loc["Owner.Create.Desc.Example"]</span>
+                                        <textarea asp-for="DetailsInput.Description" class="form-control bg-light border-0 shadow-none rounded-3" rows="3"></textarea>
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label text-secondary small fw-semibold">City <span class="text-danger">*</span></label>
-                                        <input type="text" asp-for="DetailsInput.City" class="form-control bg-dark text-white border-secondary" required />
+                                        <label class="form-label text-dark small fw-semibold mb-1">@Loc["Owner.Create.City"] <span class="text-danger">*</span></label>
+                                        <span class="ps-form-example mb-2">@Loc["Owner.Create.City.Example"]</span>
+                                        <input type="text" asp-for="DetailsInput.City" class="form-control bg-light border-0 shadow-none py-2 rounded-3" required />
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label text-secondary small fw-semibold">Area / District</label>
-                                        <input type="text" asp-for="DetailsInput.Area" class="form-control bg-dark text-white border-secondary" />
+                                        <label class="form-label text-dark small fw-semibold mb-1">@Loc["Owner.Create.Area"]</label>
+                                        <span class="ps-form-example mb-2">@Loc["Owner.Create.Area.Example"]</span>
+                                        <input type="text" asp-for="DetailsInput.Area" class="form-control bg-light border-0 shadow-none py-2 rounded-3" />
                                     </div>
                                     <div class="col-12">
-                                        <label class="form-label text-secondary small fw-semibold">Detailed Address <span class="text-danger">*</span></label>
-                                        <input type="text" asp-for="DetailsInput.Address" class="form-control bg-dark text-white border-secondary" required />
+                                        <label class="form-label text-dark small fw-semibold mb-1">@Loc["Owner.Create.Address"] <span class="text-danger">*</span></label>
+                                        <span class="ps-form-example mb-2">@Loc["Owner.Create.Address.Example"]</span>
+                                        <input type="text" asp-for="DetailsInput.Address" class="form-control bg-light border-0 shadow-none py-2 rounded-3" required />
                                     </div>
                                     <div class="col-md-4">
-                                        <label class="form-label text-secondary small fw-semibold">Phone <span class="text-danger">*</span></label>
-                                        <input type="tel" asp-for="DetailsInput.Phone" class="form-control bg-dark text-white border-secondary" />
+                                        <label class="form-label text-dark small fw-semibold mb-1">@Loc["Owner.Create.Phone"] <span class="text-danger">*</span></label>
+                                        <span class="ps-form-example mb-2">@Loc["Owner.Create.Phone.Example"]</span>
+                                        <input type="tel" asp-for="DetailsInput.Phone" class="form-control bg-light border-0 shadow-none py-2 rounded-3" />
                                     </div>
                                     <div class="col-md-4">
-                                        <label class="form-label text-secondary small fw-semibold">Email</label>
-                                        <input type="email" asp-for="DetailsInput.Email" class="form-control bg-dark text-white border-secondary" />
+                                        <label class="form-label text-dark small fw-semibold mb-1">@Loc["Owner.Create.Email"]</label>
+                                        <span class="ps-form-example mb-2">@Loc["Owner.Create.Email.Example"]</span>
+                                        <input type="email" asp-for="DetailsInput.Email" class="form-control bg-light border-0 shadow-none py-2 rounded-3" />
                                     </div>
                                     <div class="col-md-4">
-                                        <label class="form-label text-secondary small fw-semibold">Website</label>
-                                        <input type="url" asp-for="DetailsInput.Website" class="form-control bg-dark text-white border-secondary" />
+                                        <label class="form-label text-dark small fw-semibold mb-1">@Loc["Owner.Create.Website"]</label>
+                                        <span class="ps-form-example mb-2">@Loc["Owner.Create.Website.Example"]</span>
+                                        <input type="url" asp-for="DetailsInput.Website" class="form-control bg-light border-0 shadow-none py-2 rounded-3" />
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label text-secondary small fw-semibold">Latitude</label>
-                                        <input type="number" step="any" asp-for="DetailsInput.Latitude" class="form-control bg-dark text-white border-secondary" />
+                                        <label class="form-label text-dark small fw-semibold mb-1">@Loc["Owner.Create.Lat"]</label>
+                                        <span class="ps-form-example mb-2">@Loc["Owner.Create.Lat.Example"]</span>
+                                        <input type="number" step="any" asp-for="DetailsInput.Latitude" class="form-control bg-light border-0 shadow-none py-2 rounded-3" />
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label text-secondary small fw-semibold">Longitude</label>
-                                        <input type="number" step="any" asp-for="DetailsInput.Longitude" class="form-control bg-dark text-white border-secondary" />
+                                        <label class="form-label text-dark small fw-semibold mb-1">@Loc["Owner.Create.Lng"]</label>
+                                        <span class="ps-form-example mb-2">@Loc["Owner.Create.Lng.Example"]</span>
+                                        <input type="number" step="any" asp-for="DetailsInput.Longitude" class="form-control bg-light border-0 shadow-none py-2 rounded-3" />
                                     </div>
                                     <div class="col-12">
                                         <div class="form-check form-switch pt-2">
                                             <input class="form-check-input" type="checkbox" asp-for="DetailsInput.IsActive" id="activeSwitch" />
-                                            <label class="form-check-label text-light fw-medium" for="activeSwitch">Facility is active and accepting bookings</label>
+                                            <label class="form-check-label text-dark fw-medium" for="activeSwitch">@(Loc.IsArabic ? "المنشأة نشطة ومتاحة لحجز الملاعب والظهور في البحث" : "Facility is active and accepting bookings")</label>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top border-dark">
-                                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-semibold">
-                                        <i class="bi bi-save me-1"></i> Save Changes
+                                <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                                    <button type="submit" class="ps-btn ps-btn-primary rounded-pill px-4 fw-semibold">
+                                        <i class="bi bi-save me-1"></i> @Loc["Action.Save"]
                                     </button>
                                 </div>
                             </form>
@@ -200,23 +210,23 @@
 
                     <!-- Deactivation & Danger Zone -->
                     <div class="col-lg-4">
-                        <div class="card border-0 p-4 shadow-sm h-100" style="background: rgba(22, 27, 34, 0.7); border: 1px solid rgba(239, 68, 68, 0.2) !important; border-radius: 18px;">
+                        <div class="card border-0 p-4 shadow-sm h-100 border-start border-3 border-danger" style="border-radius: var(--ps-radius-xl);">
                             <h5 class="text-danger fw-bold mb-3 d-flex align-items-center">
-                                <i class="bi bi-shield-slash me-2"></i> Facility Status
+                                <i class="bi bi-shield-slash me-2"></i> @(Loc.IsArabic ? "حالة تشغيل المنشأة" : "Facility Status")
                             </h5>
-                            <p class="text-secondary small mb-3">
-                                Deactivating a facility safely removes it from public discovery without deleting historical matches or past booking records.
+                            <p class="text-muted small mb-3">
+                                @(Loc.IsArabic ? "إلغاء التفعيل يخفي المنشأة من نتائج البحث العامة بأمان دون حذف أي حجوزات تاريخية أو تقارير مالية سابقة." : "Deactivating a facility safely removes it from public discovery without deleting historical matches or past booking records.")
                             </p>
                             @if (Model.Venue.UpcomingBookingsCount > 0)
                             {
                                 <div class="alert alert-warning small p-2 rounded-3 mb-3">
                                     <i class="bi bi-exclamation-circle me-1"></i>
-                                    <strong>@Model.Venue.UpcomingBookingsCount</strong> upcoming reservation(s) active. You cannot deactivate while future bookings are pending.
+                                    <strong>@Model.Venue.UpcomingBookingsCount</strong> @(Loc.IsArabic ? "حجز قادم نشط. لا يمكن إلغاء التفعيل طالما توجد حجوزات مستقبلية لم تكتمل أو تُلغى." : "upcoming reservation(s) active. You cannot deactivate while future bookings are pending.")
                                 </div>
                             }
-                            <form method="post" asp-page-handler="DeactivateFacility" asp-route-id="@Model.Id" onsubmit="return confirm('Are you sure you want to deactivate this facility? Active reservations must be resolved first.');">
+                            <form method="post" asp-page-handler="DeactivateFacility" asp-route-id="@Model.Id" onsubmit="return confirm('@(Loc.IsArabic ? "هل أنت متأكد من إلغاء تفعيل المنشأة؟" : "Are you sure you want to deactivate this facility?")');">
                                 <button type="submit" class="btn btn-outline-danger w-100 rounded-pill py-2 small fw-semibold" @(Model.Venue.UpcomingBookingsCount > 0 ? "disabled" : "")>
-                                    <i class="bi bi-pause-circle me-1"></i> Deactivate Facility
+                                    <i class="bi bi-pause-circle me-1"></i> @(Loc.IsArabic ? "إلغاء تفعيل المنشأة مؤقتاً" : "Deactivate Facility")
                                 </button>
                             </form>
                         </div>
@@ -228,64 +238,68 @@
             @if (Model.ActiveTab == "courts")
             {
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="text-white fw-bold mb-0">Courts & Pitches (@Model.Venue.Courts.Count)</h5>
-                    <button type="button" class="btn btn-primary rounded-pill px-3 py-2 small fw-semibold" data-bs-toggle="collapse" data-bs-target="#addCourtCollapse">
-                        <i class="bi bi-plus-lg me-1"></i> Add Court
+                    <h5 class="text-dark fw-bold mb-0">@Loc.T("Owner.Manage.Tab.Courts", Model.Venue.Courts.Count)</h5>
+                    <button type="button" class="ps-btn ps-btn-primary rounded-pill px-3 py-2 small fw-semibold" data-bs-toggle="collapse" data-bs-target="#addCourtCollapse">
+                        <i class="bi bi-plus-lg me-1"></i> @Loc["Owner.Court.AddTitle"]
                     </button>
                 </div>
 
                 <!-- Add Court Form Collapse -->
                 <div class="collapse mb-4" id="addCourtCollapse">
-                    <div class="card border-0 p-4 shadow-sm" style="background: rgba(22, 27, 34, 0.95); border: 1px solid rgba(34, 197, 94, 0.3) !important; border-radius: 18px;">
-                        <h6 class="text-success fw-bold mb-3"><i class="bi bi-plus-circle me-2"></i>Add New Court / Pitch</h6>
+                    <div class="card border-0 p-4 shadow-sm" style="border-radius: var(--ps-radius-xl);">
+                        <h6 class="text-success fw-bold mb-3"><i class="bi bi-plus-circle me-2"></i>@Loc["Owner.Court.AddTitle"]</h6>
                         <form method="post" asp-page-handler="CreateCourt" asp-route-id="@Model.Id">
                             <div class="row g-3">
                                 <div class="col-md-6">
-                                    <label class="form-label text-secondary small fw-semibold">Court Name <span class="text-danger">*</span></label>
-                                    <input type="text" asp-for="NewCourtInput.Name" class="form-control bg-dark text-white border-secondary" placeholder="e.g. Football Court 1 / Padel Glass 2" required />
+                                    <label class="form-label text-dark small fw-semibold mb-1">@Loc["Owner.Court.Name"] <span class="text-danger">*</span></label>
+                                    <span class="ps-form-example mb-2">@Loc["Owner.Court.Name.Example"]</span>
+                                    <input type="text" asp-for="NewCourtInput.Name" class="form-control bg-light border-0 shadow-none py-2 rounded-3" placeholder="@Loc["Owner.Court.Name.Example"]" required />
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label text-secondary small fw-semibold">Sport Type <span class="text-danger">*</span></label>
-                                    <select asp-for="NewCourtInput.SportType" class="form-select bg-dark text-white border-secondary" required>
-                                        <option value="Football">Football (كرة قدم)</option>
-                                        <option value="Padel">Padel (بادل)</option>
-                                        <option value="Tennis">Tennis (تنس)</option>
-                                        <option value="Basketball">Basketball (كرة سلة)</option>
-                                        <option value="Volleyball">Volleyball (كرة طائرة)</option>
-                                        <option value="Badminton">Badminton (ريشة طائرة)</option>
+                                    <label class="form-label text-dark small fw-semibold mb-1">@Loc["Owner.Court.Sport"] <span class="text-danger">*</span></label>
+                                    <select asp-for="NewCourtInput.SportType" class="form-select bg-light border-0 shadow-none py-2 rounded-3" required>
+                                        <option value="Football">⚽ @Loc.Sport("Football")</option>
+                                        <option value="Padel">🎾 @Loc.Sport("Padel")</option>
+                                        <option value="Tennis">🏸 @Loc.Sport("Tennis")</option>
+                                        <option value="Basketball">🏀 @Loc.Sport("Basketball")</option>
+                                        <option value="Volleyball">🏐 @Loc.Sport("Volleyball")</option>
+                                        <option value="Badminton">🏸 @Loc.Sport("Badminton")</option>
                                     </select>
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label text-secondary small fw-semibold">Base Price / Hour (EGP) <span class="text-danger">*</span></label>
-                                    <input type="number" step="10" min="1" asp-for="NewCourtInput.PricePerHour" class="form-control bg-dark text-white border-secondary" placeholder="300" required />
+                                    <label class="form-label text-dark small fw-semibold mb-1">@Loc["Owner.Court.Price"] <span class="text-danger">*</span></label>
+                                    <span class="ps-form-example mb-2">@Loc["Owner.Court.Price.Example"]</span>
+                                    <input type="number" step="10" min="1" asp-for="NewCourtInput.PricePerHour" class="form-control bg-light border-0 shadow-none py-2 rounded-3" placeholder="300" required />
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label text-secondary small fw-semibold">Surface Type</label>
-                                    <input type="text" asp-for="NewCourtInput.SurfaceType" class="form-control bg-dark text-white border-secondary" placeholder="e.g. Artificial Turf, Glass/Plexi, Clay" />
+                                    <label class="form-label text-dark small fw-semibold mb-1">@Loc["Owner.Court.Surface"]</label>
+                                    <span class="ps-form-example mb-2">@Loc["Owner.Court.Surface.Example"]</span>
+                                    <input type="text" asp-for="NewCourtInput.SurfaceType" class="form-control bg-light border-0 shadow-none py-2 rounded-3" placeholder="@Loc["Owner.Court.Surface.Example"]" />
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label text-secondary small fw-semibold">Max Player Capacity</label>
-                                    <input type="number" min="1" max="100" asp-for="NewCourtInput.Capacity" class="form-control bg-dark text-white border-secondary" placeholder="10" />
+                                    <label class="form-label text-dark small fw-semibold mb-1">@Loc["Owner.Court.Capacity"]</label>
+                                    <span class="ps-form-example mb-2">@Loc["Owner.Court.Capacity.Example"]</span>
+                                    <input type="number" min="1" max="100" asp-for="NewCourtInput.Capacity" class="form-control bg-light border-0 shadow-none py-2 rounded-3" placeholder="10" />
                                 </div>
                                 <div class="col-12">
-                                    <label class="form-label text-secondary small fw-semibold">Description</label>
-                                    <input type="text" asp-for="NewCourtInput.Description" class="form-control bg-dark text-white border-secondary" placeholder="Court features, dimensions, or lighting notes..." />
+                                    <label class="form-label text-dark small fw-semibold mb-1">@Loc["Owner.Create.Desc"]</label>
+                                    <input type="text" asp-for="NewCourtInput.Description" class="form-control bg-light border-0 shadow-none rounded-3" placeholder="@(Loc.IsArabic ? "وصف مميزات وتجهيزات الملعب..." : "Court features, turf dimensions, lighting notes...")" />
                                 </div>
                                 <div class="col-12 d-flex gap-4">
                                     <div class="form-check form-switch">
                                         <input class="form-check-input" type="checkbox" asp-for="NewCourtInput.IsIndoor" id="newCourtIndoor" />
-                                        <label class="form-check-label text-light small" for="newCourtIndoor">Indoor / Covered Court</label>
+                                        <label class="form-check-label text-dark small" for="newCourtIndoor">@Loc["Owner.Court.IsIndoor"]</label>
                                     </div>
                                     <div class="form-check form-switch">
                                         <input class="form-check-input" type="checkbox" asp-for="NewCourtInput.IsActive" checked id="newCourtActive" />
-                                        <label class="form-check-label text-light small" for="newCourtActive">Active for booking</label>
+                                        <label class="form-check-label text-dark small" for="newCourtActive">@(Loc.IsArabic ? "الملعب نشط ومتاح للحجز المباشر" : "Active for booking")</label>
                                     </div>
                                 </div>
                             </div>
-                            <div class="d-flex justify-content-end gap-2 mt-3 pt-2">
-                                <button type="button" class="btn btn-outline-secondary rounded-pill px-3 btn-sm" data-bs-toggle="collapse" data-bs-target="#addCourtCollapse">Cancel</button>
+                            <div class="d-flex justify-content-end gap-2 mt-3 pt-2 border-top">
+                                <button type="button" class="btn btn-light rounded-pill px-3 btn-sm" data-bs-toggle="collapse" data-bs-target="#addCourtCollapse">@Loc["Action.Cancel"]</button>
                                 <button type="submit" class="btn btn-success rounded-pill px-4 btn-sm fw-semibold">
-                                    <i class="bi bi-check-lg me-1"></i> Save Court
+                                    <i class="bi bi-check-lg me-1"></i> @Loc["Owner.Court.Submit"]
                                 </button>
                             </div>
                         </form>
@@ -295,10 +309,10 @@
                 <!-- Courts List Cards -->
                 @if (Model.Venue.Courts.Count == 0)
                 {
-                    <div class="card border-0 text-center p-5" style="background: rgba(22, 27, 34, 0.6); border: 1px dashed rgba(255,255,255,0.15) !important; border-radius: 18px;">
-                        <div class="display-4 text-secondary mb-2"><i class="bi bi-grid-3x3"></i></div>
-                        <h5 class="text-white fw-bold mb-1">No Courts Added Yet</h5>
-                        <p class="text-secondary small mb-3">Add courts to this venue to allow players to check real-time availability and book slots.</p>
+                    <div class="card border-0 shadow-sm text-center p-5" style="border-radius: var(--ps-radius-xl);">
+                        <div class="display-4 text-muted mb-2"><i class="bi bi-grid-3x3"></i></div>
+                        <h5 class="text-dark fw-bold mb-1">@(Loc.IsArabic ? "لا توجد ملاعب مضافة بعد" : "No Courts Added Yet")</h5>
+                        <p class="text-muted small mb-3">@(Loc.IsArabic ? "أضف ملاعب لهذه المنشأة لتمكين اللاعبين من فحص المواعيد المتاحة وحجز فترات اللعب." : "Add courts to this venue to allow players to check real-time availability and book slots.")</p>
                     </div>
                 }
                 else
@@ -307,36 +321,36 @@
                         @foreach (var court in Model.Venue.Courts)
                         {
                             <div class="col-md-6 col-lg-4">
-                                <div class="card border-0 p-3 h-100 shadow-sm" style="background: rgba(22, 27, 34, 0.85); border: 1px solid rgba(255,255,255,0.08) !important; border-radius: 16px;">
+                                <div class="card border-0 p-3 h-100 shadow-sm" style="border-radius: var(--ps-radius-xl);">
                                     <div class="d-flex justify-content-between align-items-start mb-2">
                                         <div>
-                                            <span class="badge bg-primary bg-opacity-75 rounded-pill px-2 py-1 small me-1">@court.SportType</span>
+                                            <span class="badge bg-primary-subtle text-primary rounded-pill px-2 py-1 small me-1">@Loc.Sport(court.SportType)</span>
                                             @if (court.IsIndoor)
                                             {
-                                                <span class="badge bg-info bg-opacity-50 text-light rounded-pill px-2 py-1 small">Indoor</span>
+                                                <span class="badge bg-info-subtle text-info rounded-pill px-2 py-1 small">@Loc["Details.Court.Indoor"]</span>
                                             }
                                         </div>
                                         @if (court.IsActive)
                                         {
-                                            <span class="badge bg-success bg-opacity-75 rounded-pill px-2 py-1 small">Active</span>
+                                            <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">@(Loc.IsArabic ? "متاح" : "Active")</span>
                                         }
                                         else
                                         {
-                                            <span class="badge bg-danger bg-opacity-75 rounded-pill px-2 py-1 small">Inactive</span>
+                                            <span class="badge bg-danger-subtle text-danger rounded-pill px-2 py-1 small">@(Loc.IsArabic ? "متوقف" : "Inactive")</span>
                                         }
                                     </div>
-                                    <h5 class="text-white fw-bold mb-1">@court.Name</h5>
-                                    <div class="text-secondary small mb-2">@court.SurfaceType &bull; Capacity: @court.Capacity players</div>
+                                    <h5 class="text-dark fw-bold mb-1">@court.Name</h5>
+                                    <div class="text-muted small mb-2">@court.SurfaceType &bull; @Loc.T("Details.Court.Capacity", court.Capacity)</div>
 
-                                    <div class="h5 text-warning fw-bold mb-3 mt-auto">
-                                        @court.PricePerHour.ToString("0.00") <span class="fs-6 text-secondary fw-normal">EGP / hr</span>
+                                    <div class="h5 text-primary fw-bold mb-3 mt-auto">
+                                        @Loc.FormatCurrency(court.PricePerHour) <span class="fs-6 text-muted fw-normal">@Loc["Venues.Card.PerHour"]</span>
                                     </div>
 
-                                    <div class="d-flex gap-2 pt-2 border-top border-dark">
-                                        <button type="button" class="btn btn-outline-primary btn-sm flex-grow-1 rounded-pill" data-bs-toggle="collapse" data-bs-target="#editCourt_@court.Id">
-                                            <i class="bi bi-pencil me-1"></i> Edit
+                                    <div class="d-flex gap-2 pt-2 border-top">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm flex-grow-1 rounded-pill" data-bs-toggle="collapse" data-bs-target="#editCourt_@court.Id">
+                                            <i class="bi bi-pencil me-1"></i> @Loc["Action.Edit"]
                                         </button>
-                                        <form method="post" asp-page-handler="DeactivateCourt" asp-route-id="@Model.Id" asp-route-courtId="@court.Id" onsubmit="return confirm('Deactivate this court?');">
+                                        <form method="post" asp-page-handler="DeactivateCourt" asp-route-id="@Model.Id" asp-route-courtId="@court.Id" onsubmit="return confirm('@(Loc.IsArabic ? "إيقاف تفعيل هذا الملعب؟" : "Deactivate this court?")');">
                                             <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill px-3" title="Deactivate Court">
                                                 <i class="bi bi-pause-circle"></i>
                                             </button>
@@ -345,43 +359,43 @@
 
                                     <!-- Edit Court Collapse -->
                                     <div class="collapse mt-3" id="editCourt_@court.Id">
-                                        <div class="p-3 rounded-3 border border-secondary bg-dark">
-                                            <h6 class="text-white fw-bold small mb-2">Edit Court</h6>
+                                        <div class="p-3 rounded-3 border bg-light">
+                                            <h6 class="text-dark fw-bold small mb-2">@Loc["Action.Edit"] @court.Name</h6>
                                             <form method="post" asp-page-handler="UpdateCourt" asp-route-id="@Model.Id" asp-route-courtId="@court.Id">
                                                 <div class="mb-2">
-                                                    <label class="text-secondary" style="font-size:0.75rem;">Court Name</label>
-                                                    <input type="text" name="EditCourtInput.Name" value="@court.Name" class="form-control form-control-sm bg-black text-white border-dark" required />
+                                                    <label class="text-muted small">@Loc["Owner.Court.Name"]</label>
+                                                    <input type="text" name="EditCourtInput.Name" value="@court.Name" class="form-control form-control-sm bg-white border" required />
                                                 </div>
                                                 <div class="mb-2">
-                                                    <label class="text-secondary" style="font-size:0.75rem;">Sport</label>
-                                                    <select name="EditCourtInput.SportType" class="form-select form-select-sm bg-black text-white border-dark" required>
-                                                        <option value="@court.SportType" selected>@court.SportType</option>
-                                                        <option value="Football">Football</option>
-                                                        <option value="Padel">Padel</option>
-                                                        <option value="Tennis">Tennis</option>
-                                                        <option value="Basketball">Basketball</option>
-                                                        <option value="Volleyball">Volleyball</option>
-                                                        <option value="Badminton">Badminton</option>
+                                                    <label class="text-muted small">@Loc["Owner.Court.Sport"]</label>
+                                                    <select name="EditCourtInput.SportType" class="form-select form-select-sm bg-white border" required>
+                                                        <option value="@court.SportType" selected>@Loc.Sport(court.SportType)</option>
+                                                        <option value="Football">⚽ @Loc.Sport("Football")</option>
+                                                        <option value="Padel">🎾 @Loc.Sport("Padel")</option>
+                                                        <option value="Tennis">🏸 @Loc.Sport("Tennis")</option>
+                                                        <option value="Basketball">🏀 @Loc.Sport("Basketball")</option>
+                                                        <option value="Volleyball">🏐 @Loc.Sport("Volleyball")</option>
+                                                        <option value="Badminton">🏸 @Loc.Sport("Badminton")</option>
                                                     </select>
                                                 </div>
                                                 <div class="mb-2">
-                                                    <label class="text-secondary" style="font-size:0.75rem;">Price / Hour (EGP)</label>
-                                                    <input type="number" step="10" min="1" name="EditCourtInput.PricePerHour" value="@court.PricePerHour" class="form-control form-control-sm bg-black text-white border-dark" required />
+                                                    <label class="text-muted small">@Loc["Owner.Court.Price"]</label>
+                                                    <input type="number" step="10" min="1" name="EditCourtInput.PricePerHour" value="@court.PricePerHour" class="form-control form-control-sm bg-white border" required />
                                                 </div>
                                                 <div class="mb-2">
-                                                    <label class="text-secondary" style="font-size:0.75rem;">Surface</label>
-                                                    <input type="text" name="EditCourtInput.SurfaceType" value="@court.SurfaceType" class="form-control form-control-sm bg-black text-white border-dark" />
+                                                    <label class="text-muted small">@Loc["Owner.Court.Surface"]</label>
+                                                    <input type="text" name="EditCourtInput.SurfaceType" value="@court.SurfaceType" class="form-control form-control-sm bg-white border" />
                                                 </div>
                                                 <div class="mb-2">
-                                                    <label class="text-secondary" style="font-size:0.75rem;">Capacity</label>
-                                                    <input type="number" name="EditCourtInput.Capacity" value="@court.Capacity" class="form-control form-control-sm bg-black text-white border-dark" />
+                                                    <label class="text-muted small">@Loc["Owner.Court.Capacity"]</label>
+                                                    <input type="number" name="EditCourtInput.Capacity" value="@court.Capacity" class="form-control form-control-sm bg-white border" />
                                                 </div>
                                                 <div class="form-check form-switch mb-2">
                                                     <input class="form-check-input" type="checkbox" name="EditCourtInput.IsActive" value="true" @(court.IsActive ? "checked" : "") id="active_@court.Id" />
-                                                    <label class="form-check-label text-light" style="font-size:0.75rem;" for="active_@court.Id">Active</label>
+                                                    <label class="form-check-label text-dark small" for="active_@court.Id">@(Loc.IsArabic ? "نشط ومتاح للحجز" : "Active")</label>
                                                 </div>
                                                 <div class="d-flex justify-content-end gap-1 mt-2">
-                                                    <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3">Update</button>
+                                                    <button type="submit" class="ps-btn ps-btn-primary ps-btn-sm rounded-pill px-3">@Loc["Action.Save"]</button>
                                                 </div>
                                             </form>
                                         </div>
@@ -396,11 +410,11 @@
             <!-- TAB 3: AMENITIES -->
             @if (Model.ActiveTab == "amenities")
             {
-                <div class="card border-0 p-4 shadow-sm" style="background: rgba(22, 27, 34, 0.9); border: 1px solid rgba(255,255,255,0.08) !important; border-radius: 18px;">
+                <div class="card border-0 p-4 p-md-5 shadow-sm" style="border-radius: var(--ps-radius-xl);">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <div>
-                            <h5 class="text-white fw-bold mb-1">Facility Amenities</h5>
-                            <p class="text-secondary small mb-0">Select amenities to highlight comfort, equipment, and services on your facility page.</p>
+                            <h5 class="text-dark fw-bold mb-1">@Loc["Details.Amenities.Title"]</h5>
+                            <p class="text-muted small mb-0">@(Loc.IsArabic ? "حدد جميع المرافق والخدمات المتوفرة لتظهر في صفحة المنشأة لجذب اللاعبين." : "Select amenities to highlight comfort, equipment, and services on your facility page.")</p>
                         </div>
                     </div>
                     <form method="post" asp-page-handler="UpdateAmenities" asp-route-id="@Model.Id">
@@ -408,22 +422,22 @@
                             @foreach (var amenity in Model.AvailableAmenities)
                             {
                                 <div class="col-sm-6 col-md-4">
-                                    <div class="p-3 rounded-3 border border-dark bg-dark d-flex align-items-center">
+                                    <div class="p-3 rounded-3 border bg-light d-flex align-items-center">
                                         <input class="form-check-input me-3 mt-0" type="checkbox" name="SelectedAmenityIds" value="@amenity.Id" id="am_@amenity.Id" @(amenity.IsSelected ? "checked" : "") />
-                                        <label class="form-check-label text-light d-flex align-items-center cursor-pointer w-100" for="am_@amenity.Id">
+                                        <label class="form-check-label text-dark d-flex align-items-center cursor-pointer w-100" for="am_@amenity.Id">
                                             <i class="bi @amenity.Icon text-primary fs-5 me-2"></i>
                                             <div>
-                                                <div class="fw-semibold">@amenity.Name</div>
-                                                <div class="text-secondary small">@amenity.Category</div>
+                                                <div class="fw-semibold">@Loc.Amenity(amenity.Name)</div>
+                                                <div class="text-muted small">@amenity.Category</div>
                                             </div>
                                         </label>
                                     </div>
                                 </div>
                             }
                         </div>
-                        <div class="d-flex justify-content-end mt-4 pt-3 border-top border-dark">
-                            <button type="submit" class="btn btn-primary rounded-pill px-4 fw-semibold">
-                                <i class="bi bi-check2-circle me-1"></i> Save Amenities
+                        <div class="d-flex justify-content-end mt-4 pt-3 border-top">
+                            <button type="submit" class="ps-btn ps-btn-primary rounded-pill px-4 fw-semibold">
+                                <i class="bi bi-check2-circle me-1"></i> @Loc["Action.Save"]
                             </button>
                         </div>
                     </form>
@@ -434,54 +448,56 @@
             @if (Model.ActiveTab == "images")
             {
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="text-white fw-bold mb-0">Facility Photos (@Model.Venue.Images.Count)</h5>
-                    <button type="button" class="btn btn-primary rounded-pill px-3 py-2 small fw-semibold" data-bs-toggle="collapse" data-bs-target="#addImageCollapse">
-                        <i class="bi bi-plus-lg me-1"></i> Add Photo
+                    <h5 class="text-dark fw-bold mb-0">@Loc["Owner.Manage.Tab.Gallery"] (@Model.Venue.Images.Count)</h5>
+                    <button type="button" class="ps-btn ps-btn-primary rounded-pill px-3 py-2 small fw-semibold" data-bs-toggle="collapse" data-bs-target="#addImageCollapse">
+                        <i class="bi bi-plus-lg me-1"></i> @(Loc.IsArabic ? "إضافة صورة" : "Add Photo")
                     </button>
                 </div>
 
                 <!-- Add Image Collapse Form -->
                 <div class="collapse mb-4" id="addImageCollapse">
-                    <div class="card border-0 p-4 shadow-sm" style="background: rgba(22, 27, 34, 0.95); border: 1px solid rgba(59, 130, 246, 0.3) !important; border-radius: 18px;">
-                        <h6 class="text-primary fw-bold mb-3"><i class="bi bi-cloud-arrow-up me-2"></i>Add Photo to Gallery</h6>
+                    <div class="card border-0 p-4 shadow-sm" style="border-radius: var(--ps-radius-xl);">
+                        <h6 class="text-primary fw-bold mb-3"><i class="bi bi-cloud-arrow-up me-2"></i>@(Loc.IsArabic ? "إضافة صورة جديدة للمنشأة" : "Add Photo to Gallery")</h6>
                         <form method="post" asp-page-handler="AddImage" asp-route-id="@Model.Id">
                             <div class="row g-3">
                                 <div class="col-md-8">
-                                    <label class="form-label text-secondary small fw-semibold">Image URL or Asset Path <span class="text-danger">*</span></label>
-                                    <input type="text" asp-for="NewImageInput.ImageUrl" class="form-control bg-dark text-white border-secondary" placeholder="e.g. /images/football.jpg or https://..." required />
+                                    <label class="form-label text-dark small fw-semibold mb-1">@(Loc.IsArabic ? "مسار أو رابط الصورة" : "Image URL or Asset Path") <span class="text-danger">*</span></label>
+                                    <span class="ps-form-example mb-2">@(Loc.IsArabic ? "مثال: /images/venues/padel/padel-court-01.jpg" : "e.g. /images/venues/padel/padel-court-01.jpg or https://...")</span>
+                                    <input type="text" asp-for="NewImageInput.ImageUrl" class="form-control bg-light border-0 shadow-none py-2 rounded-3" placeholder="/images/venues/..." required />
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label text-secondary small fw-semibold">Display Order</label>
-                                    <input type="number" min="0" asp-for="NewImageInput.DisplayOrder" class="form-control bg-dark text-white border-secondary" placeholder="1" />
+                                    <label class="form-label text-dark small fw-semibold mb-1">@(Loc.IsArabic ? "ترتيب العرض" : "Display Order")</label>
+                                    <input type="number" min="0" asp-for="NewImageInput.DisplayOrder" class="form-control bg-light border-0 shadow-none py-2 rounded-3" placeholder="1" />
                                 </div>
                                 <div class="col-12">
-                                    <label class="form-label text-secondary small fw-semibold">Caption</label>
-                                    <input type="text" asp-for="NewImageInput.Caption" class="form-control bg-dark text-white border-secondary" placeholder="e.g. Pitch 1 Floodlit night view" />
+                                    <label class="form-label text-dark small fw-semibold mb-1">@(Loc.IsArabic ? "عنوان أو وصف مختصر للصورة" : "Caption")</label>
+                                    <span class="ps-form-example mb-2">@(Loc.IsArabic ? "مثال: ملعب البادل البانورامي تحت الإضاءة الليلية" : "e.g. Center Padel Court under tournament floodlights")</span>
+                                    <input type="text" asp-for="NewImageInput.Caption" class="form-control bg-light border-0 shadow-none rounded-3" placeholder="@(Loc.IsArabic ? "وصف الصورة..." : "Image caption...")" />
                                 </div>
                                 <div class="col-12">
                                     <div class="form-check form-switch">
                                         <input class="form-check-input" type="checkbox" asp-for="NewImageInput.IsPrimary" id="isPrimaryCheck" />
-                                        <label class="form-check-label text-light small" for="isPrimaryCheck">Set as primary cover photo</label>
+                                        <label class="form-check-label text-dark small" for="isPrimaryCheck">@(Loc.IsArabic ? "تعيين كصورة غلاف رئيسية" : "Set as primary cover photo")</label>
                                     </div>
                                 </div>
                             </div>
-                            <div class="d-flex justify-content-end gap-2 mt-3 pt-2">
-                                <button type="button" class="btn btn-outline-secondary rounded-pill px-3 btn-sm" data-bs-toggle="collapse" data-bs-target="#addImageCollapse">Cancel</button>
-                                <button type="submit" class="btn btn-primary rounded-pill px-4 btn-sm fw-semibold">
-                                    <i class="bi bi-check-lg me-1"></i> Add Photo
+                            <div class="d-flex justify-content-end gap-2 mt-3 pt-2 border-top">
+                                <button type="button" class="btn btn-light rounded-pill px-3 btn-sm" data-bs-toggle="collapse" data-bs-target="#addImageCollapse">@Loc["Action.Cancel"]</button>
+                                <button type="submit" class="ps-btn ps-btn-primary rounded-pill px-4 btn-sm fw-semibold">
+                                    <i class="bi bi-check-lg me-1"></i> @(Loc.IsArabic ? "حفظ الصورة" : "Add Photo")
                                 </button>
                             </div>
                         </form>
                     </div>
                 </div>
 
-                <!-- Images Grid -->
+                <!-- Images Grid (16:9 Aspect Ratio) -->
                 @if (Model.Venue.Images.Count == 0)
                 {
-                    <div class="card border-0 text-center p-5" style="background: rgba(22, 27, 34, 0.6); border: 1px dashed rgba(255,255,255,0.15) !important; border-radius: 18px;">
-                        <div class="display-4 text-secondary mb-2"><i class="bi bi-images"></i></div>
-                        <h5 class="text-white fw-bold mb-1">No Photos Added Yet</h5>
-                        <p class="text-secondary small mb-3">Add photos of your fields, locker rooms, and floodlights to attract more players.</p>
+                    <div class="card border-0 shadow-sm text-center p-5" style="border-radius: var(--ps-radius-xl);">
+                        <div class="display-4 text-muted mb-2"><i class="bi bi-images"></i></div>
+                        <h5 class="text-dark fw-bold mb-1">@(Loc.IsArabic ? "لا توجد صور مضافة بعد" : "No Photos Added Yet")</h5>
+                        <p class="text-muted small mb-3">@(Loc.IsArabic ? "أضف صور الملاعب والاستراحة والإضاءة لجذب عدد أكبر من اللاعبين." : "Add photos of your fields, locker rooms, and floodlights to attract more players.")</p>
                     </div>
                 }
                 else
@@ -490,9 +506,9 @@
                         @foreach (var img in Model.Venue.Images)
                         {
                             <div class="col-sm-6 col-md-4 col-lg-3">
-                                <div class="card border-0 shadow-sm overflow-hidden h-100" style="background: rgba(22, 27, 34, 0.85); border: 1px solid rgba(255,255,255,0.08) !important; border-radius: 14px;">
-                                    <div class="position-relative" style="height: 160px; background: #000;">
-                                        <img src="@img.ImageUrl" alt="@img.Caption" class="w-100 h-100 object-fit-cover" onerror="this.src='/images/venue.jpg'" />
+                                <div class="card border-0 shadow-sm overflow-hidden h-100" style="border-radius: 14px;">
+                                    <div class="position-relative ps-venue-card-img-wrapper" style="height: 160px;">
+                                        <img src="@img.ImageUrl" alt="@img.Caption" class="w-100 h-100 object-fit-cover" data-fallback="/images/venues/fallbacks/venue-fallback.jpg" onerror="PlaySpot.ImageFallback.handleError(this, '/images/venues/fallbacks/venue-fallback.jpg')" />
                                         @if (img.IsPrimary)
                                         {
                                             <span class="badge bg-warning text-dark position-absolute top-0 start-0 m-2 rounded-pill px-2 py-1 small fw-bold">
@@ -503,20 +519,20 @@
                                             #@img.DisplayOrder
                                         </span>
                                     </div>
-                                    <div class="card-body p-2 d-flex flex-column">
-                                        <div class="text-light small text-truncate mb-2" title="@img.Caption">
-                                            @(string.IsNullOrEmpty(img.Caption) ? "No caption" : img.Caption)
+                                    <div class="card-body p-3 d-flex flex-column">
+                                        <div class="text-dark small text-truncate mb-2" title="@img.Caption">
+                                            @(string.IsNullOrEmpty(img.Caption) ? (Loc.IsArabic ? "صورة بدون وصف" : "No caption") : img.Caption)
                                         </div>
                                         <div class="d-flex gap-1 mt-auto">
                                             @if (!img.IsPrimary)
                                             {
                                                 <form method="post" asp-page-handler="SetPrimaryImage" asp-route-id="@Model.Id" asp-route-imageId="@img.Id" class="flex-grow-1">
                                                     <button type="submit" class="btn btn-outline-warning btn-sm w-100 rounded-pill py-1 small" title="Set as primary cover">
-                                                        Cover
+                                                        @(Loc.IsArabic ? "تعيين غلاف" : "Cover")
                                                     </button>
                                                 </form>
                                             }
-                                            <form method="post" asp-page-handler="DeleteImage" asp-route-id="@Model.Id" asp-route-imageId="@img.Id" onsubmit="return confirm('Delete this image?');">
+                                            <form method="post" asp-page-handler="DeleteImage" asp-route-id="@Model.Id" asp-route-imageId="@img.Id" onsubmit="return confirm('@(Loc.IsArabic ? "حذف هذه الصورة؟" : "Delete this image?")');">
                                                 <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill px-2 py-1 small" title="Delete image">
                                                     <i class="bi bi-trash"></i>
                                                 </button>
@@ -533,21 +549,21 @@
             <!-- TAB 5: OPERATING HOURS -->
             @if (Model.ActiveTab == "hours")
             {
-                <div class="card border-0 p-4 shadow-sm" style="background: rgba(22, 27, 34, 0.9); border: 1px solid rgba(255,255,255,0.08) !important; border-radius: 18px;">
+                <div class="card border-0 p-4 p-md-5 shadow-sm" style="border-radius: var(--ps-radius-xl);">
                     <div class="mb-3">
-                        <h5 class="text-white fw-bold mb-1">Weekly Operating Schedule</h5>
-                        <p class="text-secondary small mb-0">Set default operating hours for each day of the week. Time slot booking availability will be derived from these hours.</p>
+                        <h5 class="text-dark fw-bold mb-1">@Loc["Details.Hours.Title"]</h5>
+                        <p class="text-muted small mb-0">@(Loc.IsArabic ? "حدد مواعيد الفتح والإغلاق لكل يوم من أيام الأسبوع. تشتق فترات الحجز المتاحة تلقائياً من هذا الجدول." : "Set default operating hours for each day of the week. Time slot booking availability will be derived from these hours.")</p>
                     </div>
 
                     <form method="post" asp-page-handler="UpdateOperatingHours" asp-route-id="@Model.Id">
                         <div class="table-responsive">
-                            <table class="table table-dark table-hover align-middle mb-0" style="background: transparent;">
-                                <thead>
-                                    <tr class="text-secondary small border-dark">
-                                        <th>Day of Week</th>
-                                        <th style="width: 200px;">Opening Time</th>
-                                        <th style="width: 200px;">Closing Time</th>
-                                        <th style="width: 150px;" class="text-center">Closed Today</th>
+                            <table class="table align-middle mb-0">
+                                <thead class="table-light small text-muted">
+                                    <tr>
+                                        <th>@(Loc.IsArabic ? "يوم الأسبوع" : "Day of Week")</th>
+                                        <th style="width: 200px;">@(Loc.IsArabic ? "وقت الفتح" : "Opening Time")</th>
+                                        <th style="width: 200px;">@(Loc.IsArabic ? "وقت الإغلاق" : "Closing Time")</th>
+                                        <th style="width: 150px;" class="text-center">@(Loc.IsArabic ? "مغلق طوال اليوم" : "Closed Today")</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -562,16 +578,16 @@
                                         var close = existing != null ? existing.CloseTime : "23:00";
                                         var isClosed = existing != null && existing.IsClosed;
 
-                                        <tr class="border-dark">
-                                            <td class="fw-semibold text-white">
+                                        <tr>
+                                            <td class="fw-semibold text-dark">
                                                 <input type="hidden" name="hours[@i].DayOfWeek" value="@day" />
-                                                @day
+                                                @Loc.DayOfWeek(day)
                                             </td>
                                             <td>
-                                                <input type="time" name="hours[@i].OpenTime" value="@open" class="form-control form-control-sm bg-dark text-white border-secondary" />
+                                                <input type="time" name="hours[@i].OpenTime" value="@open" class="form-control form-control-sm bg-light border-0 shadow-none" />
                                             </td>
                                             <td>
-                                                <input type="time" name="hours[@i].CloseTime" value="@close" class="form-control form-control-sm bg-dark text-white border-secondary" />
+                                                <input type="time" name="hours[@i].CloseTime" value="@close" class="form-control form-control-sm bg-light border-0 shadow-none" />
                                             </td>
                                             <td class="text-center">
                                                 <div class="form-check d-inline-block">
@@ -584,9 +600,9 @@
                                 </tbody>
                             </table>
                         </div>
-                        <div class="d-flex justify-content-end mt-4 pt-3 border-top border-dark">
-                            <button type="submit" class="btn btn-primary rounded-pill px-4 fw-semibold">
-                                <i class="bi bi-save me-1"></i> Save Operating Schedule
+                        <div class="d-flex justify-content-end mt-4 pt-3 border-top">
+                            <button type="submit" class="ps-btn ps-btn-primary rounded-pill px-4 fw-semibold">
+                                <i class="bi bi-save me-1"></i> @Loc["Action.Save"]
                             </button>
                         </div>
                     </form>

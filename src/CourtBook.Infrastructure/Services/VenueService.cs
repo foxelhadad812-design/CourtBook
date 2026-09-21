@@ -219,11 +219,13 @@ public class VenueService : IVenueService
                 Id = Guid.NewGuid(),
                 ImageUrl = sp.ToLower() switch
                 {
-                    "football" => "/images/football.jpg",
-                    "padel" => "/images/padel.jpg",
-                    "tennis" => "/images/tennis.jpg",
-                    "basketball" => "/images/basketball.jpg",
-                    _ => "/images/venue.jpg"
+                    "football" => "/images/venues/football/football-pitch-01.jpg",
+                    "padel" => "/images/venues/padel/padel-court-01.jpg",
+                    "tennis" => "/images/venues/tennis/tennis-clay-01.jpg",
+                    "basketball" => "/images/venues/basketball/basketball-indoor-01.jpg",
+                    "volleyball" => "/images/venues/volleyball/volleyball-indoor-01.jpg",
+                    "badminton" => "/images/venues/badminton/badminton-court-01.jpg",
+                    _ => "/images/venues/facilities/complex-exterior-01.jpg"
                 },
                 IsPrimary = idx == 0,
                 DisplayOrder = idx,

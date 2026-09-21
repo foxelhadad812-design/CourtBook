@@ -1,7 +1,7 @@
 @page "/Profile"
 @model CourtBook.Web.Pages.Profile.IndexModel
 @{
-    ViewData["Title"] = "My Profile";
+    ViewData["Title"] = $"{Loc["Profile.Title"]} — {Loc["Brand.Name"]}";
     var p = Model.Profile;
     var initials = "PS";
     if (p != null && !string.IsNullOrWhiteSpace(p.Name))
@@ -13,7 +13,7 @@
     }
 
     var allCities = new[] { "Cairo", "Giza", "Alexandria", "New Cairo", "6th of October", "Sheikh Zayed", "Maadi", "Zamalek", "Nasr City", "Heliopolis" };
-    var allDays = new[] { "Saturday", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday" };
+    var allDays = new[] { DayOfWeek.Saturday, DayOfWeek.Sunday, DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday };
     var allTimes = new[] { "Morning", "Afternoon", "Evening", "Night" };
 }
 
@@ -40,24 +40,24 @@
     @if (p != null)
     {
         <!-- Profile Showcase Hero Card -->
-        <div class="card bg-dark border-secondary border-opacity-25 shadow-sm rounded-4 p-4 mb-4">
+        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4" style="border-radius: var(--ps-radius-xl);">
             <div class="d-flex flex-column flex-md-row align-items-center gap-4 text-center text-md-start">
                 <!-- Avatar Initials Badge -->
-                <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold fs-2 text-black shadow"
-                     style="width: 88px; height: 88px; background: linear-gradient(135deg, var(--ps-primary, #00e5ff) 0%, #3b82f6 100%);">
+                <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold fs-2 text-white shadow"
+                     style="width: 88px; height: 88px; background: linear-gradient(135deg, var(--ps-primary, #2563EB) 0%, #3b82f6 100%);">
                     @initials
                 </div>
 
                 <!-- Identity Details -->
                 <div class="flex-grow-1">
                     <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-md-start gap-2 mb-1">
-                        <h2 class="h3 fw-bold text-light mb-0">@p.Name</h2>
-                        <span class="badge bg-primary bg-opacity-20 text-primary border border-primary border-opacity-25 rounded-pill px-3 py-1 small">
+                        <h2 class="h3 fw-bold text-dark mb-0">@p.Name</h2>
+                        <span class="badge bg-primary-subtle text-primary border border-primary border-opacity-25 rounded-pill px-3 py-1 small">
                             <i class="bi bi-person-badge me-1"></i>@p.Role
                         </span>
                         @if (!string.IsNullOrWhiteSpace(p.SkillLevel))
                         {
-                            <span class="badge bg-secondary bg-opacity-25 text-light border border-secondary border-opacity-25 rounded-pill px-3 py-1 small">
+                            <span class="badge bg-light text-dark border rounded-pill px-3 py-1 small">
                                 <i class="bi bi-award me-1 text-warning"></i>@p.SkillLevel
                             </span>
                         }
@@ -69,19 +69,19 @@
                         {
                             <span><i class="bi bi-telephone me-1 text-primary"></i>@p.Phone</span>
                         }
-                        <span><i class="bi bi-calendar-check me-1 text-primary"></i>Member since @p.MemberSince.ToString("MMM yyyy")</span>
+                        <span><i class="bi bi-calendar-check me-1 text-primary"></i>@(Loc.IsArabic ? "عضو منذ " : "Member since ") @p.MemberSince.ToString("MMM yyyy")</span>
                     </div>
                 </div>
 
                 <!-- Navigation Tabs Trigger Buttons -->
                 <div class="d-flex gap-2">
                     <a href="/Profile?tab=overview" 
-                       class="btn @(Model.ActiveTab == "overview" ? "btn-primary text-black fw-bold" : "btn-outline-light") rounded-pill px-3 btn-sm">
-                        <i class="bi bi-person-lines-fill me-1"></i> Overview
+                       class="btn @(Model.ActiveTab == "overview" ? "btn-primary text-white fw-bold" : "btn-outline-secondary") rounded-pill px-3 btn-sm">
+                        <i class="bi bi-person-lines-fill me-1"></i> @Loc["Profile.Tab.Overview"]
                     </a>
                     <a href="/Profile?tab=edit" 
-                       class="btn @(Model.ActiveTab == "edit" ? "btn-primary text-black fw-bold" : "btn-outline-light") rounded-pill px-3 btn-sm">
-                        <i class="bi bi-pencil-square me-1"></i> Edit Profile
+                       class="btn @(Model.ActiveTab == "edit" ? "btn-primary text-white fw-bold" : "btn-outline-secondary") rounded-pill px-3 btn-sm">
+                        <i class="bi bi-pencil-square me-1"></i> @Loc["Profile.Tab.Edit"]
                     </a>
                 </div>
             </div>
@@ -96,96 +96,96 @@
                     <!-- Key Player Metrics -->
                     <div class="row g-3 mb-4">
                         <div class="col-sm-4">
-                            <div class="card bg-dark border-secondary border-opacity-25 shadow-sm rounded-4 p-3 text-center">
-                                <div class="text-muted small mb-1">Matches Played</div>
+                            <div class="card border-0 shadow-sm rounded-4 p-3 text-center" style="border-radius: var(--ps-radius-xl);">
+                                <div class="text-muted small mb-1">@Loc["Profile.Stats.Matches"]</div>
                                 <div class="fw-bold fs-3 text-primary">@p.MatchesPlayedCount</div>
                             </div>
                         </div>
 
                         <div class="col-sm-4">
-                            <div class="card bg-dark border-secondary border-opacity-25 shadow-sm rounded-4 p-3 text-center">
-                                <div class="text-muted small mb-1">Skill Level</div>
-                                <div class="fw-bold fs-4 text-warning">@(string.IsNullOrWhiteSpace(p.SkillLevel) ? "Beginner" : p.SkillLevel)</div>
+                            <div class="card border-0 shadow-sm rounded-4 p-3 text-center" style="border-radius: var(--ps-radius-xl);">
+                                <div class="text-muted small mb-1">@Loc["Profile.Stats.Skill"]</div>
+                                <div class="fw-bold fs-4 text-warning">@(string.IsNullOrWhiteSpace(p.SkillLevel) ? Loc["Profile.Field.Skill.Beginner"] : p.SkillLevel)</div>
                             </div>
                         </div>
 
                         <div class="col-sm-4">
-                            <div class="card bg-dark border-secondary border-opacity-25 shadow-sm rounded-4 p-3 text-center">
-                                <div class="text-muted small mb-1">Primary Sport</div>
-                                <div class="fw-bold fs-4 text-info">@(string.IsNullOrWhiteSpace(p.PreferredSport) ? "Football" : p.PreferredSport)</div>
+                            <div class="card border-0 shadow-sm rounded-4 p-3 text-center" style="border-radius: var(--ps-radius-xl);">
+                                <div class="text-muted small mb-1">@Loc["Profile.Stats.Sport"]</div>
+                                <div class="fw-bold fs-4 text-info">@(string.IsNullOrWhiteSpace(p.PreferredSport) ? Loc.Sport("Football") : Loc.Sport(p.PreferredSport))</div>
                             </div>
                         </div>
                     </div>
 
                     <!-- About / Bio Card -->
-                    <div class="card bg-dark border-secondary border-opacity-25 shadow-sm rounded-4 p-4 mb-4">
-                        <h5 class="fw-bold text-light mb-3 d-flex align-items-center">
-                            <i class="bi bi-card-text text-primary me-2"></i>About Player
+                    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4" style="border-radius: var(--ps-radius-xl);">
+                        <h5 class="fw-bold text-dark mb-3 d-flex align-items-center">
+                            <i class="bi bi-card-text text-primary me-2"></i>@Loc["Profile.Field.Bio"]
                         </h5>
                         <p class="text-muted mb-0">
-                            @(string.IsNullOrWhiteSpace(p.Bio) ? "No player bio added yet. Click 'Edit Profile' to share your favorite playing style, position, or team preferences." : p.Bio)
+                            @(string.IsNullOrWhiteSpace(p.Bio) ? (Loc.IsArabic ? "لم تتم إضافة نبذة شخصية بعد. اضغط 'تعديل البيانات' لإضافة أسلوب لعبك ورياضتك المفضلة." : "No player bio added yet. Click 'Edit Profile' to share your favorite playing style, position, or team preferences.") : p.Bio)
                         </p>
                     </div>
 
                     <!-- Player Match Preferences Card -->
-                    <div class="card bg-dark border-secondary border-opacity-25 shadow-sm rounded-4 p-4">
-                        <h5 class="fw-bold text-light mb-3 d-flex align-items-center">
-                            <i class="bi bi-sliders text-primary me-2"></i>Match & Facility Preferences
+                    <div class="card border-0 shadow-sm rounded-4 p-4" style="border-radius: var(--ps-radius-xl);">
+                        <h5 class="fw-bold text-dark mb-3 d-flex align-items-center">
+                            <i class="bi bi-sliders text-primary me-2"></i>@(Loc.IsArabic ? "تفضيلات المباريات والملاعب" : "Match & Facility Preferences")
                         </h5>
 
                         <div class="mb-3">
-                            <div class="text-muted small mb-2 fw-semibold">Preferred Locations & Cities:</div>
+                            <div class="text-muted small mb-2 fw-semibold">@Loc["Profile.Field.PreferredCities"]:</div>
                             <div class="d-flex flex-wrap gap-2">
                                 @if (p.Preferences?.PreferredCities?.Any() == true)
                                 {
                                     @foreach (var city in p.Preferences.PreferredCities)
                                     {
-                                        <span class="badge bg-secondary bg-opacity-25 text-light border border-secondary border-opacity-25 px-3 py-2 rounded-pill small">
+                                        <span class="badge bg-light text-dark border px-3 py-2 rounded-pill small">
                                             <i class="bi bi-geo-alt me-1 text-primary"></i>@city
                                         </span>
                                     }
                                 }
                                 else
                                 {
-                                    <span class="text-muted small fst-italic">No location preferences set (defaults to Cairo).</span>
+                                    <span class="text-muted small fst-italic">@(Loc.IsArabic ? "لم يتم تحديد مناطق مفضلة (الافتراضي: القاهرة والجيزة)." : "No location preferences set (defaults to Cairo).")</span>
                                 }
                             </div>
                         </div>
 
-                        <div class="mb-3 pt-3 border-top border-secondary border-opacity-10">
-                            <div class="text-muted small mb-2 fw-semibold">Preferred Playing Days:</div>
+                        <div class="mb-3 pt-3 border-top">
+                            <div class="text-muted small mb-2 fw-semibold">@Loc["Profile.Field.PreferredDays"]:</div>
                             <div class="d-flex flex-wrap gap-2">
                                 @if (p.Preferences?.PreferredDays?.Any() == true)
                                 {
                                     @foreach (var day in p.Preferences.PreferredDays)
                                     {
-                                        <span class="badge bg-primary bg-opacity-15 text-primary border border-primary border-opacity-25 px-3 py-2 rounded-pill small">
+                                        <span class="badge bg-primary-subtle text-primary border border-primary border-opacity-25 px-3 py-2 rounded-pill small">
                                             <i class="bi bi-calendar-event me-1"></i>@day
                                         </span>
                                     }
                                 }
                                 else
                                 {
-                                    <span class="text-muted small fst-italic">No preferred days set.</span>
+                                    <span class="text-muted small fst-italic">@(Loc.IsArabic ? "لم يتم تحديد أيام مفضلة." : "No preferred days set.")</span>
                                 }
                             </div>
                         </div>
 
-                        <div class="pt-3 border-top border-secondary border-opacity-10">
-                            <div class="text-muted small mb-2 fw-semibold">Preferred Playing Time of Day:</div>
+                        <div class="pt-3 border-top">
+                            <div class="text-muted small mb-2 fw-semibold">@Loc["Profile.Field.PreferredTimes"]:</div>
                             <div class="d-flex flex-wrap gap-2">
                                 @if (p.Preferences?.PreferredTimeOfDay?.Any() == true)
                                 {
                                     @foreach (var time in p.Preferences.PreferredTimeOfDay)
                                     {
-                                        <span class="badge bg-warning bg-opacity-15 text-warning border border-warning border-opacity-25 px-3 py-2 rounded-pill small">
+                                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning border-opacity-25 px-3 py-2 rounded-pill small">
                                             <i class="bi bi-brightness-high me-1"></i>@time
                                         </span>
                                     }
                                 }
                                 else
                                 {
-                                    <span class="text-muted small fst-italic">No preferred times set.</span>
+                                    <span class="text-muted small fst-italic">@(Loc.IsArabic ? "لم يتم تحديد أوقات مفضلة." : "No preferred times set.")</span>
                                 }
                             </div>
                         </div>
@@ -195,45 +195,45 @@
                 <!-- Right: Quick Actions & Account Info -->
                 <div class="col-12 col-lg-4">
                     <!-- Quick Navigation -->
-                    <div class="card bg-dark border-secondary border-opacity-25 shadow-sm rounded-4 p-4 mb-4">
-                        <h5 class="fw-bold text-light mb-3">Quick Actions</h5>
+                    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4" style="border-radius: var(--ps-radius-xl);">
+                        <h5 class="fw-bold text-dark mb-3">@(Loc.IsArabic ? "روابط سريعة" : "Quick Actions")</h5>
                         <div class="d-grid gap-2">
                             <a href="/Bookings?status=upcoming" class="btn btn-outline-primary text-start rounded-pill py-2">
-                                <i class="bi bi-calendar2-check me-2"></i> View Upcoming Bookings
+                                <i class="bi bi-calendar2-check me-2"></i> @Loc.T("Bookings.Tab.Upcoming", "")
                             </a>
-                            <a href="/Bookings?status=completed" class="btn btn-outline-light text-start rounded-pill py-2">
-                                <i class="bi bi-clock-history me-2"></i> Match History
+                            <a href="/Bookings?status=completed" class="btn btn-outline-secondary text-start rounded-pill py-2">
+                                <i class="bi bi-clock-history me-2"></i> @Loc.T("Bookings.Tab.Completed", "")
                             </a>
-                            <a href="/Venues" class="btn btn-primary text-black fw-bold text-start rounded-pill py-2">
-                                <i class="bi bi-search me-2"></i> Book a Court
+                            <a href="/venues" class="btn btn-primary text-white fw-bold text-start rounded-pill py-2">
+                                <i class="bi bi-search me-2"></i> @Loc["Details.BookCourtCta"]
                             </a>
                         </div>
                     </div>
 
                     <!-- Account Details Card -->
-                    <div class="card bg-dark border-secondary border-opacity-25 shadow-sm rounded-4 p-4">
-                        <h5 class="fw-bold text-light mb-3 d-flex align-items-center">
-                            <i class="bi bi-shield-check text-primary me-2"></i>Account Security
+                    <div class="card border-0 shadow-sm rounded-4 p-4" style="border-radius: var(--ps-radius-xl);">
+                        <h5 class="fw-bold text-dark mb-3 d-flex align-items-center">
+                            <i class="bi bi-shield-check text-primary me-2"></i>@(Loc.IsArabic ? "أمان الحساب" : "Account Security")
                         </h5>
 
-                        <div class="bg-black bg-opacity-25 rounded-3 p-3 border border-secondary border-opacity-10 small mb-3">
+                        <div class="bg-light rounded-3 p-3 border border-light-subtle small mb-3">
                             <div class="d-flex justify-content-between mb-2">
-                                <span class="text-muted">Account Type:</span>
-                                <span class="text-light fw-bold">@p.Role</span>
+                                <span class="text-muted">@Loc["Auth.Register.RoleLabel"]:</span>
+                                <span class="text-dark fw-bold">@p.Role</span>
                             </div>
                             <div class="d-flex justify-content-between mb-2">
                                 <span class="text-muted">Player ID:</span>
                                 <span class="text-muted font-monospace small">@p.UserId.ToString()[..8]...</span>
                             </div>
                             <div class="d-flex justify-content-between">
-                                <span class="text-muted">Email Verified:</span>
-                                <span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>Yes</span>
+                                <span class="text-muted">@(Loc.IsArabic ? "توثيق البريد:" : "Email Verified:")</span>
+                                <span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>@(Loc.IsArabic ? "موثق" : "Yes")</span>
                             </div>
                         </div>
 
-                        <div class="d-flex justify-content-between align-items-center pt-2 border-top border-secondary border-opacity-10">
+                        <div class="d-flex justify-content-between align-items-center pt-2 border-top">
                             <a href="/Logout" class="text-danger small text-decoration-none fw-semibold">
-                                <i class="bi bi-box-arrow-right me-1"></i> Sign out of account
+                                <i class="bi bi-box-arrow-right me-1"></i> @Loc["Nav.SignOut"]
                             </a>
                         </div>
                     </div>
@@ -243,67 +243,72 @@
         else
         {
             <!-- EDIT PROFILE & PREFERENCES TAB -->
-            <div class="card bg-dark border-secondary border-opacity-25 shadow-sm rounded-4 p-4 p-md-5">
-                <div class="mb-4 pb-3 border-bottom border-secondary border-opacity-25">
-                    <h3 class="fw-bold text-light mb-1">Edit Profile & Player Preferences</h3>
-                    <p class="text-muted small mb-0">Update your personal details, playing preferences, and notification settings.</p>
+            <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5" style="border-radius: var(--ps-radius-xl);">
+                <div class="mb-4 pb-3 border-bottom">
+                    <h3 class="fw-bold text-dark mb-1">@Loc["Profile.Tab.Edit"]</h3>
+                    <p class="text-muted small mb-0">@Loc["Profile.Subtitle"]</p>
                 </div>
 
                 <form method="post" asp-page-handler="Update" id="editProfileForm">
                     <div class="row g-4 mb-4">
                         <!-- Full Name -->
                         <div class="col-md-6">
-                            <label asp-for="Form.Name" class="form-label text-light fw-semibold small">Full Name <span class="text-danger">*</span></label>
-                            <input asp-for="Form.Name" class="form-control bg-dark text-light border-secondary border-opacity-50 py-2 rounded-3" placeholder="Enter your full name" required />
+                            <label asp-for="Form.Name" class="form-label text-dark fw-semibold small mb-1">@Loc["Profile.Field.Name"] <span class="text-danger">*</span></label>
+                            <span class="ps-form-helper mb-1">@Loc["Profile.Field.Name.Helper"]</span>
+                            <span class="ps-form-example mb-2">@Loc["Profile.Field.Name.Example"]</span>
+                            <input asp-for="Form.Name" class="form-control bg-light border-0 shadow-none py-2 rounded-3" placeholder="@Loc["Profile.Field.Name.Example"]" required />
                             <span asp-validation-for="Form.Name" class="text-danger small"></span>
                         </div>
 
                         <!-- Phone Number -->
                         <div class="col-md-6">
-                            <label asp-for="Form.Phone" class="form-label text-light fw-semibold small">Phone Number</label>
-                            <input asp-for="Form.Phone" class="form-control bg-dark text-light border-secondary border-opacity-50 py-2 rounded-3" placeholder="e.g. 01012345678" />
+                            <label asp-for="Form.Phone" class="form-label text-dark fw-semibold small mb-1">@Loc["Profile.Field.Phone"]</label>
+                            <span class="ps-form-helper mb-1">@Loc["Profile.Field.Phone.Helper"]</span>
+                            <span class="ps-form-example mb-2">@Loc["Profile.Field.Phone.Example"]</span>
+                            <input asp-for="Form.Phone" class="form-control bg-light border-0 shadow-none py-2 rounded-3" placeholder="@Loc["Profile.Field.Phone.Example"]" />
                             <span asp-validation-for="Form.Phone" class="text-danger small"></span>
                         </div>
 
                         <!-- Bio -->
                         <div class="col-12">
-                            <label asp-for="Form.Bio" class="form-label text-light fw-semibold small">Player Bio</label>
-                            <textarea asp-for="Form.Bio" class="form-control bg-dark text-light border-secondary border-opacity-50 rounded-3" rows="3" placeholder="Share a few words about your sports experience, favorite position, or playing style..."></textarea>
+                            <label asp-for="Form.Bio" class="form-label text-dark fw-semibold small mb-1">@Loc["Profile.Field.Bio"]</label>
+                            <span class="ps-form-helper mb-1">@Loc["Profile.Field.Bio.Helper"]</span>
+                            <span class="ps-form-example mb-2">@Loc["Profile.Field.Bio.Example"]</span>
+                            <textarea asp-for="Form.Bio" class="form-control bg-light border-0 shadow-none rounded-3" rows="3" placeholder="@Loc["Profile.Field.Bio.Example"]"></textarea>
                             <span asp-validation-for="Form.Bio" class="text-danger small"></span>
                         </div>
 
                         <!-- Skill Level -->
                         <div class="col-md-6">
-                            <label asp-for="Form.SkillLevel" class="form-label text-light fw-semibold small">Skill Level</label>
-                            <select asp-for="Form.SkillLevel" class="form-select bg-dark text-light border-secondary border-opacity-50 py-2 rounded-3">
-                                <option value="Beginner">Beginner (مبتدئ)</option>
-                                <option value="Intermediate">Intermediate (متوسط)</option>
-                                <option value="Advanced">Advanced (متقدم)</option>
-                                <option value="Professional">Professional (محترف)</option>
+                            <label asp-for="Form.SkillLevel" class="form-label text-dark fw-semibold small mb-1">@Loc["Profile.Field.SkillLevel"]</label>
+                            <select asp-for="Form.SkillLevel" class="form-select bg-light border-0 shadow-none py-2 rounded-3">
+                                <option value="Beginner">@Loc["Profile.Field.Skill.Beginner"]</option>
+                                <option value="Intermediate">@Loc["Profile.Field.Skill.Intermediate"]</option>
+                                <option value="Advanced">@Loc["Profile.Field.Skill.Advanced"]</option>
                             </select>
                         </div>
 
                         <!-- Preferred Sport -->
                         <div class="col-md-6">
-                            <label asp-for="Form.PreferredSport" class="form-label text-light fw-semibold small">Primary Sport</label>
-                            <select asp-for="Form.PreferredSport" class="form-select bg-dark text-light border-secondary border-opacity-50 py-2 rounded-3">
-                                <option value="Football">⚽ Football</option>
-                                <option value="Padel">🎾 Padel</option>
-                                <option value="Tennis">🎾 Tennis</option>
-                                <option value="Basketball">🏀 Basketball</option>
-                                <option value="Squash">🏸 Squash</option>
-                                <option value="Swimming">🏊 Swimming</option>
+                            <label asp-for="Form.PreferredSport" class="form-label text-dark fw-semibold small mb-1">@Loc["Profile.Stats.Sport"]</label>
+                            <select asp-for="Form.PreferredSport" class="form-select bg-light border-0 shadow-none py-2 rounded-3">
+                                <option value="Football">⚽ @Loc.Sport("Football")</option>
+                                <option value="Padel">🎾 @Loc.Sport("Padel")</option>
+                                <option value="Tennis">🏸 @Loc.Sport("Tennis")</option>
+                                <option value="Basketball">🏀 @Loc.Sport("Basketball")</option>
+                                <option value="Volleyball">🏐 @Loc.Sport("Volleyball")</option>
+                                <option value="Badminton">🏸 @Loc.Sport("Badminton")</option>
                             </select>
                         </div>
                     </div>
 
                     <!-- PREFERENCES SECTION -->
-                    <div class="mb-4 pt-3 border-top border-secondary border-opacity-25">
-                        <h5 class="fw-bold text-primary mb-3">Player Match Preferences</h5>
+                    <div class="mb-4 pt-3 border-top">
+                        <h5 class="fw-bold text-primary mb-3">@(Loc.IsArabic ? "تفضيلات المباريات والملاعب" : "Player Match Preferences")</h5>
 
                         <!-- Preferred Cities -->
                         <div class="mb-4">
-                            <label class="form-label text-light fw-semibold small mb-2">Preferred Cities / Areas:</label>
+                            <label class="form-label text-dark fw-semibold small mb-2">@Loc["Profile.Field.PreferredCities"]:</label>
                             <div class="d-flex flex-wrap gap-2">
                                 @foreach (var city in allCities)
                                 {
@@ -320,15 +325,16 @@
 
                         <!-- Preferred Days -->
                         <div class="mb-4">
-                            <label class="form-label text-light fw-semibold small mb-2">Preferred Playing Days:</label>
+                            <label class="form-label text-dark fw-semibold small mb-2">@Loc["Profile.Field.PreferredDays"]:</label>
                             <div class="d-flex flex-wrap gap-2">
                                 @foreach (var day in allDays)
                                 {
-                                    var isChecked = Model.Form.PreferredDays?.Contains(day, StringComparer.OrdinalIgnoreCase) == true;
+                                    var dayName = day.ToString();
+                                    var isChecked = Model.Form.PreferredDays?.Contains(dayName, StringComparer.OrdinalIgnoreCase) == true;
                                     <div class="form-check-pill">
-                                        <input type="checkbox" name="Form.PreferredDays" value="@day" id="day_@day" class="btn-check" @(isChecked ? "checked" : "") />
-                                        <label class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1" for="day_@day">
-                                            <i class="bi bi-calendar-check me-1"></i>@day
+                                        <input type="checkbox" name="Form.PreferredDays" value="@dayName" id="day_@dayName" class="btn-check" @(isChecked ? "checked" : "") />
+                                        <label class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1" for="day_@dayName">
+                                            <i class="bi bi-calendar-check me-1"></i>@Loc.DayOfWeek(day)
                                         </label>
                                     </div>
                                 }
@@ -337,7 +343,7 @@
 
                         <!-- Preferred Times of Day -->
                         <div class="mb-3">
-                            <label class="form-label text-light fw-semibold small mb-2">Preferred Times of Day:</label>
+                            <label class="form-label text-dark fw-semibold small mb-2">@Loc["Profile.Field.PreferredTimes"]:</label>
                             <div class="d-flex flex-wrap gap-2">
                                 @foreach (var time in allTimes)
                                 {
@@ -345,7 +351,7 @@
                                     <div class="form-check-pill">
                                         <input type="checkbox" name="Form.PreferredTimeOfDay" value="@time" id="time_@time" class="btn-check" @(isChecked ? "checked" : "") />
                                         <label class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1" for="time_@time">
-                                            <i class="bi bi-clock me-1"></i>@time
+                                            <i class="bi bi-clock me-1"></i>@(Loc.IsArabic ? (time == "Morning" ? "صباحاً" : time == "Afternoon" ? "ظهراً" : time == "Evening" ? "مساءً" : "ليلاً") : time)
                                         </label>
                                     </div>
                                 }
@@ -354,10 +360,10 @@
                     </div>
 
                     <!-- Action Buttons -->
-                    <div class="d-flex justify-content-end gap-2 pt-3 border-top border-secondary border-opacity-25">
-                        <a href="/Profile?tab=overview" class="btn btn-secondary rounded-pill px-4">Cancel</a>
-                        <button type="submit" id="btnSaveProfile" class="btn btn-primary text-black fw-bold rounded-pill px-4">
-                            <i class="bi bi-check2 me-1"></i> Save Changes
+                    <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+                        <a href="/Profile?tab=overview" class="btn btn-light rounded-pill px-4">@Loc["Action.Cancel"]</a>
+                        <button type="submit" id="btnSaveProfile" class="btn btn-primary text-white fw-bold rounded-pill px-4">
+                            <i class="bi bi-check2 me-1"></i> @Loc["Profile.Btn.Save"]
                         </button>
                     </div>
                 </form>

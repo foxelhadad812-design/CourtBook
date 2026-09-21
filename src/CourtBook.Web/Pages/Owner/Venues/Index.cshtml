@@ -1,24 +1,24 @@
 @page "/Owner/Venues"
 @model CourtBook.Web.Pages.Owner.Venues.IndexModel
 @{
-    ViewData["Title"] = "Managed Facilities — PlaySpot Owner";
+    ViewData["Title"] = $"{Loc["Owner.Venues.Title"]} — {Loc["Brand.Name"]}";
 }
 
 <div class="owner-venues-page py-4">
     <div class="container-xl">
         @if (!Model.IsOwner)
         {
-            <div class="card border-0 shadow-lg text-center p-5 my-5" style="background: rgba(22, 27, 34, 0.9); border: 1px solid rgba(239, 68, 68, 0.3) !important; border-radius: 20px;">
+            <div class="card border-0 shadow-lg text-center p-5 my-5" style="border-radius: var(--ps-radius-2xl);">
                 <div class="display-1 text-danger mb-3">
                     <i class="bi bi-shield-lock-fill"></i>
                 </div>
-                <h2 class="text-white fw-bold mb-2">Access Restricted</h2>
-                <p class="text-secondary mx-auto mb-4" style="max-width: 500px;">
-                    This section is reserved for verified sports facility owners. To register as an owner or manage your venues, please log in with an owner account.
+                <h2 class="text-dark fw-bold mb-2">@(Loc.IsArabic ? "صلاحيات المالك مطلوبة" : "Access Restricted")</h2>
+                <p class="text-muted mx-auto mb-4" style="max-width: 500px;">
+                    @(Loc.IsArabic ? "هذا القسم مخصص لأصحاب ومسؤولي المنشآت الرياضية المسجلين. يرجى تسجيل الدخول بحساب المالك." : "This section is reserved for verified sports facility owners. To register as an owner or manage your venues, please log in with an owner account.")
                 </p>
                 <div>
-                    <a href="/Login?returnUrl=/Owner/Venues" class="btn btn-primary px-4 py-2 rounded-pill fw-semibold">
-                        <i class="bi bi-box-arrow-in-right me-2"></i>Sign In as Facility Owner
+                    <a href="/Login?returnUrl=/Owner/Venues" class="ps-btn ps-btn-primary px-4 py-2 rounded-pill fw-semibold">
+                        <i class="bi bi-box-arrow-in-right me-2"></i>@Loc["Nav.SignIn"]
                     </a>
                 </div>
             </div>
@@ -26,23 +26,23 @@
         else
         {
             <!-- Page Header -->
-            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4 pb-3 border-bottom border-dark">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4 pb-3 border-bottom">
                 <div>
                     <nav aria-label="breadcrumb">
                         <ol class="breadcrumb mb-1">
-                            <li class="breadcrumb-item"><a href="/Owner" class="text-secondary text-decoration-none">Dashboard</a></li>
-                            <li class="breadcrumb-item active text-white" aria-current="page">Facilities</li>
+                            <li class="breadcrumb-item"><a href="/Owner" class="text-muted text-decoration-none">@Loc["Nav.OwnerDashboard"]</a></li>
+                            <li class="breadcrumb-item active text-dark" aria-current="page">@Loc["Owner.Venues.Title"]</li>
                         </ol>
                     </nav>
-                    <h1 class="h3 text-white fw-bold mb-1">Managed Sports Facilities</h1>
-                    <p class="text-secondary mb-0 small">Overview of all your sports venues, courts, and operational status.</p>
+                    <h1 class="h3 text-dark fw-bold mb-1">@Loc["Owner.Venues.Title"]</h1>
+                    <p class="text-muted mb-0 small">@(Loc.IsArabic ? "نظرة شاملة على جميع منشآتك الرياضية، الملاعب، والحالة التشغيلية." : "Overview of all your sports venues, courts, and operational status.")</p>
                 </div>
                 <div class="d-flex gap-2">
                     <a href="/Owner" class="btn btn-outline-secondary rounded-pill px-3">
-                        <i class="bi bi-arrow-left me-1"></i> Dashboard
+                        <i class="bi bi-arrow-left me-1"></i> @Loc["Nav.OwnerDashboard"]
                     </a>
-                    <a href="/Owner/Venues/Create" class="btn btn-primary rounded-pill px-4 shadow-sm fw-semibold">
-                        <i class="bi bi-plus-circle me-1"></i> Add Facility
+                    <a href="/Owner/Venues/Create" class="ps-btn ps-btn-primary rounded-pill px-4 shadow-sm fw-semibold">
+                        <i class="bi bi-plus-circle me-1"></i> @Loc["Owner.Venues.AddBtn"]
                     </a>
                 </div>
             </div>
@@ -58,26 +58,26 @@
             <!-- KPI Mini Bar -->
             <div class="row g-3 mb-4">
                 <div class="col-sm-6 col-lg-3">
-                    <div class="card border-0 p-3 h-100" style="background: rgba(22, 27, 34, 0.7); border: 1px solid rgba(255,255,255,0.08) !important; border-radius: 14px;">
-                        <div class="text-secondary small fw-medium">Total Facilities</div>
-                        <div class="h3 text-white fw-bold mb-0 mt-1">@Model.Venues.Count</div>
+                    <div class="card border-0 shadow-sm p-3 h-100" style="border-radius: 14px;">
+                        <div class="text-muted small fw-medium">@Loc["Owner.Kpi.Venues"]</div>
+                        <div class="h3 text-dark fw-bold mb-0 mt-1">@Model.Venues.Count</div>
                     </div>
                 </div>
                 <div class="col-sm-6 col-lg-3">
-                    <div class="card border-0 p-3 h-100" style="background: rgba(22, 27, 34, 0.7); border: 1px solid rgba(255,255,255,0.08) !important; border-radius: 14px;">
-                        <div class="text-secondary small fw-medium">Active Facilities</div>
+                    <div class="card border-0 shadow-sm p-3 h-100" style="border-radius: 14px;">
+                        <div class="text-muted small fw-medium">@(Loc.IsArabic ? "المنشآت النشطة" : "Active Facilities")</div>
                         <div class="h3 text-success fw-bold mb-0 mt-1">@Model.Venues.Count(v => v.IsActive)</div>
                     </div>
                 </div>
                 <div class="col-sm-6 col-lg-3">
-                    <div class="card border-0 p-3 h-100" style="background: rgba(22, 27, 34, 0.7); border: 1px solid rgba(255,255,255,0.08) !important; border-radius: 14px;">
-                        <div class="text-secondary small fw-medium">Total Bookable Courts</div>
+                    <div class="card border-0 shadow-sm p-3 h-100" style="border-radius: 14px;">
+                        <div class="text-muted small fw-medium">@Loc["Owner.Kpi.Courts"]</div>
                         <div class="h3 text-info fw-bold mb-0 mt-1">@Model.Venues.Sum(v => v.TotalCourts)</div>
                     </div>
                 </div>
                 <div class="col-sm-6 col-lg-3">
-                    <div class="card border-0 p-3 h-100" style="background: rgba(22, 27, 34, 0.7); border: 1px solid rgba(255,255,255,0.08) !important; border-radius: 14px;">
-                        <div class="text-secondary small fw-medium">Upcoming Reservations</div>
+                    <div class="card border-0 shadow-sm p-3 h-100" style="border-radius: 14px;">
+                        <div class="text-muted small fw-medium">@Loc["Owner.Kpi.Upcoming"]</div>
                         <div class="h3 text-warning fw-bold mb-0 mt-1">@Model.Venues.Sum(v => v.UpcomingBookingsCount)</div>
                     </div>
                 </div>
@@ -86,15 +86,15 @@
             <!-- Facilities Grid -->
             @if (Model.Venues.Count == 0)
             {
-                <div class="card border-0 text-center p-5" style="background: rgba(22, 27, 34, 0.6); border: 1px dashed rgba(255,255,255,0.15) !important; border-radius: 20px;">
-                    <div class="display-3 text-secondary mb-3"><i class="bi bi-building-add"></i></div>
-                    <h4 class="text-white fw-bold mb-2">No Facilities Added Yet</h4>
-                    <p class="text-secondary mx-auto mb-4" style="max-width: 450px;">
-                        Start listing your sports venue, configure your courts, set your schedule, and begin accepting reservations from players across Egypt.
+                <div class="card border-0 shadow-sm text-center p-5" style="border-radius: 20px;">
+                    <div class="display-3 text-muted mb-3"><i class="bi bi-building-add"></i></div>
+                    <h4 class="text-dark fw-bold mb-2">@(Loc.IsArabic ? "لم تضف منشآت رياضية بعد" : "No Facilities Added Yet")</h4>
+                    <p class="text-muted mx-auto mb-4" style="max-width: 450px;">
+                        @Loc["Home.OwnerCta.Subtitle"]
                     </p>
                     <div>
-                        <a href="/Owner/Venues/Create" class="btn btn-primary rounded-pill px-4 py-2 fw-semibold">
-                            <i class="bi bi-plus-lg me-1"></i> Register Your First Facility
+                        <a href="/Owner/Venues/Create" class="ps-btn ps-btn-primary rounded-pill px-4 py-2 fw-semibold">
+                            <i class="bi bi-plus-lg me-1"></i> @Loc["Owner.Venues.AddBtn"]
                         </a>
                     </div>
                 </div>
@@ -104,46 +104,58 @@
                 <div class="row g-4">
                     @foreach (var venue in Model.Venues)
                     {
-                        var photoUrl = !string.IsNullOrEmpty(venue.PrimaryImageUrl) ? venue.PrimaryImageUrl : "/images/venue.jpg";
+                        var firstSport = venue.Sports.FirstOrDefault()?.ToLowerInvariant() ?? "football";
+                        var defaultPhoto = firstSport switch {
+                            "football" => "/images/venues/football/football-pitch-01.jpg",
+                            "padel" => "/images/venues/padel/padel-court-01.jpg",
+                            "tennis" => "/images/venues/tennis/tennis-clay-01.jpg",
+                            "basketball" => "/images/venues/basketball/basketball-indoor-01.jpg",
+                            "volleyball" => "/images/venues/volleyball/volleyball-indoor-01.jpg",
+                            "badminton" => "/images/venues/badminton/badminton-court-01.jpg",
+                            _ => "/images/venues/fallbacks/venue-fallback.jpg"
+                        };
+                        var photoUrl = !string.IsNullOrEmpty(venue.PrimaryImageUrl) ? venue.PrimaryImageUrl : defaultPhoto;
+                        var fallbackPhoto = $"/images/venues/fallbacks/{firstSport}-fallback.jpg";
+
                         <div class="col-md-6 col-lg-4">
-                            <div class="card h-100 border-0 shadow-sm overflow-hidden" style="background: rgba(22, 27, 34, 0.85); border: 1px solid rgba(255,255,255,0.1) !important; border-radius: 18px; transition: transform 0.2s ease, border-color 0.2s ease;">
-                                <!-- Image Header with Badges -->
-                                <div class="position-relative" style="height: 180px; background: #111;">
-                                    <img src="@photoUrl" alt="@venue.Name" class="w-100 h-100 object-fit-cover" onerror="this.src='/images/venue.jpg'" />
+                            <div class="card h-100 border-0 shadow-sm overflow-hidden" style="border-radius: var(--ps-radius-xl); transition: transform 0.2s ease, box-shadow 0.2s ease;">
+                                <!-- Image Header with Badges (16:9) -->
+                                <div class="position-relative ps-venue-card-img-wrapper" style="height: 180px;">
+                                    <img src="@photoUrl" alt="@venue.Name" class="w-100 h-100 object-fit-cover" data-fallback="@fallbackPhoto" onerror="PlaySpot.ImageFallback.handleError(this, '@fallbackPhoto')" />
                                     <div class="position-absolute top-0 end-0 p-2 d-flex gap-1">
                                         @if (venue.IsActive)
                                         {
-                                            <span class="badge bg-success bg-opacity-75 backdrop-blur px-2 py-1 small rounded-pill">
-                                                <i class="bi bi-check-circle-fill me-1"></i> Active
+                                            <span class="badge bg-success bg-opacity-90 px-2 py-1 small rounded-pill">
+                                                <i class="bi bi-check-circle-fill me-1"></i> @(Loc.IsArabic ? "نشطة" : "Active")
                                             </span>
                                         }
                                         else
                                         {
-                                            <span class="badge bg-danger bg-opacity-75 backdrop-blur px-2 py-1 small rounded-pill">
-                                                <i class="bi bi-pause-circle-fill me-1"></i> Inactive
+                                            <span class="badge bg-danger bg-opacity-90 px-2 py-1 small rounded-pill">
+                                                <i class="bi bi-pause-circle-fill me-1"></i> @(Loc.IsArabic ? "متوقفة" : "Inactive")
                                             </span>
                                         }
                                         @if (venue.IsVerified)
                                         {
-                                            <span class="badge bg-primary bg-opacity-75 backdrop-blur px-2 py-1 small rounded-pill">
-                                                <i class="bi bi-patch-check-fill me-1"></i> Verified
+                                            <span class="badge bg-primary bg-opacity-90 px-2 py-1 small rounded-pill">
+                                                <i class="bi bi-patch-check-fill me-1"></i> @Loc["Details.VerifiedBadge"]
                                             </span>
                                         }
                                     </div>
-                                    <div class="position-absolute bottom-0 start-0 p-2 w-100" style="background: linear-gradient(transparent, rgba(15, 23, 42, 0.95));">
+                                    <div class="position-absolute bottom-0 start-0 p-2 w-100" style="background: linear-gradient(transparent, rgba(15, 23, 42, 0.85));">
                                         <div class="d-flex align-items-center text-warning small">
                                             <i class="bi bi-star-fill me-1"></i>
-                                            <span class="fw-bold me-1">@venue.AverageRating.ToString("0.0")</span>
-                                            <span class="text-secondary small">(@venue.TotalReviews reviews)</span>
+                                            <span class="fw-bold me-1 text-white">@venue.AverageRating.ToString("0.0")</span>
+                                            <span class="text-white-50 small">(@venue.TotalReviews @(Loc.IsArabic ? "تقييم" : "reviews"))</span>
                                         </div>
                                     </div>
                                 </div>
 
                                 <!-- Card Body -->
-                                <div class="card-body p-3 d-flex flex-column">
-                                    <h5 class="card-title text-white fw-bold mb-1 text-truncate">@venue.Name</h5>
-                                    <div class="text-secondary small mb-3">
-                                        <i class="bi bi-geo-alt me-1 text-primary"></i>@venue.Area, @venue.City
+                                <div class="card-body p-4 d-flex flex-column">
+                                    <h5 class="card-title text-dark fw-bold mb-1 text-truncate">@venue.Name</h5>
+                                    <div class="text-muted small mb-3">
+                                        <i class="bi bi-geo-alt me-1 text-danger"></i>@venue.Area, @venue.City
                                     </div>
 
                                     <!-- Sports Pills -->
@@ -152,35 +164,35 @@
                                         {
                                             @foreach (var sport in venue.Sports)
                                             {
-                                                <span class="badge bg-dark border border-secondary text-light px-2 py-1 small rounded-pill">
-                                                    @sport
+                                                <span class="badge bg-light text-dark border px-2 py-1 small rounded-pill">
+                                                    @Loc.Sport(sport)
                                                 </span>
                                             }
                                         }
                                         else
                                         {
-                                            <span class="text-secondary small fst-italic">No courts added</span>
+                                            <span class="text-muted small fst-italic">@(Loc.IsArabic ? "لا توجد ملاعب مضافة" : "No courts added")</span>
                                         }
                                     </div>
 
                                     <!-- Facility Stats Mini-Grid -->
-                                    <div class="row g-2 text-center p-2 rounded-3 mb-3 mt-auto" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.05);">
-                                        <div class="col-6 border-end border-dark">
-                                            <div class="text-secondary" style="font-size: 0.75rem;">Courts</div>
-                                            <div class="text-white fw-bold">@venue.TotalCourts</div>
+                                    <div class="row g-2 text-center p-2 rounded-3 mb-3 mt-auto bg-light border border-light-subtle">
+                                        <div class="col-6 border-end">
+                                            <div class="text-muted" style="font-size: 0.75rem;">@Loc["Owner.Kpi.Courts"]</div>
+                                            <div class="text-dark fw-bold">@venue.TotalCourts</div>
                                         </div>
                                         <div class="col-6">
-                                            <div class="text-secondary" style="font-size: 0.75rem;">Upcoming</div>
+                                            <div class="text-muted" style="font-size: 0.75rem;">@Loc["Owner.Kpi.Upcoming"]</div>
                                             <div class="text-warning fw-bold">@venue.UpcomingBookingsCount</div>
                                         </div>
                                     </div>
 
                                     <!-- Action Buttons -->
                                     <div class="d-flex gap-2">
-                                        <a href="/Owner/Venues/Manage?id=@venue.Id" class="btn btn-primary flex-grow-1 rounded-pill py-2 small fw-semibold">
-                                            <i class="bi bi-gear-fill me-1"></i> Manage
+                                        <a href="/Owner/Venues/Manage?id=@venue.Id" class="ps-btn ps-btn-primary flex-grow-1 rounded-pill py-2 small fw-semibold text-center">
+                                            <i class="bi bi-gear-fill me-1"></i> @Loc["Owner.Venues.ManageBtn"]
                                         </a>
-                                        <a href="/Venues/Details/@venue.Id" target="_blank" class="btn btn-outline-secondary rounded-pill px-3 py-2 small" title="Preview Public Page">
+                                        <a href="/Venues/Details?id=@venue.Id" target="_blank" class="btn btn-outline-secondary rounded-pill px-3 py-2 small" title="@(Loc.IsArabic ? "معاينة الصفحة العامة" : "Preview Public Page")">
                                             <i class="bi bi-box-arrow-up-right"></i>
                                         </a>
                                     </div>

@@ -1,7 +1,7 @@
 @page
 @model CourtBook.Web.Pages.Venues.IndexModel
 @{
-    ViewData["Title"] = "Discover Sports Facilities — PlaySpot";
+    ViewData["Title"] = $"{Loc["Venues.PageTitle"]} — {Loc["Brand.Name"]}";
 }
 
 <div class="container py-5">
@@ -11,16 +11,16 @@
          ══════════════════════════════════════════════════════════ -->
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 pb-3 border-bottom">
         <div>
-            <h2 class="fw-extrabold mb-1" style="letter-spacing: -0.02em;">Discover Sports Facilities</h2>
+            <h2 class="fw-extrabold mb-1" style="letter-spacing: -0.02em;">@Loc["Venues.PageTitle"]</h2>
             <p class="text-muted small mb-0">
-                Found <span class="fw-bold text-dark">@Model.SearchResult.TotalCount</span> venues matching your preferences
+                @Loc.T("Venues.PageSubtitle", Model.SearchResult.TotalCount)
             </p>
         </div>
 
         <!-- Mobile Filter Button Toggle -->
         <div class="d-md-none d-flex gap-2">
             <button class="ps-btn ps-btn-secondary w-100 d-flex align-items-center justify-content-center gap-2" type="button" data-bs-toggle="collapse" data-bs-target="#filterSidebar" aria-expanded="false" aria-controls="filterSidebar">
-                <i class="bi bi-funnel"></i> Filters & Sort
+                <i class="bi bi-funnel"></i> @Loc["Venues.Filter.Title"]
             </button>
         </div>
     </div>
@@ -36,69 +36,71 @@
                 <div class="card border-0 bg-white shadow-sm p-4 sticky-top" style="top: 90px; border-radius: var(--ps-radius-xl);">
                     <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
                         <h6 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
-                            <i class="bi bi-sliders text-primary"></i> Filters
+                            <i class="bi bi-sliders text-primary"></i> @Loc["Venues.Filter.Title"]
                         </h6>
-                        <a href="/venues" class="text-muted small text-decoration-none">Reset All</a>
+                        <a href="/venues" class="text-muted small text-decoration-none">@Loc["Venues.Filter.Clear"]</a>
                     </div>
 
                     <form method="get" action="/venues" id="searchForm">
 
                         <!-- Keyword Search -->
                         <div class="mb-4">
-                            <label class="form-label small fw-bold text-dark mb-2">Keyword Search</label>
+                            <label class="form-label small fw-bold text-dark mb-1">@Loc["Venues.Filter.SearchLabel"]</label>
+                            <span class="ps-form-example mb-2">@Loc["Home.Search.Keyword.Example"]</span>
                             <div class="input-group">
                                 <span class="input-group-text bg-light border-0"><i class="bi bi-search text-muted"></i></span>
-                                <input type="text" name="search" value="@Model.Search" class="form-control bg-light border-0 shadow-none" placeholder="Venue name, area..." />
+                                <input type="text" name="search" value="@Model.Search" class="form-control bg-light border-0 shadow-none" placeholder="@Loc["Venues.Filter.SearchPlaceholder"]" />
                             </div>
                         </div>
 
                         <!-- Sport Filter -->
                         <div class="mb-4">
-                            <label class="form-label small fw-bold text-dark mb-2">Sport Type</label>
+                            <label class="form-label small fw-bold text-dark mb-2">@Loc["Venues.Filter.SportLabel"]</label>
                             <select name="sport" class="form-select bg-light border-0 shadow-none fw-medium" onchange="this.form.submit()">
-                                <option value="" selected="@(string.IsNullOrEmpty(Model.Sport))">All Sports</option>
-                                <option value="Football" selected="@(Model.Sport?.Equals("Football", StringComparison.OrdinalIgnoreCase) == true)">⚽ Football</option>
-                                <option value="Padel" selected="@(Model.Sport?.Equals("Padel", StringComparison.OrdinalIgnoreCase) == true)">🎾 Padel</option>
-                                <option value="Tennis" selected="@(Model.Sport?.Equals("Tennis", StringComparison.OrdinalIgnoreCase) == true)">🏸 Tennis</option>
-                                <option value="Basketball" selected="@(Model.Sport?.Equals("Basketball", StringComparison.OrdinalIgnoreCase) == true)">🏀 Basketball</option>
-                                <option value="Volleyball" selected="@(Model.Sport?.Equals("Volleyball", StringComparison.OrdinalIgnoreCase) == true)">🏐 Volleyball</option>
-                                <option value="Badminton" selected="@(Model.Sport?.Equals("Badminton", StringComparison.OrdinalIgnoreCase) == true)">🏸 Badminton</option>
+                                <option value="" selected="@(string.IsNullOrEmpty(Model.Sport))">@Loc["Home.Search.Sport"]</option>
+                                <option value="Football" selected="@(Model.Sport?.Equals("Football", StringComparison.OrdinalIgnoreCase) == true)">⚽ @Loc.Sport("Football")</option>
+                                <option value="Padel" selected="@(Model.Sport?.Equals("Padel", StringComparison.OrdinalIgnoreCase) == true)">🎾 @Loc.Sport("Padel")</option>
+                                <option value="Tennis" selected="@(Model.Sport?.Equals("Tennis", StringComparison.OrdinalIgnoreCase) == true)">🏸 @Loc.Sport("Tennis")</option>
+                                <option value="Basketball" selected="@(Model.Sport?.Equals("Basketball", StringComparison.OrdinalIgnoreCase) == true)">🏀 @Loc.Sport("Basketball")</option>
+                                <option value="Volleyball" selected="@(Model.Sport?.Equals("Volleyball", StringComparison.OrdinalIgnoreCase) == true)">🏐 @Loc.Sport("Volleyball")</option>
+                                <option value="Badminton" selected="@(Model.Sport?.Equals("Badminton", StringComparison.OrdinalIgnoreCase) == true)">🏸 @Loc.Sport("Badminton")</option>
                             </select>
                         </div>
 
                         <!-- City / Location Filter -->
                         <div class="mb-4">
-                            <label class="form-label small fw-bold text-dark mb-2">Location (Egypt)</label>
+                            <label class="form-label small fw-bold text-dark mb-2">@Loc["Venues.Filter.CityLabel"]</label>
                             <select name="city" class="form-select bg-light border-0 shadow-none fw-medium" onchange="this.form.submit()">
-                                <option value="" selected="@(string.IsNullOrEmpty(Model.City))">All Locations</option>
-                                <option value="Cairo" selected="@(Model.City == "Cairo")">Cairo (All Areas)</option>
-                                <option value="Maadi" selected="@(Model.City == "Maadi")">Maadi, Cairo</option>
-                                <option value="Zamalek" selected="@(Model.City == "Zamalek")">Zamalek, Cairo</option>
-                                <option value="Nasr City" selected="@(Model.City == "Nasr City")">Nasr City, Cairo</option>
-                                <option value="New Cairo" selected="@(Model.City == "New Cairo")">New Cairo</option>
-                                <option value="6th of October" selected="@(Model.City == "6th of October")">6th of October City</option>
-                                <option value="الفيوم" selected="@(Model.City == "الفيوم")">الفيوم (Fayoum)</option>
+                                <option value="" selected="@(string.IsNullOrEmpty(Model.City))">@Loc["Home.Search.City"]</option>
+                                <option value="Cairo" selected="@(Model.City == "Cairo")">@(Loc.IsArabic ? "القاهرة (جميع المناطق)" : "Cairo (All Areas)")</option>
+                                <option value="Maadi" selected="@(Model.City == "Maadi")">@(Loc.IsArabic ? "المعادي، القاهرة" : "Maadi, Cairo")</option>
+                                <option value="Zamalek" selected="@(Model.City == "Zamalek")">@(Loc.IsArabic ? "الزمالك، القاهرة" : "Zamalek, Cairo")</option>
+                                <option value="Nasr City" selected="@(Model.City == "Nasr City")">@(Loc.IsArabic ? "مدينة نصر، القاهرة" : "Nasr City, Cairo")</option>
+                                <option value="New Cairo" selected="@(Model.City == "New Cairo")">@(Loc.IsArabic ? "القاهرة الجديدة والتجمع" : "New Cairo / 5th Settlement")</option>
+                                <option value="6th of October" selected="@(Model.City == "6th of October")">@(Loc.IsArabic ? "مدينة 6 أكتوبر" : "6th of October City")</option>
+                                <option value="الفيوم" selected="@(Model.City == "الفيوم")">@(Loc.IsArabic ? "الفيوم" : "Fayoum")</option>
                             </select>
                         </div>
 
                         <!-- Price Range Filter -->
                         <div class="mb-4">
-                            <label class="form-label small fw-bold text-dark mb-2">Hourly Price (EGP)</label>
+                            <label class="form-label small fw-bold text-dark mb-1">@Loc["Venues.Filter.PriceLabel"]</label>
+                            <span class="ps-form-example mb-2">@(Loc.IsArabic ? "مثال: من 200 إلى 400 ج.م" : "e.g. 200 to 400 EGP")</span>
                             <div class="row g-2">
                                 <div class="col-6">
-                                    <input type="number" name="minPrice" value="@Model.MinPrice" placeholder="Min" class="form-control bg-light border-0 shadow-none small" />
+                                    <input type="number" name="minPrice" value="@Model.MinPrice" placeholder="@(Loc.IsArabic ? "الحد الأدنى" : "Min")" class="form-control bg-light border-0 shadow-none small" />
                                 </div>
                                 <div class="col-6">
-                                    <input type="number" name="maxPrice" value="@Model.MaxPrice" placeholder="Max" class="form-control bg-light border-0 shadow-none small" />
+                                    <input type="number" name="maxPrice" value="@Model.MaxPrice" placeholder="@(Loc.IsArabic ? "الحد الأقصى" : "Max")" class="form-control bg-light border-0 shadow-none small" />
                                 </div>
                             </div>
                         </div>
 
                         <!-- Minimum Rating Filter -->
                         <div class="mb-4">
-                            <label class="form-label small fw-bold text-dark mb-2">Minimum Rating</label>
+                            <label class="form-label small fw-bold text-dark mb-2">@Loc["Venues.Filter.RatingLabel"]</label>
                             <select name="minRating" class="form-select bg-light border-0 shadow-none fw-medium" onchange="this.form.submit()">
-                                <option value="" selected="@(!Model.MinRating.HasValue)">Any Rating</option>
+                                <option value="" selected="@(!Model.MinRating.HasValue)">@(Loc.IsArabic ? "أي تقييم" : "Any Rating")</option>
                                 <option value="4.8" selected="@(Model.MinRating == 4.8)">⭐ 4.8 & Above</option>
                                 <option value="4.5" selected="@(Model.MinRating == 4.5)">⭐ 4.5 & Above</option>
                                 <option value="4.0" selected="@(Model.MinRating == 4.0)">⭐ 4.0 & Above</option>
@@ -110,7 +112,7 @@
 
                         <!-- Submit Button -->
                         <button type="submit" class="ps-btn ps-btn-primary w-100 py-2 fw-bold">
-                            Apply Filters
+                            @Loc["Venues.Filter.Apply"]
                         </button>
                     </form>
                 </div>
@@ -123,17 +125,17 @@
             <!-- Sorting Bar -->
             <div class="d-flex align-items-center justify-content-between mb-4 bg-white p-3 rounded-3 shadow-sm">
                 <span class="text-muted small">
-                    Showing <strong>@Model.SearchResult.Items.Count</strong> of <strong>@Model.SearchResult.TotalCount</strong> venues
+                    @Loc.T("Venues.Pagination.Showing", Model.SearchResult.Items.Count, Model.SearchResult.TotalCount)
                 </span>
 
                 <div class="d-flex align-items-center gap-2">
-                    <label class="text-muted small mb-0 d-none d-sm-inline">Sort by:</label>
+                    <label class="text-muted small mb-0 d-none d-sm-inline">@Loc["Venues.Sort.Label"]</label>
                     <select class="form-select form-select-sm border-0 bg-light fw-medium shadow-none" style="width: auto; cursor: pointer;" onchange="updateSort(this.value)">
-                        <option value="rating_desc" selected="@(Model.SortBy == "rating_desc")">Recommended (Highest Rated)</option>
-                        <option value="price_asc" selected="@(Model.SortBy == "price_asc")">Price: Low to High</option>
-                        <option value="price_desc" selected="@(Model.SortBy == "price_desc")">Price: High to Low</option>
-                        <option value="newest" selected="@(Model.SortBy == "newest")">Newest Facilities</option>
-                        <option value="name" selected="@(Model.SortBy == "name")">Facility Name (A-Z)</option>
+                        <option value="rating_desc" selected="@(Model.SortBy == "rating_desc")">@Loc["Venues.Sort.Rating"]</option>
+                        <option value="price_asc" selected="@(Model.SortBy == "price_asc")">@Loc["Venues.Sort.PriceAsc"]</option>
+                        <option value="price_desc" selected="@(Model.SortBy == "price_desc")">@Loc["Venues.Sort.PriceDesc"]</option>
+                        <option value="newest" selected="@(Model.SortBy == "newest")">@Loc["Venues.Sort.Newest"]</option>
+                        <option value="name" selected="@(Model.SortBy == "name")">@Loc["Venues.Sort.Name"]</option>
                     </select>
                 </div>
             </div>
@@ -144,28 +146,38 @@
                 <div class="row g-4">
                     @foreach (var venue in Model.SearchResult.Items)
                     {
-                        var firstSport = venue.Sports.FirstOrDefault()?.ToLower() ?? "football";
-                        var sportImage = firstSport switch {
-                            "football" => "/images/football.jpg",
-                            "padel" => "/images/padel.jpg",
-                            "tennis" => "/images/tennis.jpg",
-                            "basketball" => "/images/basketball.jpg",
-                            _ => "/images/venue.jpg"
-                        };
+                        var firstSport = venue.Sports.FirstOrDefault()?.ToLowerInvariant() ?? "football";
+                        var sportImage = !string.IsNullOrEmpty(venue.PrimaryImageUrl)
+                            ? venue.PrimaryImageUrl
+                            : firstSport switch {
+                                "football" => "/images/venues/football/football-pitch-01.jpg",
+                                "padel" => "/images/venues/padel/padel-court-01.jpg",
+                                "tennis" => "/images/venues/tennis/tennis-clay-01.jpg",
+                                "basketball" => "/images/venues/basketball/basketball-indoor-01.jpg",
+                                "volleyball" => "/images/venues/volleyball/volleyball-indoor-01.jpg",
+                                "badminton" => "/images/venues/badminton/badminton-court-01.jpg",
+                                _ => "/images/venues/fallbacks/venue-fallback.jpg"
+                            };
+                        var fallbackImage = $"/images/venues/fallbacks/{firstSport}-fallback.jpg";
 
                         <div class="col-lg-6 col-12">
                             <div class="card h-100 border-0 bg-white shadow-sm overflow-hidden" style="border-radius: var(--ps-radius-xl); transition: transform 0.2s, box-shadow 0.2s;">
 
-                                <!-- Photo Banner -->
-                                <div class="position-relative" style="height: 190px;">
-                                    <img src="@sportImage" alt="@venue.Name" class="w-100 h-100 object-fit-cover">
+                                <!-- Photo Banner (16:9 Aspect Ratio) -->
+                                <div class="ps-venue-card-img-wrapper position-relative">
+                                    <img src="@sportImage"
+                                         alt="@venue.Name"
+                                         class="ps-venue-card-img"
+                                         loading="lazy"
+                                         data-fallback="@fallbackImage"
+                                         onerror="PlaySpot.ImageFallback.handleError(this, '@fallbackImage')" />
 
                                     <!-- Verified Badge -->
                                     @if (venue.IsVerified)
                                     {
                                         <div class="position-absolute top-0 start-0 m-3">
                                             <span class="badge bg-white text-dark shadow-sm px-2 py-1 rounded-pill d-flex align-items-center gap-1" style="font-size: 11px; font-weight: 600;">
-                                                <i class="bi bi-patch-check-fill text-primary"></i> Verified
+                                                <i class="bi bi-patch-check-fill text-primary"></i> @Loc["Venues.Card.Verified"]
                                             </span>
                                         </div>
                                     }
@@ -174,12 +186,12 @@
                                     <div class="position-absolute top-0 end-0 m-3">
                                         <span class="badge bg-dark text-white px-2 py-1 rounded-pill d-flex align-items-center gap-1 shadow-sm" style="font-size: 12px; font-weight: 700; background: rgba(15,23,42,0.85) !important; backdrop-filter: blur(4px);">
                                             <i class="bi bi-star-fill text-warning"></i> @venue.AverageRating.ToString("0.0")
-                                            <span class="text-muted fw-normal" style="font-size: 10px;">(@venue.TotalReviews)</span>
+                                            <span class="text-white-50 fw-normal" style="font-size: 10px;">(@venue.TotalReviews)</span>
                                         </span>
                                     </div>
 
                                     <!-- Location Tag -->
-                                    <div class="position-absolute bottom-0 start-0 w-100 p-3" style="background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);">
+                                    <div class="position-absolute bottom-0 start-0 w-100 p-3" style="background: linear-gradient(to top, rgba(0,0,0,0.75), transparent);">
                                         <span class="text-white small fw-medium d-flex align-items-center gap-1">
                                             <i class="bi bi-geo-alt-fill text-warning"></i> @venue.City @(!string.IsNullOrEmpty(venue.Area) ? $"• {venue.Area}" : "")
                                         </span>
@@ -200,14 +212,14 @@
                                     <div class="d-flex flex-wrap gap-1 mb-3">
                                         @foreach (var sp in venue.Sports)
                                         {
-                                            var badgeClass = sp.ToLower() switch {
+                                            var badgeClass = sp.ToLowerInvariant() switch {
                                                 "football" => "badge-football",
                                                 "padel" => "badge-padel",
                                                 "tennis" => "badge-tennis",
                                                 "basketball" => "badge-basketball",
                                                 _ => "bg-light text-dark"
                                             };
-                                            <span class="badge @badgeClass" style="font-size: 11px; padding: 4px 8px; border-radius: 6px;">@sp</span>
+                                            <span class="badge @badgeClass" style="font-size: 11px; padding: 4px 8px; border-radius: 6px;">@Loc.Sport(sp)</span>
                                         }
                                     </div>
 
@@ -218,7 +230,7 @@
                                             @foreach (var a in venue.Amenities.Take(3))
                                             {
                                                 <span class="d-flex align-items-center gap-1">
-                                                    <i class="bi bi-check2 text-success"></i> @a
+                                                    <i class="bi bi-check2 text-success"></i> @Loc.Amenity(a)
                                                 </span>
                                             }
                                         </div>
@@ -227,14 +239,14 @@
                                     <!-- Price & CTA -->
                                     <div class="mt-auto pt-3 border-top d-flex align-items-center justify-content-between">
                                         <div>
-                                            <span class="text-muted d-block" style="font-size: 11px;">Starting from</span>
+                                            <span class="text-muted d-block" style="font-size: 11px;">@Loc["Venues.Card.StartingFrom"]</span>
                                             <div class="d-flex align-items-baseline gap-1">
                                                 <span class="fw-extrabold text-dark fs-5">@venue.StartingPrice.ToString("0")</span>
-                                                <span class="text-muted small">EGP / hr</span>
+                                                <span class="text-muted small">@Loc["Venues.Card.PerHour"]</span>
                                             </div>
                                         </div>
                                         <a href="/venues/details?id=@venue.Id" class="ps-btn ps-btn-primary ps-btn-sm px-3">
-                                            View Courts <i class="bi bi-chevron-right ms-1 small"></i>
+                                            @Loc["Venues.Card.ViewFacility"] <i class="bi bi-chevron-right ms-1 small"></i>
                                         </a>
                                     </div>
                                 </div>
@@ -255,7 +267,7 @@
                             <!-- Previous -->
                             <li class="page-item @(!Model.SearchResult.HasPreviousPage ? "disabled" : "")">
                                 <a class="page-link border-0 rounded-3 shadow-none px-3" href="@Url.Page("/Venues/Index", new { currentPage = Model.CurrentPage - 1, sport = Model.Sport, city = Model.City, search = Model.Search, sortBy = Model.SortBy, minPrice = Model.MinPrice, maxPrice = Model.MaxPrice, minRating = Model.MinRating })">
-                                    <i class="bi bi-chevron-left"></i> Previous
+                                    <i class="bi bi-chevron-left"></i> @Loc["Venues.Pagination.Previous"]
                                 </a>
                             </li>
 
@@ -272,7 +284,7 @@
                             <!-- Next -->
                             <li class="page-item @(!Model.SearchResult.HasNextPage ? "disabled" : "")">
                                 <a class="page-link border-0 rounded-3 shadow-none px-3" href="@Url.Page("/Venues/Index", new { currentPage = Model.CurrentPage + 1, sport = Model.Sport, city = Model.City, search = Model.Search, sortBy = Model.SortBy, minPrice = Model.MinPrice, maxPrice = Model.MaxPrice, minRating = Model.MinRating })">
-                                    Next <i class="bi bi-chevron-right"></i>
+                                    @Loc["Venues.Pagination.Next"] <i class="bi bi-chevron-right"></i>
                                 </a>
                             </li>
 
@@ -287,13 +299,13 @@
                     <div class="mx-auto mb-3 text-muted" style="font-size: 3.5rem;">
                         <i class="bi bi-search"></i>
                     </div>
-                    <h4 class="fw-bold mb-2">No facilities match your filters</h4>
+                    <h4 class="fw-bold mb-2">@Loc["Venues.Empty.Title"]</h4>
                     <p class="text-muted mb-4 mx-auto" style="max-width: 450px;">
-                        Try adjusting your price range, choosing a different city or sport, or clearing active filters to see all facilities.
+                        @Loc["Venues.Empty.Message"]
                     </p>
                     <div>
                         <a href="/venues" class="ps-btn ps-btn-primary">
-                            <i class="bi bi-arrow-counterclockwise me-1"></i> Clear All Filters
+                            <i class="bi bi-arrow-counterclockwise me-1"></i> @Loc["Venues.Empty.Reset"]
                         </a>
                     </div>
                 </div>

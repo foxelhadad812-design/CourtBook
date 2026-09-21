@@ -301,14 +301,81 @@
   };
 
   /* ─────────────────────────────────────────────────────
+     THEME (LIGHT / DARK)
+     ───────────────────────────────────────────────────── */
+  PlaySpot.Theme = {
+    init() {
+      const savedTheme = localStorage.getItem('playspot-theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const theme = savedTheme || (prefersDark ? 'dark' : 'light');
+      this.setTheme(theme, false);
+
+      const toggleBtn = document.getElementById('ps-theme-toggle');
+      if (toggleBtn) {
+        toggleBtn.addEventListener('click', () => {
+          const current = document.documentElement.getAttribute('data-bs-theme') || 'light';
+          const next = current === 'dark' ? 'light' : 'dark';
+          this.setTheme(next, true);
+        });
+      }
+
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+        if (!localStorage.getItem('playspot-theme')) {
+          this.setTheme(e.matches ? 'dark' : 'light', false);
+        }
+      });
+    },
+
+    setTheme(theme, save = true) {
+      document.documentElement.setAttribute('data-bs-theme', theme);
+      if (save) {
+        localStorage.setItem('playspot-theme', theme);
+      }
+      this.updateIcon(theme);
+    },
+
+    updateIcon(theme) {
+      const toggleBtn = document.getElementById('ps-theme-toggle');
+      if (!toggleBtn) return;
+      const icon = toggleBtn.querySelector('i');
+      if (!icon) return;
+      if (theme === 'dark') {
+        icon.className = 'bi bi-sun-fill text-warning';
+        toggleBtn.setAttribute('title', 'Light Mode');
+      } else {
+        icon.className = 'bi bi-moon-stars-fill text-primary';
+        toggleBtn.setAttribute('title', 'Dark Mode');
+      }
+    }
+  };
+
+  /* ─────────────────────────────────────────────────────
+     IMAGE FALLBACK
+     ───────────────────────────────────────────────────── */
+  PlaySpot.ImageFallback = {
+    init() {
+      document.querySelectorAll('img[data-fallback]').forEach(img => {
+        img.addEventListener('error', function () {
+          const fallback = this.getAttribute('data-fallback') || '/images/venues/fallbacks/venue.jpg';
+          if (this.src !== fallback) {
+            this.src = fallback;
+          }
+        }, { once: true });
+      });
+    }
+  };
+
+  /* ─────────────────────────────────────────────────────
      INIT ON DOM READY
      ───────────────────────────────────────────────────── */
   document.addEventListener('DOMContentLoaded', function () {
+    PlaySpot.Theme.init();
     PlaySpot.LoadingBar.start();
     PlaySpot.MobileMenu.init();
     PlaySpot.FadeIn.init();
     PlaySpot.Alerts.autoHide();
     PlaySpot.LoadingBtn.autoBindForms();
+    PlaySpot.ImageFallback.init();
 
     // Finish loading bar on full load
     window.addEventListener('load', () => PlaySpot.LoadingBar.finish());
@@ -318,3 +385,4 @@
   window.PlaySpot = PlaySpot;
 
 })(window.PlaySpot || {});
+

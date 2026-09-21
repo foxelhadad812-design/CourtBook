@@ -308,11 +308,13 @@ public static class SeedData
                 var primarySport = sports.FirstOrDefault();
                 string primaryUrl = primarySport switch
                 {
-                    SportType.Football => "/images/football.jpg",
-                    SportType.Padel => "/images/padel.jpg",
-                    SportType.Tennis => "/images/tennis.jpg",
-                    SportType.Basketball => "/images/basketball.jpg",
-                    _ => "/images/venue.jpg"
+                    SportType.Football => "/images/venues/football/football-pitch-01.jpg",
+                    SportType.Padel => "/images/venues/padel/padel-court-01.jpg",
+                    SportType.Tennis => "/images/venues/tennis/tennis-clay-01.jpg",
+                    SportType.Basketball => "/images/venues/basketball/basketball-indoor-01.jpg",
+                    SportType.Volleyball => "/images/venues/volleyball/volleyball-indoor-01.jpg",
+                    SportType.Badminton => "/images/venues/badminton/badminton-court-01.jpg",
+                    _ => "/images/venues/facilities/complex-exterior-01.jpg"
                 };
 
                 images.Add(new VenueImage
@@ -330,11 +332,13 @@ public static class SeedData
                 {
                     string secUrl = sp switch
                     {
-                        SportType.Football => "/images/football.jpg",
-                        SportType.Padel => "/images/padel.jpg",
-                        SportType.Tennis => "/images/tennis.jpg",
-                        SportType.Basketball => "/images/basketball.jpg",
-                        _ => "/images/venue.jpg"
+                        SportType.Football => "/images/venues/football/football-detail-01.jpg",
+                        SportType.Padel => "/images/venues/padel/padel-detail-01.jpg",
+                        SportType.Tennis => "/images/venues/tennis/tennis-hard-01.jpg",
+                        SportType.Basketball => "/images/venues/basketball/basketball-court-01.jpg",
+                        SportType.Volleyball => "/images/venues/volleyball/volleyball-indoor-01.jpg",
+                        SportType.Badminton => "/images/venues/badminton/badminton-arena-01.jpg",
+                        _ => "/images/venues/facilities/complex-exterior-01.jpg"
                     };
 
                     images.Add(new VenueImage
@@ -353,7 +357,7 @@ public static class SeedData
                 {
                     Id = Guid.NewGuid(),
                     VenueId = v.Id,
-                    ImageUrl = "/images/venue.jpg",
+                    ImageUrl = "/images/venues/facilities/lounge-interior-01.jpg",
                     IsPrimary = false,
                     DisplayOrder = order++,
                     Caption = $"{v.Name} - Players Lounge & Amenities"
@@ -363,6 +367,27 @@ public static class SeedData
             await db.VenueImages.AddRangeAsync(images);
             await db.SaveChangesAsync();
             logger.LogInformation("Added {Count} venue images successfully.", images.Count);
+        }
+
+        // Self-heal legacy image URLs to authentic /images/venues/...
+        var legacyImages = await db.VenueImages
+            .Where(i => i.ImageUrl.StartsWith("/images/") && !i.ImageUrl.StartsWith("/images/venues/"))
+            .ToListAsync();
+        if (legacyImages.Any())
+        {
+            foreach (var img in legacyImages)
+            {
+                img.ImageUrl = img.ImageUrl switch
+                {
+                    "/images/football.jpg" => "/images/venues/football/football-pitch-01.jpg",
+                    "/images/padel.jpg" => "/images/venues/padel/padel-court-01.jpg",
+                    "/images/tennis.jpg" => "/images/venues/tennis/tennis-clay-01.jpg",
+                    "/images/basketball.jpg" => "/images/venues/basketball/basketball-indoor-01.jpg",
+                    _ => "/images/venues/facilities/complex-exterior-01.jpg"
+                };
+            }
+            await db.SaveChangesAsync();
+            logger.LogInformation("Upgraded {Count} legacy image paths to authentic sports facility photos.", legacyImages.Count);
         }
 
         // 2. Seed OperatingHours if empty
