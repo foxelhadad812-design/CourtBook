@@ -5,7 +5,7 @@ namespace CourtBook.Application.Validators;
 
 public class CreateCourtRequestValidator : AbstractValidator<CreateCourtRequest>
 {
-    private static readonly string[] ValidSports = ["Football", "Padel", "Tennis"];
+    private static readonly string[] ValidSports = ["Football", "Padel", "Tennis", "Basketball", "Volleyball", "Badminton"];
 
     public CreateCourtRequestValidator()
     {
@@ -22,12 +22,16 @@ public class CreateCourtRequestValidator : AbstractValidator<CreateCourtRequest>
         RuleFor(x => x.PricePerHour)
             .GreaterThan(0).WithMessage("Price per hour must be greater than 0.")
             .LessThan(10_000).WithMessage("Price per hour seems unreasonably high.");
+
+        RuleFor(x => x.Capacity)
+            .GreaterThan(0).WithMessage("Court capacity must be greater than 0.")
+            .LessThanOrEqualTo(100).WithMessage("Court capacity seems unreasonably high.");
     }
 }
 
 public class UpdateCourtRequestValidator : AbstractValidator<UpdateCourtRequest>
 {
-    private static readonly string[] ValidSports = ["Football", "Padel", "Tennis"];
+    private static readonly string[] ValidSports = ["Football", "Padel", "Tennis", "Basketball", "Volleyball", "Badminton"];
 
     public UpdateCourtRequestValidator()
     {
@@ -44,6 +48,10 @@ public class UpdateCourtRequestValidator : AbstractValidator<UpdateCourtRequest>
         RuleFor(x => x.PricePerHour)
             .GreaterThan(0)
             .LessThan(10_000);
+
+        RuleFor(x => x.Capacity)
+            .GreaterThan(0).WithMessage("Court capacity must be greater than 0.")
+            .LessThanOrEqualTo(100).WithMessage("Court capacity seems unreasonably high.");
     }
 }
 

@@ -92,3 +92,54 @@ public class OwnerAnalyticsDto
     public int MostBookedCourtCount { get; set; }
     public string? TopSport { get; set; }
 }
+
+public class OwnerVenueDetailsDto : OwnerVenueDto
+{
+    public string Description { get; set; } = string.Empty;
+    public string Phone { get; set; } = string.Empty;
+    public string? Email { get; set; }
+    public string? Website { get; set; }
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
+    public DateTime CreatedAt { get; set; }
+
+    public List<CourtResponse> Courts { get; set; } = [];
+    public List<VenueAmenityDto> Amenities { get; set; } = [];
+    public List<VenueImageDto> Images { get; set; } = [];
+    public List<OperatingHourDto> OperatingHours { get; set; } = [];
+    public CancellationPolicyDto? CancellationPolicy { get; set; }
+}
+
+public class DeactivateResultDto
+{
+    public bool Success { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public Guid EntityId { get; set; }
+    public bool IsActive { get; set; }
+    public int ActiveUpcomingBookingsCount { get; set; }
+}
+
+public class AddVenueImageRequest
+{
+    public string ImageUrl { get; set; } = string.Empty;
+    public string? Caption { get; set; }
+    public bool IsPrimary { get; set; } = false;
+    public int DisplayOrder { get; set; } = 0;
+}
+
+public class UpdateOperatingHourRequest
+{
+    public DayOfWeek DayOfWeek { get; set; }
+    public string OpenTime { get; set; } = "08:00";
+    public string CloseTime { get; set; } = "23:00";
+    public bool IsClosed { get; set; } = false;
+}
+
+public class AmenityDto
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Icon { get; set; } = string.Empty;
+    public string Category { get; set; } = "General";
+    public bool IsSelected { get; set; } = false;
+}

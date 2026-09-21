@@ -49,7 +49,4 @@ public class CourtResponse
     public List<ScheduleResponse> Schedules { get; set; } = [];
 }
 public class ScheduleResponse { public Guid Id { get; set; } public int DayOfWeek { get; set; } public string OpenTime { get; set; } = ""; public string CloseTime { get; set; } = ""; }
-
-public class CreateVenueRequest { public string Name { get; set; } = ""; public string City { get; set; } = ""; public string Address { get; set; } = ""; }
-public class CreateCourtRequest { public string Name { get; set; } = ""; public string SportType { get; set; } = ""; public decimal PricePerHour { get; set; } public bool IsActive { get; set; } }
 public class CreateScheduleRequest { public int DayOfWeek { get; set; } public string OpenTime { get; set; } = ""; public string CloseTime { get; set; } = ""; }

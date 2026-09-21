@@ -3,15 +3,32 @@ namespace CourtBook.Application.DTOs;
 public class CreateVenueRequest
 {
     public string Name { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
     public string City { get; set; } = string.Empty;
+    public string Area { get; set; } = string.Empty;
     public string Address { get; set; } = string.Empty;
+    public string Phone { get; set; } = string.Empty;
+    public string? Email { get; set; }
+    public string? Website { get; set; }
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
+    public List<Guid> AmenityIds { get; set; } = [];
 }
 
 public class UpdateVenueRequest
 {
     public string Name { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
     public string City { get; set; } = string.Empty;
+    public string Area { get; set; } = string.Empty;
     public string Address { get; set; } = string.Empty;
+    public string Phone { get; set; } = string.Empty;
+    public string? Email { get; set; }
+    public string? Website { get; set; }
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
+    public bool IsActive { get; set; } = true;
+    public List<Guid> AmenityIds { get; set; } = [];
 }
 
 public class VenueResponse

@@ -372,4 +372,752 @@ public class OwnerService : IOwnerService
             CreatedAt = b.CreatedAt
         };
     }
+
+    // ── Phase 4B: Venue Management ──────────────────────────────────────────
+
+    public async Task<OwnerVenueDetailsDto?> GetOwnerVenueDetailsAsync(Guid ownerId, Guid venueId)
+    {
+        var venue = await _db.Venues
+            .AsNoTracking()
+            .Include(v => v.Courts)
+                .ThenInclude(c => c.Schedules)
+            .Include(v => v.Amenities)
+                .ThenInclude(va => va.Amenity)
+            .Include(v => v.Images)
+            .Include(v => v.OperatingHours)
+            .Include(v => v.CancellationPolicy)
+            .FirstOrDefaultAsync(v => v.Id == venueId);
+
+        if (venue is null) return null;
+
+        if (venue.OwnerId != ownerId)
+            throw new UnauthorizedAccessException("You do not have permission to view this facility.");
+
+        var now = DateTime.UtcNow;
+        var upcomingCount = await _db.Bookings
+            .AsNoTracking()
+            .CountAsync(b => b.Court.VenueId == venueId && b.Status == BookingStatus.Confirmed && b.StartTime > now);
+
+        return new OwnerVenueDetailsDto
+        {
+            Id = venue.Id,
+            OwnerId = venue.OwnerId,
+            Name = venue.Name,
+            Description = venue.Description,
+            City = venue.City,
+            Area = venue.Area,
+            Address = venue.Address,
+            Country = venue.Country,
+            Phone = venue.Phone,
+            Email = venue.Email,
+            Website = venue.Website,
+            Latitude = venue.Latitude,
+            Longitude = venue.Longitude,
+            AverageRating = venue.AverageRating,
+            TotalReviews = venue.TotalReviews,
+            IsActive = venue.IsActive,
+            IsVerified = venue.IsVerified,
+            CreatedAt = venue.CreatedAt,
+            UpcomingBookingsCount = upcomingCount,
+            PrimaryImageUrl = venue.Images.FirstOrDefault(i => i.IsPrimary)?.ImageUrl ?? venue.Images.FirstOrDefault()?.ImageUrl,
+            Sports = venue.Courts.Where(c => c.IsActive).Select(c => c.SportType.ToString()).Distinct().ToList(),
+            TotalCourts = venue.Courts.Count,
+            Courts = venue.Courts.Select(MapToCourtResponse).ToList(),
+            Amenities = venue.Amenities.Select(va => new VenueAmenityDto
+            {
+                Id = va.AmenityId,
+                Name = va.Amenity?.Name ?? "",
+                Icon = va.Amenity?.Icon ?? "bi-check-circle",
+                Category = va.Amenity?.Category ?? "General"
+            }).ToList(),
+            Images = venue.Images.OrderBy(i => i.DisplayOrder).Select(i => new VenueImageDto
+            {
+                Id = i.Id,
+                ImageUrl = i.ImageUrl,
+                IsPrimary = i.IsPrimary,
+                DisplayOrder = i.DisplayOrder,
+                Caption = i.Caption
+            }).ToList(),
+            OperatingHours = venue.OperatingHours.OrderBy(o => o.DayOfWeek).Select(o => new OperatingHourDto
+            {
+                DayOfWeek = o.DayOfWeek,
+                DayName = o.DayOfWeek.ToString(),
+                OpenTime = o.OpenTime.ToString("HH:mm"),
+                CloseTime = o.CloseTime.ToString("HH:mm"),
+                IsClosed = o.IsClosed
+            }).ToList(),
+            CancellationPolicy = venue.CancellationPolicy != null ? new CancellationPolicyDto
+            {
+                FreeCancellationHours = venue.CancellationPolicy.FreeCancellationHours,
+                LateCancellationFeePercent = venue.CancellationPolicy.LateCancellationFeePercent,
+                PolicyDescription = venue.CancellationPolicy.PolicyDescription
+            } : null
+        };
+    }
+
+    public async Task<OwnerVenueDto> CreateVenueAsync(Guid ownerId, CreateVenueRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Name))
+            throw new ArgumentException("Facility name is required.");
+        if (string.IsNullOrWhiteSpace(request.City))
+            throw new ArgumentException("City is required.");
+        if (string.IsNullOrWhiteSpace(request.Address))
+            throw new ArgumentException("Address is required.");
+
+        var trimmedName = request.Name.Trim();
+        var duplicate = await _db.Venues
+            .AnyAsync(v => v.OwnerId == ownerId && v.Name.ToLower() == trimmedName.ToLower());
+        if (duplicate)
+            throw new InvalidOperationException("You already manage a facility with this name.");
+
+        var venueId = Guid.NewGuid();
+        var venue = new Venue
+        {
+            Id = venueId,
+            OwnerId = ownerId,
+            Name = trimmedName,
+            Description = request.Description?.Trim() ?? string.Empty,
+            City = request.City.Trim(),
+            Area = request.Area?.Trim() ?? string.Empty,
+            Address = request.Address.Trim(),
+            Country = "Egypt",
+            Phone = request.Phone?.Trim() ?? string.Empty,
+            Email = string.IsNullOrWhiteSpace(request.Email) ? null : request.Email.Trim(),
+            Website = string.IsNullOrWhiteSpace(request.Website) ? null : request.Website.Trim(),
+            Latitude = request.Latitude,
+            Longitude = request.Longitude,
+            IsActive = true,
+            IsVerified = false,
+            AverageRating = 0.0,
+            TotalReviews = 0,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        // Amenities
+        if (request.AmenityIds != null && request.AmenityIds.Any())
+        {
+            var validAmenityIds = await _db.Amenities
+                .Where(a => request.AmenityIds.Contains(a.Id))
+                .Select(a => a.Id)
+                .Distinct()
+                .ToListAsync();
+
+            foreach (var aid in validAmenityIds)
+            {
+                venue.Amenities.Add(new VenueAmenity { VenueId = venueId, AmenityId = aid });
+            }
+        }
+
+        // Initialize standard 7-day Operating Hours
+        for (int i = 0; i < 7; i++)
+        {
+            var day = (DayOfWeek)i;
+            venue.OperatingHours.Add(new OperatingHour
+            {
+                Id = Guid.NewGuid(),
+                VenueId = venueId,
+                DayOfWeek = day,
+                OpenTime = day == DayOfWeek.Friday ? new TimeOnly(14, 0) : new TimeOnly(8, 0),
+                CloseTime = new TimeOnly(23, 0),
+                IsClosed = false
+            });
+        }
+
+        // Initialize standard Cancellation Policy
+        venue.CancellationPolicy = new CancellationPolicy
+        {
+            Id = Guid.NewGuid(),
+            VenueId = venueId,
+            FreeCancellationHours = 24,
+            LateCancellationFeePercent = 50.0m,
+            PolicyDescription = "Free cancellation up to 24 hours before your booking."
+        };
+
+        _db.Venues.Add(venue);
+        await _db.SaveChangesAsync();
+
+        return new OwnerVenueDto
+        {
+            Id = venue.Id,
+            OwnerId = venue.OwnerId,
+            Name = venue.Name,
+            City = venue.City,
+            Area = venue.Area,
+            Address = venue.Address,
+            Country = venue.Country,
+            Sports = [],
+            TotalCourts = 0,
+            AverageRating = 0.0,
+            TotalReviews = 0,
+            IsActive = true,
+            IsVerified = false,
+            UpcomingBookingsCount = 0,
+            PrimaryImageUrl = null
+        };
+    }
+
+    public async Task<OwnerVenueDto> UpdateVenueAsync(Guid ownerId, Guid venueId, UpdateVenueRequest request)
+    {
+        var venue = await _db.Venues
+            .Include(v => v.Amenities)
+            .Include(v => v.Courts)
+            .Include(v => v.Images)
+            .FirstOrDefaultAsync(v => v.Id == venueId);
+
+        if (venue is null)
+            throw new KeyNotFoundException("Facility not found.");
+
+        if (venue.OwnerId != ownerId)
+            throw new UnauthorizedAccessException("You do not have permission to modify this facility.");
+
+        if (string.IsNullOrWhiteSpace(request.Name))
+            throw new ArgumentException("Facility name is required.");
+        if (string.IsNullOrWhiteSpace(request.City))
+            throw new ArgumentException("City is required.");
+        if (string.IsNullOrWhiteSpace(request.Address))
+            throw new ArgumentException("Address is required.");
+
+        var trimmedName = request.Name.Trim();
+        var duplicate = await _db.Venues
+            .AnyAsync(v => v.OwnerId == ownerId && v.Id != venueId && v.Name.ToLower() == trimmedName.ToLower());
+        if (duplicate)
+            throw new InvalidOperationException("Another facility already uses this name.");
+
+        venue.Name = trimmedName;
+        venue.Description = request.Description?.Trim() ?? string.Empty;
+        venue.City = request.City.Trim();
+        venue.Area = request.Area?.Trim() ?? string.Empty;
+        venue.Address = request.Address.Trim();
+        venue.Phone = request.Phone?.Trim() ?? string.Empty;
+        venue.Email = string.IsNullOrWhiteSpace(request.Email) ? null : request.Email.Trim();
+        venue.Website = string.IsNullOrWhiteSpace(request.Website) ? null : request.Website.Trim();
+        venue.Latitude = request.Latitude;
+        venue.Longitude = request.Longitude;
+        venue.IsActive = request.IsActive;
+
+        // Amenities update
+        if (request.AmenityIds != null)
+        {
+            _db.VenueAmenities.RemoveRange(venue.Amenities);
+            var validAmenityIds = await _db.Amenities
+                .Where(a => request.AmenityIds.Contains(a.Id))
+                .Select(a => a.Id)
+                .Distinct()
+                .ToListAsync();
+
+            foreach (var aid in validAmenityIds)
+            {
+                _db.VenueAmenities.Add(new VenueAmenity { VenueId = venueId, AmenityId = aid });
+            }
+        }
+
+        await _db.SaveChangesAsync();
+
+        var now = DateTime.UtcNow;
+        var upcomingCount = await _db.Bookings
+            .AsNoTracking()
+            .CountAsync(b => b.Court.VenueId == venueId && b.Status == BookingStatus.Confirmed && b.StartTime > now);
+
+        return new OwnerVenueDto
+        {
+            Id = venue.Id,
+            OwnerId = venue.OwnerId,
+            Name = venue.Name,
+            City = venue.City,
+            Area = venue.Area,
+            Address = venue.Address,
+            Country = venue.Country,
+            Sports = venue.Courts.Where(c => c.IsActive).Select(c => c.SportType.ToString()).Distinct().ToList(),
+            TotalCourts = venue.Courts.Count,
+            AverageRating = venue.AverageRating,
+            TotalReviews = venue.TotalReviews,
+            IsActive = venue.IsActive,
+            IsVerified = venue.IsVerified,
+            UpcomingBookingsCount = upcomingCount,
+            PrimaryImageUrl = venue.Images.FirstOrDefault(i => i.IsPrimary)?.ImageUrl ?? venue.Images.FirstOrDefault()?.ImageUrl
+        };
+    }
+
+    public async Task<DeactivateResultDto> DeactivateVenueAsync(Guid ownerId, Guid venueId)
+    {
+        var venue = await _db.Venues.FindAsync(venueId);
+        if (venue is null)
+            throw new KeyNotFoundException("Facility not found.");
+
+        if (venue.OwnerId != ownerId)
+            throw new UnauthorizedAccessException("You do not have permission to deactivate this facility.");
+
+        var now = DateTime.UtcNow;
+        var activeUpcomingBookings = await _db.Bookings
+            .CountAsync(b => b.Court.VenueId == venueId && b.Status == BookingStatus.Confirmed && b.StartTime > now);
+
+        if (activeUpcomingBookings > 0)
+        {
+            return new DeactivateResultDto
+            {
+                Success = false,
+                EntityId = venueId,
+                IsActive = venue.IsActive,
+                ActiveUpcomingBookingsCount = activeUpcomingBookings,
+                Message = $"Cannot deactivate facility: There are {activeUpcomingBookings} active upcoming reservation(s). Please resolve or cancel them first."
+            };
+        }
+
+        venue.IsActive = false;
+        await _db.SaveChangesAsync();
+
+        return new DeactivateResultDto
+        {
+            Success = true,
+            EntityId = venueId,
+            IsActive = false,
+            ActiveUpcomingBookingsCount = 0,
+            Message = "Facility successfully deactivated."
+        };
+    }
+
+    // ── Phase 4B: Court Management ──────────────────────────────────────────
+
+    public async Task<List<CourtResponse>> GetOwnerVenueCourtsAsync(Guid ownerId, Guid venueId)
+    {
+        var venue = await _db.Venues.FindAsync(venueId);
+        if (venue is null)
+            throw new KeyNotFoundException("Facility not found.");
+
+        if (venue.OwnerId != ownerId)
+            throw new UnauthorizedAccessException("You do not have permission to view courts for this facility.");
+
+        var courts = await _db.Courts
+            .AsNoTracking()
+            .Include(c => c.Schedules)
+            .Where(c => c.VenueId == venueId)
+            .OrderBy(c => c.Name)
+            .ToListAsync();
+
+        return courts.Select(MapToCourtResponse).ToList();
+    }
+
+    public async Task<CourtResponse?> GetOwnerCourtByIdAsync(Guid ownerId, Guid courtId)
+    {
+        var court = await _db.Courts
+            .AsNoTracking()
+            .Include(c => c.Venue)
+            .Include(c => c.Schedules)
+            .FirstOrDefaultAsync(c => c.Id == courtId);
+
+        if (court is null) return null;
+
+        if (court.Venue.OwnerId != ownerId)
+            throw new UnauthorizedAccessException("You do not have permission to view this court.");
+
+        return MapToCourtResponse(court);
+    }
+
+    public async Task<CourtResponse> CreateCourtAsync(Guid ownerId, Guid venueId, CreateCourtRequest request)
+    {
+        var venue = await _db.Venues.Include(v => v.OperatingHours).FirstOrDefaultAsync(v => v.Id == venueId);
+        if (venue is null)
+            throw new KeyNotFoundException("Facility not found.");
+
+        if (venue.OwnerId != ownerId)
+            throw new UnauthorizedAccessException("You do not have permission to add courts to this facility.");
+
+        if (string.IsNullOrWhiteSpace(request.Name))
+            throw new ArgumentException("Court name is required.");
+
+        if (!Enum.TryParse<SportType>(request.SportType, true, out var sportType))
+            throw new ArgumentException($"Invalid sport type: '{request.SportType}'.");
+
+        if (request.PricePerHour <= 0)
+            throw new ArgumentException("Price per hour must be greater than zero.");
+
+        var trimmedName = request.Name.Trim();
+        var duplicate = await _db.Courts
+            .AnyAsync(c => c.VenueId == venueId && c.Name.ToLower() == trimmedName.ToLower());
+        if (duplicate)
+            throw new InvalidOperationException("A court with this name already exists in this facility.");
+
+        var courtId = Guid.NewGuid();
+        var court = new Court
+        {
+            Id = courtId,
+            VenueId = venueId,
+            Name = trimmedName,
+            Description = request.Description?.Trim() ?? string.Empty,
+            SportType = sportType,
+            PricePerHour = request.PricePerHour,
+            SurfaceType = string.IsNullOrWhiteSpace(request.SurfaceType) ? "Artificial Grass" : request.SurfaceType.Trim(),
+            IsIndoor = request.IsIndoor,
+            Capacity = request.Capacity <= 0 ? 10 : request.Capacity,
+            IsActive = request.IsActive,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        // Initialize 7-day court schedules based on venue operating hours
+        for (int i = 0; i < 7; i++)
+        {
+            var day = (DayOfWeek)i;
+            var opHour = venue.OperatingHours?.FirstOrDefault(o => o.DayOfWeek == day);
+            var openTime = opHour != null ? opHour.OpenTime : (day == DayOfWeek.Friday ? new TimeOnly(14, 0) : new TimeOnly(8, 0));
+            var closeTime = opHour != null ? opHour.CloseTime : new TimeOnly(23, 0);
+
+            court.Schedules.Add(new CourtSchedule
+            {
+                Id = Guid.NewGuid(),
+                CourtId = courtId,
+                DayOfWeek = day,
+                OpenTime = openTime,
+                CloseTime = closeTime
+            });
+        }
+
+        _db.Courts.Add(court);
+        await _db.SaveChangesAsync();
+
+        return MapToCourtResponse(court);
+    }
+
+    public async Task<CourtResponse> UpdateCourtAsync(Guid ownerId, Guid courtId, UpdateCourtRequest request)
+    {
+        var court = await _db.Courts
+            .Include(c => c.Venue)
+            .Include(c => c.Schedules)
+            .FirstOrDefaultAsync(c => c.Id == courtId);
+
+        if (court is null)
+            throw new KeyNotFoundException("Court not found.");
+
+        if (court.Venue.OwnerId != ownerId)
+            throw new UnauthorizedAccessException("You do not have permission to modify this court.");
+
+        if (string.IsNullOrWhiteSpace(request.Name))
+            throw new ArgumentException("Court name is required.");
+
+        if (!Enum.TryParse<SportType>(request.SportType, true, out var sportType))
+            throw new ArgumentException($"Invalid sport type: '{request.SportType}'.");
+
+        if (request.PricePerHour <= 0)
+            throw new ArgumentException("Price per hour must be greater than zero.");
+
+        var trimmedName = request.Name.Trim();
+        var duplicate = await _db.Courts
+            .AnyAsync(c => c.VenueId == court.VenueId && c.Id != courtId && c.Name.ToLower() == trimmedName.ToLower());
+        if (duplicate)
+            throw new InvalidOperationException("A court with this name already exists in this facility.");
+
+        court.Name = trimmedName;
+        court.Description = request.Description?.Trim() ?? string.Empty;
+        court.SportType = sportType;
+        court.PricePerHour = request.PricePerHour; // Preserves historical bookings' TotalPrice!
+        court.SurfaceType = string.IsNullOrWhiteSpace(request.SurfaceType) ? court.SurfaceType : request.SurfaceType.Trim();
+        court.IsIndoor = request.IsIndoor;
+        court.Capacity = request.Capacity <= 0 ? court.Capacity : request.Capacity;
+        court.IsActive = request.IsActive;
+
+        await _db.SaveChangesAsync();
+
+        return MapToCourtResponse(court);
+    }
+
+    public async Task<DeactivateResultDto> DeactivateCourtAsync(Guid ownerId, Guid courtId)
+    {
+        var court = await _db.Courts.Include(c => c.Venue).FirstOrDefaultAsync(c => c.Id == courtId);
+        if (court is null)
+            throw new KeyNotFoundException("Court not found.");
+
+        if (court.Venue.OwnerId != ownerId)
+            throw new UnauthorizedAccessException("You do not have permission to deactivate this court.");
+
+        var now = DateTime.UtcNow;
+        var activeUpcomingBookings = await _db.Bookings
+            .CountAsync(b => b.CourtId == courtId && b.Status == BookingStatus.Confirmed && b.StartTime > now);
+
+        if (activeUpcomingBookings > 0)
+        {
+            return new DeactivateResultDto
+            {
+                Success = false,
+                EntityId = courtId,
+                IsActive = court.IsActive,
+                ActiveUpcomingBookingsCount = activeUpcomingBookings,
+                Message = $"Cannot deactivate court: There are {activeUpcomingBookings} active upcoming reservation(s). Please cancel or reassign them first."
+            };
+        }
+
+        court.IsActive = false;
+        await _db.SaveChangesAsync();
+
+        return new DeactivateResultDto
+        {
+            Success = true,
+            EntityId = courtId,
+            IsActive = false,
+            ActiveUpcomingBookingsCount = 0,
+            Message = "Court successfully deactivated."
+        };
+    }
+
+    // ── Phase 4B: Amenities Management ──────────────────────────────────────
+
+    public async Task<List<AmenityDto>> GetAmenitiesCatalogAsync()
+    {
+        var amenities = await _db.Amenities
+            .AsNoTracking()
+            .OrderBy(a => a.Category)
+            .ThenBy(a => a.Name)
+            .ToListAsync();
+
+        return amenities.Select(a => new AmenityDto
+        {
+            Id = a.Id,
+            Name = a.Name,
+            Icon = a.Icon,
+            Category = a.Category,
+            IsSelected = false
+        }).ToList();
+    }
+
+    public async Task<List<VenueAmenityDto>> UpdateVenueAmenitiesAsync(Guid ownerId, Guid venueId, List<Guid> amenityIds)
+    {
+        var venue = await _db.Venues
+            .Include(v => v.Amenities)
+                .ThenInclude(va => va.Amenity)
+            .FirstOrDefaultAsync(v => v.Id == venueId);
+
+        if (venue is null)
+            throw new KeyNotFoundException("Facility not found.");
+
+        if (venue.OwnerId != ownerId)
+            throw new UnauthorizedAccessException("You do not have permission to modify amenities for this facility.");
+
+        _db.VenueAmenities.RemoveRange(venue.Amenities);
+
+        var validAmenities = await _db.Amenities
+            .Where(a => amenityIds.Contains(a.Id))
+            .Distinct()
+            .ToListAsync();
+
+        foreach (var amenity in validAmenities)
+        {
+            _db.VenueAmenities.Add(new VenueAmenity
+            {
+                VenueId = venueId,
+                AmenityId = amenity.Id
+            });
+        }
+
+        await _db.SaveChangesAsync();
+
+        return validAmenities.Select(a => new VenueAmenityDto
+        {
+            Id = a.Id,
+            Name = a.Name,
+            Icon = a.Icon,
+            Category = a.Category
+        }).ToList();
+    }
+
+    // ── Phase 4B: Image Management ──────────────────────────────────────────
+
+    public async Task<VenueImageDto> AddVenueImageAsync(Guid ownerId, Guid venueId, AddVenueImageRequest request)
+    {
+        var venue = await _db.Venues
+            .Include(v => v.Images)
+            .FirstOrDefaultAsync(v => v.Id == venueId);
+
+        if (venue is null)
+            throw new KeyNotFoundException("Facility not found.");
+
+        if (venue.OwnerId != ownerId)
+            throw new UnauthorizedAccessException("You do not have permission to manage images for this facility.");
+
+        if (string.IsNullOrWhiteSpace(request.ImageUrl))
+            throw new ArgumentException("Image URL is required.");
+
+        var imageUrl = request.ImageUrl.Trim();
+        // Safe path validation: must start with /images/ or http:// or https://
+        if (!imageUrl.StartsWith("/images/", StringComparison.OrdinalIgnoreCase) &&
+            !imageUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
+            !imageUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ArgumentException("Image URL must be a valid relative path (/images/...) or absolute HTTP/HTTPS URL.");
+        }
+
+        // Check duplicate image for this venue
+        if (venue.Images.Any(i => i.ImageUrl.Equals(imageUrl, StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new InvalidOperationException("This image has already been added to the facility.");
+        }
+
+        var isPrimary = request.IsPrimary || !venue.Images.Any();
+        if (isPrimary)
+        {
+            foreach (var img in venue.Images)
+            {
+                img.IsPrimary = false;
+            }
+        }
+
+        var image = new VenueImage
+        {
+            Id = Guid.NewGuid(),
+            VenueId = venueId,
+            ImageUrl = imageUrl,
+            Caption = request.Caption?.Trim(),
+            IsPrimary = isPrimary,
+            DisplayOrder = request.DisplayOrder == 0 ? venue.Images.Count + 1 : request.DisplayOrder,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _db.VenueImages.Add(image);
+        await _db.SaveChangesAsync();
+
+        return new VenueImageDto
+        {
+            Id = image.Id,
+            ImageUrl = image.ImageUrl,
+            IsPrimary = image.IsPrimary,
+            DisplayOrder = image.DisplayOrder,
+            Caption = image.Caption
+        };
+    }
+
+    public async Task<bool> DeleteVenueImageAsync(Guid ownerId, Guid venueId, Guid imageId)
+    {
+        var image = await _db.VenueImages
+            .Include(i => i.Venue)
+            .FirstOrDefaultAsync(i => i.Id == imageId);
+
+        if (image is null) return false;
+
+        if (image.VenueId != venueId || image.Venue.OwnerId != ownerId)
+            throw new UnauthorizedAccessException("You do not have permission to delete this image.");
+
+        _db.VenueImages.Remove(image);
+        await _db.SaveChangesAsync();
+
+        // If the deleted image was primary, make the first remaining image primary
+        var remaining = await _db.VenueImages.Where(i => i.VenueId == venueId).OrderBy(i => i.DisplayOrder).FirstOrDefaultAsync();
+        if (remaining != null && !await _db.VenueImages.AnyAsync(i => i.VenueId == venueId && i.IsPrimary))
+        {
+            remaining.IsPrimary = true;
+            await _db.SaveChangesAsync();
+        }
+
+        return true;
+    }
+
+    public async Task<bool> SetPrimaryVenueImageAsync(Guid ownerId, Guid venueId, Guid imageId)
+    {
+        var venue = await _db.Venues
+            .Include(v => v.Images)
+            .FirstOrDefaultAsync(v => v.Id == venueId);
+
+        if (venue is null) return false;
+
+        if (venue.OwnerId != ownerId)
+            throw new UnauthorizedAccessException("You do not have permission to manage images for this facility.");
+
+        var target = venue.Images.FirstOrDefault(i => i.Id == imageId);
+        if (target is null) return false;
+
+        foreach (var img in venue.Images)
+        {
+            img.IsPrimary = (img.Id == imageId);
+        }
+
+        await _db.SaveChangesAsync();
+        return true;
+    }
+
+    // ── Phase 4B: Operating Hours Management ────────────────────────────────
+
+    public async Task<List<OperatingHourDto>> GetVenueOperatingHoursAsync(Guid ownerId, Guid venueId)
+    {
+        var venue = await _db.Venues
+            .Include(v => v.OperatingHours)
+            .FirstOrDefaultAsync(v => v.Id == venueId);
+
+        if (venue is null)
+            throw new KeyNotFoundException("Facility not found.");
+
+        if (venue.OwnerId != ownerId)
+            throw new UnauthorizedAccessException("You do not have permission to view operating hours for this facility.");
+
+        return venue.OperatingHours.OrderBy(o => o.DayOfWeek).Select(o => new OperatingHourDto
+        {
+            DayOfWeek = o.DayOfWeek,
+            DayName = o.DayOfWeek.ToString(),
+            OpenTime = o.OpenTime.ToString("HH:mm"),
+            CloseTime = o.CloseTime.ToString("HH:mm"),
+            IsClosed = o.IsClosed
+        }).ToList();
+    }
+
+    public async Task<List<OperatingHourDto>> UpdateVenueOperatingHoursAsync(Guid ownerId, Guid venueId, List<UpdateOperatingHourRequest> hours)
+    {
+        var venue = await _db.Venues
+            .Include(v => v.OperatingHours)
+            .FirstOrDefaultAsync(v => v.Id == venueId);
+
+        if (venue is null)
+            throw new KeyNotFoundException("Facility not found.");
+
+        if (venue.OwnerId != ownerId)
+            throw new UnauthorizedAccessException("You do not have permission to modify operating hours for this facility.");
+
+        _db.OperatingHours.RemoveRange(venue.OperatingHours);
+
+        foreach (var h in hours)
+        {
+            TimeOnly openTime = TimeOnly.TryParse(h.OpenTime, out var ot) ? ot : new TimeOnly(8, 0);
+            TimeOnly closeTime = TimeOnly.TryParse(h.CloseTime, out var ct) ? ct : new TimeOnly(23, 0);
+
+            _db.OperatingHours.Add(new OperatingHour
+            {
+                Id = Guid.NewGuid(),
+                VenueId = venueId,
+                DayOfWeek = h.DayOfWeek,
+                OpenTime = openTime,
+                CloseTime = closeTime,
+                IsClosed = h.IsClosed
+            });
+        }
+
+        await _db.SaveChangesAsync();
+
+        return hours.Select(h => new OperatingHourDto
+        {
+            DayOfWeek = h.DayOfWeek,
+            DayName = h.DayOfWeek.ToString(),
+            OpenTime = h.OpenTime,
+            CloseTime = h.CloseTime,
+            IsClosed = h.IsClosed
+        }).ToList();
+    }
+
+    private static CourtResponse MapToCourtResponse(Court c)
+    {
+        return new CourtResponse
+        {
+            Id = c.Id,
+            VenueId = c.VenueId,
+            Name = c.Name,
+            Description = c.Description,
+            SportType = c.SportType.ToString(),
+            PricePerHour = c.PricePerHour,
+            SurfaceType = c.SurfaceType,
+            IsIndoor = c.IsIndoor,
+            Capacity = c.Capacity,
+            IsActive = c.IsActive,
+            Schedules = c.Schedules?.Select(s => new ScheduleResponse
+            {
+                Id = s.Id,
+                CourtId = s.CourtId,
+                DayOfWeek = (int)s.DayOfWeek,
+                OpenTime = s.OpenTime.ToString("HH:mm"),
+                CloseTime = s.CloseTime.ToString("HH:mm")
+            }).ToList() ?? []
+        };
+    }
 }

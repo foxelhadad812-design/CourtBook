@@ -1,0 +1,151 @@
+@page "/Owner/Venues/Create"
+@model CourtBook.Web.Pages.Owner.Venues.CreateModel
+@{
+    ViewData["Title"] = "Register New Facility — PlaySpot Owner";
+}
+
+<div class="facility-create-page py-4">
+    <div class="container" style="max-width: 860px;">
+        @if (!Model.IsOwner)
+        {
+            <div class="card border-0 shadow-lg text-center p-5 my-5" style="background: rgba(22, 27, 34, 0.9); border: 1px solid rgba(239, 68, 68, 0.3) !important; border-radius: 20px;">
+                <div class="display-1 text-danger mb-3">
+                    <i class="bi bi-shield-lock-fill"></i>
+                </div>
+                <h2 class="text-white fw-bold mb-2">Access Restricted</h2>
+                <p class="text-secondary mx-auto mb-4" style="max-width: 500px;">
+                    This section is reserved for verified facility owners.
+                </p>
+                <div>
+                    <a href="/Login?returnUrl=/Owner/Venues/Create" class="btn btn-primary px-4 py-2 rounded-pill fw-semibold">
+                        Sign In as Owner
+                    </a>
+                </div>
+            </div>
+        }
+        else
+        {
+            <!-- Navigation Header -->
+            <div class="d-flex align-items-center justify-content-between mb-4 pb-2 border-bottom border-dark">
+                <div>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-1">
+                            <li class="breadcrumb-item"><a href="/Owner" class="text-secondary text-decoration-none">Dashboard</a></li>
+                            <li class="breadcrumb-item"><a href="/Owner/Venues" class="text-secondary text-decoration-none">Facilities</a></li>
+                            <li class="breadcrumb-item active text-white" aria-current="page">New Facility</li>
+                        </ol>
+                    </nav>
+                    <h1 class="h3 text-white fw-bold mb-0">Register New Sports Facility</h1>
+                </div>
+                <a href="/Owner/Venues" class="btn btn-outline-secondary rounded-pill px-3">
+                    <i class="bi bi-x-lg me-1"></i> Cancel
+                </a>
+            </div>
+
+            @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+            {
+                <div class="alert alert-danger d-flex align-items-center rounded-3 mb-4 shadow-sm" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+                    <div>@Model.ErrorMessage</div>
+                </div>
+            }
+
+            <form method="post" class="card border-0 p-4 shadow-sm" style="background: rgba(22, 27, 34, 0.9); border: 1px solid rgba(255,255,255,0.1) !important; border-radius: 20px;">
+                <!-- Section 1: Basic Information -->
+                <div class="mb-4">
+                    <h5 class="text-white fw-bold mb-3 d-flex align-items-center">
+                        <span class="badge bg-primary rounded-circle me-2 d-inline-flex align-items-center justify-content-center" style="width: 26px; height: 26px; font-size: 0.8rem;">1</span>
+                        Basic Facility Info
+                    </h5>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label text-secondary small fw-semibold">Facility Name <span class="text-danger">*</span></label>
+                            <input type="text" asp-for="Input.Name" class="form-control form-control-dark bg-dark text-white border-secondary" placeholder="e.g. النجوم سبورتس كلوب / Stars Sports Club" required />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label text-secondary small fw-semibold">Facility Description</label>
+                            <textarea asp-for="Input.Description" class="form-control form-control-dark bg-dark text-white border-secondary" rows="3" placeholder="Describe your facility, pitch quality, lighting, and general features for players..."></textarea>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-secondary small fw-semibold">Contact Phone <span class="text-danger">*</span></label>
+                            <input type="tel" asp-for="Input.Phone" class="form-control form-control-dark bg-dark text-white border-secondary" placeholder="010XXXXXXXX" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-secondary small fw-semibold">Facility Email</label>
+                            <input type="email" asp-for="Input.Email" class="form-control form-control-dark bg-dark text-white border-secondary" placeholder="info@venue.eg" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-secondary small fw-semibold">Website (optional)</label>
+                            <input type="url" asp-for="Input.Website" class="form-control form-control-dark bg-dark text-white border-secondary" placeholder="https://..." />
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="border-secondary opacity-25 my-4" />
+
+                <!-- Section 2: Location -->
+                <div class="mb-4">
+                    <h5 class="text-white fw-bold mb-3 d-flex align-items-center">
+                        <span class="badge bg-primary rounded-circle me-2 d-inline-flex align-items-center justify-content-center" style="width: 26px; height: 26px; font-size: 0.8rem;">2</span>
+                        Location & Coordinates
+                    </h5>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-secondary small fw-semibold">City <span class="text-danger">*</span></label>
+                            <input type="text" asp-for="Input.City" class="form-control form-control-dark bg-dark text-white border-secondary" placeholder="e.g. Cairo, Giza, Alexandria" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-secondary small fw-semibold">Area / District</label>
+                            <input type="text" asp-for="Input.Area" class="form-control form-control-dark bg-dark text-white border-secondary" placeholder="e.g. Maadi, New Cairo, Dokki, Smouha" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label text-secondary small fw-semibold">Detailed Street Address <span class="text-danger">*</span></label>
+                            <input type="text" asp-for="Input.Address" class="form-control form-control-dark bg-dark text-white border-secondary" placeholder="Street number, landmark, nearby crossroads..." required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-secondary small fw-semibold">Latitude (optional)</label>
+                            <input type="number" step="any" asp-for="Input.Latitude" class="form-control form-control-dark bg-dark text-white border-secondary" placeholder="e.g. 30.0444" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-secondary small fw-semibold">Longitude (optional)</label>
+                            <input type="number" step="any" asp-for="Input.Longitude" class="form-control form-control-dark bg-dark text-white border-secondary" placeholder="e.g. 31.2357" />
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="border-secondary opacity-25 my-4" />
+
+                <!-- Section 3: Amenities Selection -->
+                <div class="mb-4">
+                    <h5 class="text-white fw-bold mb-3 d-flex align-items-center">
+                        <span class="badge bg-primary rounded-circle me-2 d-inline-flex align-items-center justify-content-center" style="width: 26px; height: 26px; font-size: 0.8rem;">3</span>
+                        Available Amenities
+                    </h5>
+                    <p class="text-secondary small mb-3">Select the amenities and facilities provided at this venue:</p>
+                    <div class="row g-2">
+                        @foreach (var amenity in Model.AvailableAmenities)
+                        {
+                            <div class="col-sm-6 col-md-4">
+                                <div class="p-2 rounded-3 border border-dark bg-dark d-flex align-items-center">
+                                    <input class="form-check-input me-2 mt-0" type="checkbox" name="Input.AmenityIds" value="@amenity.Id" id="amenity_@amenity.Id" />
+                                    <label class="form-check-label text-light small d-flex align-items-center cursor-pointer w-100" for="amenity_@amenity.Id">
+                                        <i class="bi @amenity.Icon text-primary me-2 fs-6"></i>
+                                        @amenity.Name
+                                    </label>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="d-flex justify-content-end gap-2 pt-3">
+                    <a href="/Owner/Venues" class="btn btn-outline-secondary rounded-pill px-4">Cancel</a>
+                    <button type="submit" class="btn btn-primary rounded-pill px-5 fw-semibold shadow-sm">
+                        <i class="bi bi-check2-circle me-1"></i> Create Facility
+                    </button>
+                </div>
+            </form>
+        }
+    </div>
+</div>

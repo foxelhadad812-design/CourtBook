@@ -3,16 +3,24 @@ namespace CourtBook.Application.DTOs;
 public class CreateCourtRequest
 {
     public string Name { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
     public string SportType { get; set; } = string.Empty; // Using string for Enum input
     public decimal PricePerHour { get; set; }
+    public string SurfaceType { get; set; } = "Artificial Grass";
+    public bool IsIndoor { get; set; } = false;
+    public int Capacity { get; set; } = 10;
     public bool IsActive { get; set; } = true;
 }
 
 public class UpdateCourtRequest
 {
     public string Name { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
     public string SportType { get; set; } = string.Empty;
     public decimal PricePerHour { get; set; }
+    public string SurfaceType { get; set; } = "Artificial Grass";
+    public bool IsIndoor { get; set; } = false;
+    public int Capacity { get; set; } = 10;
     public bool IsActive { get; set; } = true;
 }
 

@@ -1,0 +1,597 @@
+@page "/Owner/Venues/Manage"
+@model CourtBook.Web.Pages.Owner.Venues.ManageModel
+@{
+    ViewData["Title"] = Model.Venue != null ? $"Manage {Model.Venue.Name} — PlaySpot Owner" : "Facility Not Found";
+}
+
+<div class="facility-manage-page py-4">
+    <div class="container-xl">
+        @if (!Model.IsOwner)
+        {
+            <div class="card border-0 shadow-lg text-center p-5 my-5" style="background: rgba(22, 27, 34, 0.9); border: 1px solid rgba(239, 68, 68, 0.3) !important; border-radius: 20px;">
+                <div class="display-1 text-danger mb-3">
+                    <i class="bi bi-shield-lock-fill"></i>
+                </div>
+                <h2 class="text-white fw-bold mb-2">Access Denied (403 Forbidden)</h2>
+                <p class="text-secondary mx-auto mb-4" style="max-width: 500px;">
+                    You do not have permission to manage this sports facility. It belongs to another registered owner account.
+                </p>
+                <div>
+                    <a href="/Owner/Venues" class="btn btn-outline-secondary px-4 py-2 rounded-pill fw-semibold">
+                        <i class="bi bi-arrow-left me-1"></i> Back to My Facilities
+                    </a>
+                </div>
+            </div>
+        }
+        else if (Model.Venue is null)
+        {
+            <div class="card border-0 shadow-sm text-center p-5 my-5" style="background: rgba(22, 27, 34, 0.7); border: 1px dashed rgba(255,255,255,0.15) !important; border-radius: 20px;">
+                <div class="display-1 text-secondary mb-3"><i class="bi bi-building-x"></i></div>
+                <h2 class="text-white fw-bold mb-2">Facility Not Found</h2>
+                <p class="text-secondary mx-auto mb-4" style="max-width: 450px;">
+                    The facility you requested does not exist or has been removed.
+                </p>
+                <div>
+                    <a href="/Owner/Venues" class="btn btn-primary px-4 py-2 rounded-pill fw-semibold">
+                        <i class="bi bi-arrow-left me-1"></i> Back to Facilities
+                    </a>
+                </div>
+            </div>
+        }
+        else
+        {
+            <!-- Navigation Breadcrumbs -->
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4 pb-3 border-bottom border-dark">
+                <div>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-1">
+                            <li class="breadcrumb-item"><a href="/Owner" class="text-secondary text-decoration-none">Dashboard</a></li>
+                            <li class="breadcrumb-item"><a href="/Owner/Venues" class="text-secondary text-decoration-none">Facilities</a></li>
+                            <li class="breadcrumb-item active text-white" aria-current="page">@Model.Venue.Name</li>
+                        </ol>
+                    </nav>
+                    <div class="d-flex align-items-center gap-2">
+                        <h1 class="h3 text-white fw-bold mb-0">@Model.Venue.Name</h1>
+                        @if (Model.Venue.IsActive)
+                        {
+                            <span class="badge bg-success bg-opacity-75 rounded-pill px-2 py-1 small">
+                                <i class="bi bi-check-circle-fill me-1"></i> Active
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-danger bg-opacity-75 rounded-pill px-2 py-1 small">
+                                <i class="bi bi-pause-circle-fill me-1"></i> Inactive
+                            </span>
+                        }
+                        @if (Model.Venue.IsVerified)
+                        {
+                            <span class="badge bg-primary bg-opacity-75 rounded-pill px-2 py-1 small">
+                                <i class="bi bi-patch-check-fill me-1"></i> Verified
+                            </span>
+                        }
+                    </div>
+                    <div class="text-secondary small mt-1">
+                        <i class="bi bi-geo-alt me-1 text-primary"></i>@Model.Venue.Address, @Model.Venue.Area, @Model.Venue.City
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <a href="/Venues/Details/@Model.Venue.Id" target="_blank" class="btn btn-outline-secondary rounded-pill px-3" title="View Public Page">
+                        <i class="bi bi-box-arrow-up-right me-1"></i> View Live
+                    </a>
+                    <a href="/Owner/Venues" class="btn btn-outline-secondary rounded-pill px-3">
+                        <i class="bi bi-arrow-left me-1"></i> Back
+                    </a>
+                </div>
+            </div>
+
+            <!-- Feedback Messages -->
+            @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+            {
+                <div class="alert alert-success alert-dismissible fade show d-flex align-items-center rounded-3 mb-4 shadow-sm" role="alert">
+                    <i class="bi bi-check-circle-fill me-2 fs-5"></i>
+                    <div>@Model.SuccessMessage</div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+            @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+            {
+                <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center rounded-3 mb-4 shadow-sm" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+                    <div>@Model.ErrorMessage</div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+
+            <!-- Tabs Navigation -->
+            <ul class="nav nav-pills gap-2 mb-4 p-2 rounded-4" style="background: rgba(22, 27, 34, 0.7); border: 1px solid rgba(255,255,255,0.08);">
+                <li class="nav-item">
+                    <a class="nav-link rounded-pill px-3 py-2 fw-semibold @(Model.ActiveTab == "details" ? "active bg-primary text-white" : "text-secondary")" href="?id=@Model.Id&activeTab=details">
+                        <i class="bi bi-info-circle me-1"></i> Facility Info
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link rounded-pill px-3 py-2 fw-semibold @(Model.ActiveTab == "courts" ? "active bg-primary text-white" : "text-secondary")" href="?id=@Model.Id&activeTab=courts">
+                        <i class="bi bi-grid-3x3 me-1"></i> Courts & Pitches <span class="badge bg-dark ms-1">@Model.Venue.Courts.Count</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link rounded-pill px-3 py-2 fw-semibold @(Model.ActiveTab == "amenities" ? "active bg-primary text-white" : "text-secondary")" href="?id=@Model.Id&activeTab=amenities">
+                        <i class="bi bi-stars me-1"></i> Amenities <span class="badge bg-dark ms-1">@Model.Venue.Amenities.Count</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link rounded-pill px-3 py-2 fw-semibold @(Model.ActiveTab == "images" ? "active bg-primary text-white" : "text-secondary")" href="?id=@Model.Id&activeTab=images">
+                        <i class="bi bi-images me-1"></i> Photo Gallery <span class="badge bg-dark ms-1">@Model.Venue.Images.Count</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link rounded-pill px-3 py-2 fw-semibold @(Model.ActiveTab == "hours" ? "active bg-primary text-white" : "text-secondary")" href="?id=@Model.Id&activeTab=hours">
+                        <i class="bi bi-clock me-1"></i> Operating Hours
+                    </a>
+                </li>
+            </ul>
+
+            <!-- TAB 1: FACILITY DETAILS -->
+            @if (Model.ActiveTab == "details")
+            {
+                <div class="row g-4">
+                    <div class="col-lg-8">
+                        <div class="card border-0 p-4 shadow-sm" style="background: rgba(22, 27, 34, 0.9); border: 1px solid rgba(255,255,255,0.08) !important; border-radius: 18px;">
+                            <h5 class="text-white fw-bold mb-3">Facility General Details</h5>
+                            <form method="post" asp-page-handler="UpdateDetails" asp-route-id="@Model.Id">
+                                <div class="row g-3">
+                                    <div class="col-12">
+                                        <label class="form-label text-secondary small fw-semibold">Facility Name <span class="text-danger">*</span></label>
+                                        <input type="text" asp-for="DetailsInput.Name" class="form-control bg-dark text-white border-secondary" required />
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label text-secondary small fw-semibold">Description</label>
+                                        <textarea asp-for="DetailsInput.Description" class="form-control bg-dark text-white border-secondary" rows="3"></textarea>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label text-secondary small fw-semibold">City <span class="text-danger">*</span></label>
+                                        <input type="text" asp-for="DetailsInput.City" class="form-control bg-dark text-white border-secondary" required />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label text-secondary small fw-semibold">Area / District</label>
+                                        <input type="text" asp-for="DetailsInput.Area" class="form-control bg-dark text-white border-secondary" />
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label text-secondary small fw-semibold">Detailed Address <span class="text-danger">*</span></label>
+                                        <input type="text" asp-for="DetailsInput.Address" class="form-control bg-dark text-white border-secondary" required />
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label text-secondary small fw-semibold">Phone <span class="text-danger">*</span></label>
+                                        <input type="tel" asp-for="DetailsInput.Phone" class="form-control bg-dark text-white border-secondary" />
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label text-secondary small fw-semibold">Email</label>
+                                        <input type="email" asp-for="DetailsInput.Email" class="form-control bg-dark text-white border-secondary" />
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label text-secondary small fw-semibold">Website</label>
+                                        <input type="url" asp-for="DetailsInput.Website" class="form-control bg-dark text-white border-secondary" />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label text-secondary small fw-semibold">Latitude</label>
+                                        <input type="number" step="any" asp-for="DetailsInput.Latitude" class="form-control bg-dark text-white border-secondary" />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label text-secondary small fw-semibold">Longitude</label>
+                                        <input type="number" step="any" asp-for="DetailsInput.Longitude" class="form-control bg-dark text-white border-secondary" />
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="form-check form-switch pt-2">
+                                            <input class="form-check-input" type="checkbox" asp-for="DetailsInput.IsActive" id="activeSwitch" />
+                                            <label class="form-check-label text-light fw-medium" for="activeSwitch">Facility is active and accepting bookings</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top border-dark">
+                                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-semibold">
+                                        <i class="bi bi-save me-1"></i> Save Changes
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Deactivation & Danger Zone -->
+                    <div class="col-lg-4">
+                        <div class="card border-0 p-4 shadow-sm h-100" style="background: rgba(22, 27, 34, 0.7); border: 1px solid rgba(239, 68, 68, 0.2) !important; border-radius: 18px;">
+                            <h5 class="text-danger fw-bold mb-3 d-flex align-items-center">
+                                <i class="bi bi-shield-slash me-2"></i> Facility Status
+                            </h5>
+                            <p class="text-secondary small mb-3">
+                                Deactivating a facility safely removes it from public discovery without deleting historical matches or past booking records.
+                            </p>
+                            @if (Model.Venue.UpcomingBookingsCount > 0)
+                            {
+                                <div class="alert alert-warning small p-2 rounded-3 mb-3">
+                                    <i class="bi bi-exclamation-circle me-1"></i>
+                                    <strong>@Model.Venue.UpcomingBookingsCount</strong> upcoming reservation(s) active. You cannot deactivate while future bookings are pending.
+                                </div>
+                            }
+                            <form method="post" asp-page-handler="DeactivateFacility" asp-route-id="@Model.Id" onsubmit="return confirm('Are you sure you want to deactivate this facility? Active reservations must be resolved first.');">
+                                <button type="submit" class="btn btn-outline-danger w-100 rounded-pill py-2 small fw-semibold" @(Model.Venue.UpcomingBookingsCount > 0 ? "disabled" : "")>
+                                    <i class="bi bi-pause-circle me-1"></i> Deactivate Facility
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- TAB 2: COURTS & PITCHES -->
+            @if (Model.ActiveTab == "courts")
+            {
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="text-white fw-bold mb-0">Courts & Pitches (@Model.Venue.Courts.Count)</h5>
+                    <button type="button" class="btn btn-primary rounded-pill px-3 py-2 small fw-semibold" data-bs-toggle="collapse" data-bs-target="#addCourtCollapse">
+                        <i class="bi bi-plus-lg me-1"></i> Add Court
+                    </button>
+                </div>
+
+                <!-- Add Court Form Collapse -->
+                <div class="collapse mb-4" id="addCourtCollapse">
+                    <div class="card border-0 p-4 shadow-sm" style="background: rgba(22, 27, 34, 0.95); border: 1px solid rgba(34, 197, 94, 0.3) !important; border-radius: 18px;">
+                        <h6 class="text-success fw-bold mb-3"><i class="bi bi-plus-circle me-2"></i>Add New Court / Pitch</h6>
+                        <form method="post" asp-page-handler="CreateCourt" asp-route-id="@Model.Id">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label text-secondary small fw-semibold">Court Name <span class="text-danger">*</span></label>
+                                    <input type="text" asp-for="NewCourtInput.Name" class="form-control bg-dark text-white border-secondary" placeholder="e.g. Football Court 1 / Padel Glass 2" required />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label text-secondary small fw-semibold">Sport Type <span class="text-danger">*</span></label>
+                                    <select asp-for="NewCourtInput.SportType" class="form-select bg-dark text-white border-secondary" required>
+                                        <option value="Football">Football (كرة قدم)</option>
+                                        <option value="Padel">Padel (بادل)</option>
+                                        <option value="Tennis">Tennis (تنس)</option>
+                                        <option value="Basketball">Basketball (كرة سلة)</option>
+                                        <option value="Volleyball">Volleyball (كرة طائرة)</option>
+                                        <option value="Badminton">Badminton (ريشة طائرة)</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label text-secondary small fw-semibold">Base Price / Hour (EGP) <span class="text-danger">*</span></label>
+                                    <input type="number" step="10" min="1" asp-for="NewCourtInput.PricePerHour" class="form-control bg-dark text-white border-secondary" placeholder="300" required />
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label text-secondary small fw-semibold">Surface Type</label>
+                                    <input type="text" asp-for="NewCourtInput.SurfaceType" class="form-control bg-dark text-white border-secondary" placeholder="e.g. Artificial Turf, Glass/Plexi, Clay" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label text-secondary small fw-semibold">Max Player Capacity</label>
+                                    <input type="number" min="1" max="100" asp-for="NewCourtInput.Capacity" class="form-control bg-dark text-white border-secondary" placeholder="10" />
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label text-secondary small fw-semibold">Description</label>
+                                    <input type="text" asp-for="NewCourtInput.Description" class="form-control bg-dark text-white border-secondary" placeholder="Court features, dimensions, or lighting notes..." />
+                                </div>
+                                <div class="col-12 d-flex gap-4">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" asp-for="NewCourtInput.IsIndoor" id="newCourtIndoor" />
+                                        <label class="form-check-label text-light small" for="newCourtIndoor">Indoor / Covered Court</label>
+                                    </div>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" asp-for="NewCourtInput.IsActive" checked id="newCourtActive" />
+                                        <label class="form-check-label text-light small" for="newCourtActive">Active for booking</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-end gap-2 mt-3 pt-2">
+                                <button type="button" class="btn btn-outline-secondary rounded-pill px-3 btn-sm" data-bs-toggle="collapse" data-bs-target="#addCourtCollapse">Cancel</button>
+                                <button type="submit" class="btn btn-success rounded-pill px-4 btn-sm fw-semibold">
+                                    <i class="bi bi-check-lg me-1"></i> Save Court
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Courts List Cards -->
+                @if (Model.Venue.Courts.Count == 0)
+                {
+                    <div class="card border-0 text-center p-5" style="background: rgba(22, 27, 34, 0.6); border: 1px dashed rgba(255,255,255,0.15) !important; border-radius: 18px;">
+                        <div class="display-4 text-secondary mb-2"><i class="bi bi-grid-3x3"></i></div>
+                        <h5 class="text-white fw-bold mb-1">No Courts Added Yet</h5>
+                        <p class="text-secondary small mb-3">Add courts to this venue to allow players to check real-time availability and book slots.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="row g-3">
+                        @foreach (var court in Model.Venue.Courts)
+                        {
+                            <div class="col-md-6 col-lg-4">
+                                <div class="card border-0 p-3 h-100 shadow-sm" style="background: rgba(22, 27, 34, 0.85); border: 1px solid rgba(255,255,255,0.08) !important; border-radius: 16px;">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div>
+                                            <span class="badge bg-primary bg-opacity-75 rounded-pill px-2 py-1 small me-1">@court.SportType</span>
+                                            @if (court.IsIndoor)
+                                            {
+                                                <span class="badge bg-info bg-opacity-50 text-light rounded-pill px-2 py-1 small">Indoor</span>
+                                            }
+                                        </div>
+                                        @if (court.IsActive)
+                                        {
+                                            <span class="badge bg-success bg-opacity-75 rounded-pill px-2 py-1 small">Active</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-danger bg-opacity-75 rounded-pill px-2 py-1 small">Inactive</span>
+                                        }
+                                    </div>
+                                    <h5 class="text-white fw-bold mb-1">@court.Name</h5>
+                                    <div class="text-secondary small mb-2">@court.SurfaceType &bull; Capacity: @court.Capacity players</div>
+
+                                    <div class="h5 text-warning fw-bold mb-3 mt-auto">
+                                        @court.PricePerHour.ToString("0.00") <span class="fs-6 text-secondary fw-normal">EGP / hr</span>
+                                    </div>
+
+                                    <div class="d-flex gap-2 pt-2 border-top border-dark">
+                                        <button type="button" class="btn btn-outline-primary btn-sm flex-grow-1 rounded-pill" data-bs-toggle="collapse" data-bs-target="#editCourt_@court.Id">
+                                            <i class="bi bi-pencil me-1"></i> Edit
+                                        </button>
+                                        <form method="post" asp-page-handler="DeactivateCourt" asp-route-id="@Model.Id" asp-route-courtId="@court.Id" onsubmit="return confirm('Deactivate this court?');">
+                                            <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill px-3" title="Deactivate Court">
+                                                <i class="bi bi-pause-circle"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+
+                                    <!-- Edit Court Collapse -->
+                                    <div class="collapse mt-3" id="editCourt_@court.Id">
+                                        <div class="p-3 rounded-3 border border-secondary bg-dark">
+                                            <h6 class="text-white fw-bold small mb-2">Edit Court</h6>
+                                            <form method="post" asp-page-handler="UpdateCourt" asp-route-id="@Model.Id" asp-route-courtId="@court.Id">
+                                                <div class="mb-2">
+                                                    <label class="text-secondary" style="font-size:0.75rem;">Court Name</label>
+                                                    <input type="text" name="EditCourtInput.Name" value="@court.Name" class="form-control form-control-sm bg-black text-white border-dark" required />
+                                                </div>
+                                                <div class="mb-2">
+                                                    <label class="text-secondary" style="font-size:0.75rem;">Sport</label>
+                                                    <select name="EditCourtInput.SportType" class="form-select form-select-sm bg-black text-white border-dark" required>
+                                                        <option value="@court.SportType" selected>@court.SportType</option>
+                                                        <option value="Football">Football</option>
+                                                        <option value="Padel">Padel</option>
+                                                        <option value="Tennis">Tennis</option>
+                                                        <option value="Basketball">Basketball</option>
+                                                        <option value="Volleyball">Volleyball</option>
+                                                        <option value="Badminton">Badminton</option>
+                                                    </select>
+                                                </div>
+                                                <div class="mb-2">
+                                                    <label class="text-secondary" style="font-size:0.75rem;">Price / Hour (EGP)</label>
+                                                    <input type="number" step="10" min="1" name="EditCourtInput.PricePerHour" value="@court.PricePerHour" class="form-control form-control-sm bg-black text-white border-dark" required />
+                                                </div>
+                                                <div class="mb-2">
+                                                    <label class="text-secondary" style="font-size:0.75rem;">Surface</label>
+                                                    <input type="text" name="EditCourtInput.SurfaceType" value="@court.SurfaceType" class="form-control form-control-sm bg-black text-white border-dark" />
+                                                </div>
+                                                <div class="mb-2">
+                                                    <label class="text-secondary" style="font-size:0.75rem;">Capacity</label>
+                                                    <input type="number" name="EditCourtInput.Capacity" value="@court.Capacity" class="form-control form-control-sm bg-black text-white border-dark" />
+                                                </div>
+                                                <div class="form-check form-switch mb-2">
+                                                    <input class="form-check-input" type="checkbox" name="EditCourtInput.IsActive" value="true" @(court.IsActive ? "checked" : "") id="active_@court.Id" />
+                                                    <label class="form-check-label text-light" style="font-size:0.75rem;" for="active_@court.Id">Active</label>
+                                                </div>
+                                                <div class="d-flex justify-content-end gap-1 mt-2">
+                                                    <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3">Update</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            }
+
+            <!-- TAB 3: AMENITIES -->
+            @if (Model.ActiveTab == "amenities")
+            {
+                <div class="card border-0 p-4 shadow-sm" style="background: rgba(22, 27, 34, 0.9); border: 1px solid rgba(255,255,255,0.08) !important; border-radius: 18px;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h5 class="text-white fw-bold mb-1">Facility Amenities</h5>
+                            <p class="text-secondary small mb-0">Select amenities to highlight comfort, equipment, and services on your facility page.</p>
+                        </div>
+                    </div>
+                    <form method="post" asp-page-handler="UpdateAmenities" asp-route-id="@Model.Id">
+                        <div class="row g-3 py-3">
+                            @foreach (var amenity in Model.AvailableAmenities)
+                            {
+                                <div class="col-sm-6 col-md-4">
+                                    <div class="p-3 rounded-3 border border-dark bg-dark d-flex align-items-center">
+                                        <input class="form-check-input me-3 mt-0" type="checkbox" name="SelectedAmenityIds" value="@amenity.Id" id="am_@amenity.Id" @(amenity.IsSelected ? "checked" : "") />
+                                        <label class="form-check-label text-light d-flex align-items-center cursor-pointer w-100" for="am_@amenity.Id">
+                                            <i class="bi @amenity.Icon text-primary fs-5 me-2"></i>
+                                            <div>
+                                                <div class="fw-semibold">@amenity.Name</div>
+                                                <div class="text-secondary small">@amenity.Category</div>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                        <div class="d-flex justify-content-end mt-4 pt-3 border-top border-dark">
+                            <button type="submit" class="btn btn-primary rounded-pill px-4 fw-semibold">
+                                <i class="bi bi-check2-circle me-1"></i> Save Amenities
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            }
+
+            <!-- TAB 4: PHOTO GALLERY -->
+            @if (Model.ActiveTab == "images")
+            {
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="text-white fw-bold mb-0">Facility Photos (@Model.Venue.Images.Count)</h5>
+                    <button type="button" class="btn btn-primary rounded-pill px-3 py-2 small fw-semibold" data-bs-toggle="collapse" data-bs-target="#addImageCollapse">
+                        <i class="bi bi-plus-lg me-1"></i> Add Photo
+                    </button>
+                </div>
+
+                <!-- Add Image Collapse Form -->
+                <div class="collapse mb-4" id="addImageCollapse">
+                    <div class="card border-0 p-4 shadow-sm" style="background: rgba(22, 27, 34, 0.95); border: 1px solid rgba(59, 130, 246, 0.3) !important; border-radius: 18px;">
+                        <h6 class="text-primary fw-bold mb-3"><i class="bi bi-cloud-arrow-up me-2"></i>Add Photo to Gallery</h6>
+                        <form method="post" asp-page-handler="AddImage" asp-route-id="@Model.Id">
+                            <div class="row g-3">
+                                <div class="col-md-8">
+                                    <label class="form-label text-secondary small fw-semibold">Image URL or Asset Path <span class="text-danger">*</span></label>
+                                    <input type="text" asp-for="NewImageInput.ImageUrl" class="form-control bg-dark text-white border-secondary" placeholder="e.g. /images/football.jpg or https://..." required />
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label text-secondary small fw-semibold">Display Order</label>
+                                    <input type="number" min="0" asp-for="NewImageInput.DisplayOrder" class="form-control bg-dark text-white border-secondary" placeholder="1" />
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label text-secondary small fw-semibold">Caption</label>
+                                    <input type="text" asp-for="NewImageInput.Caption" class="form-control bg-dark text-white border-secondary" placeholder="e.g. Pitch 1 Floodlit night view" />
+                                </div>
+                                <div class="col-12">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" asp-for="NewImageInput.IsPrimary" id="isPrimaryCheck" />
+                                        <label class="form-check-label text-light small" for="isPrimaryCheck">Set as primary cover photo</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-end gap-2 mt-3 pt-2">
+                                <button type="button" class="btn btn-outline-secondary rounded-pill px-3 btn-sm" data-bs-toggle="collapse" data-bs-target="#addImageCollapse">Cancel</button>
+                                <button type="submit" class="btn btn-primary rounded-pill px-4 btn-sm fw-semibold">
+                                    <i class="bi bi-check-lg me-1"></i> Add Photo
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Images Grid -->
+                @if (Model.Venue.Images.Count == 0)
+                {
+                    <div class="card border-0 text-center p-5" style="background: rgba(22, 27, 34, 0.6); border: 1px dashed rgba(255,255,255,0.15) !important; border-radius: 18px;">
+                        <div class="display-4 text-secondary mb-2"><i class="bi bi-images"></i></div>
+                        <h5 class="text-white fw-bold mb-1">No Photos Added Yet</h5>
+                        <p class="text-secondary small mb-3">Add photos of your fields, locker rooms, and floodlights to attract more players.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="row g-3">
+                        @foreach (var img in Model.Venue.Images)
+                        {
+                            <div class="col-sm-6 col-md-4 col-lg-3">
+                                <div class="card border-0 shadow-sm overflow-hidden h-100" style="background: rgba(22, 27, 34, 0.85); border: 1px solid rgba(255,255,255,0.08) !important; border-radius: 14px;">
+                                    <div class="position-relative" style="height: 160px; background: #000;">
+                                        <img src="@img.ImageUrl" alt="@img.Caption" class="w-100 h-100 object-fit-cover" onerror="this.src='/images/venue.jpg'" />
+                                        @if (img.IsPrimary)
+                                        {
+                                            <span class="badge bg-warning text-dark position-absolute top-0 start-0 m-2 rounded-pill px-2 py-1 small fw-bold">
+                                                <i class="bi bi-star-fill me-1"></i> Cover
+                                            </span>
+                                        }
+                                        <span class="badge bg-dark position-absolute top-0 end-0 m-2 rounded-pill px-2 py-1 small">
+                                            #@img.DisplayOrder
+                                        </span>
+                                    </div>
+                                    <div class="card-body p-2 d-flex flex-column">
+                                        <div class="text-light small text-truncate mb-2" title="@img.Caption">
+                                            @(string.IsNullOrEmpty(img.Caption) ? "No caption" : img.Caption)
+                                        </div>
+                                        <div class="d-flex gap-1 mt-auto">
+                                            @if (!img.IsPrimary)
+                                            {
+                                                <form method="post" asp-page-handler="SetPrimaryImage" asp-route-id="@Model.Id" asp-route-imageId="@img.Id" class="flex-grow-1">
+                                                    <button type="submit" class="btn btn-outline-warning btn-sm w-100 rounded-pill py-1 small" title="Set as primary cover">
+                                                        Cover
+                                                    </button>
+                                                </form>
+                                            }
+                                            <form method="post" asp-page-handler="DeleteImage" asp-route-id="@Model.Id" asp-route-imageId="@img.Id" onsubmit="return confirm('Delete this image?');">
+                                                <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill px-2 py-1 small" title="Delete image">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            }
+
+            <!-- TAB 5: OPERATING HOURS -->
+            @if (Model.ActiveTab == "hours")
+            {
+                <div class="card border-0 p-4 shadow-sm" style="background: rgba(22, 27, 34, 0.9); border: 1px solid rgba(255,255,255,0.08) !important; border-radius: 18px;">
+                    <div class="mb-3">
+                        <h5 class="text-white fw-bold mb-1">Weekly Operating Schedule</h5>
+                        <p class="text-secondary small mb-0">Set default operating hours for each day of the week. Time slot booking availability will be derived from these hours.</p>
+                    </div>
+
+                    <form method="post" asp-page-handler="UpdateOperatingHours" asp-route-id="@Model.Id">
+                        <div class="table-responsive">
+                            <table class="table table-dark table-hover align-middle mb-0" style="background: transparent;">
+                                <thead>
+                                    <tr class="text-secondary small border-dark">
+                                        <th>Day of Week</th>
+                                        <th style="width: 200px;">Opening Time</th>
+                                        <th style="width: 200px;">Closing Time</th>
+                                        <th style="width: 150px;" class="text-center">Closed Today</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @{
+                                        var days = Enum.GetValues<DayOfWeek>();
+                                        int i = 0;
+                                    }
+                                    @foreach (var day in days)
+                                    {
+                                        var existing = Model.Venue.OperatingHours.FirstOrDefault(o => o.DayOfWeek == day);
+                                        var open = existing != null ? existing.OpenTime : (day == DayOfWeek.Friday ? "14:00" : "08:00");
+                                        var close = existing != null ? existing.CloseTime : "23:00";
+                                        var isClosed = existing != null && existing.IsClosed;
+
+                                        <tr class="border-dark">
+                                            <td class="fw-semibold text-white">
+                                                <input type="hidden" name="hours[@i].DayOfWeek" value="@day" />
+                                                @day
+                                            </td>
+                                            <td>
+                                                <input type="time" name="hours[@i].OpenTime" value="@open" class="form-control form-control-sm bg-dark text-white border-secondary" />
+                                            </td>
+                                            <td>
+                                                <input type="time" name="hours[@i].CloseTime" value="@close" class="form-control form-control-sm bg-dark text-white border-secondary" />
+                                            </td>
+                                            <td class="text-center">
+                                                <div class="form-check d-inline-block">
+                                                    <input class="form-check-input" type="checkbox" name="hours[@i].IsClosed" value="true" @(isClosed ? "checked" : "") />
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        i++;
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="d-flex justify-content-end mt-4 pt-3 border-top border-dark">
+                            <button type="submit" class="btn btn-primary rounded-pill px-4 fw-semibold">
+                                <i class="bi bi-save me-1"></i> Save Operating Schedule
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            }
+        }
+    </div>
+</div>
