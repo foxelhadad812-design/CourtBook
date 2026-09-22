@@ -1,0 +1,297 @@
+@page "/admin"
+@model CourtBook.Web.Pages.Admin.IndexModel
+@inject CourtBook.Web.Services.ITextLocalizer Loc
+@{
+    ViewData["Title"] = Loc.IsArabic ? "لوحة تحكم الإدارة" : "Admin Portal";
+    var d = Model.Dashboard;
+}
+
+<div class="container py-4">
+    <!-- Breadcrumb & Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1 small">
+                    <li class="breadcrumb-item"><a href="/" class="text-decoration-none">@(Loc.IsArabic ? "الرئيسية" : "Home")</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">@(Loc.IsArabic ? "لوحة تحكم الإدارة" : "Admin Portal")</li>
+                </ol>
+            </nav>
+            <h1 class="h3 fw-bold mb-1" style="color: var(--ps-text);">
+                <i class="bi bi-shield-check text-primary me-2"></i>
+                @(Loc.IsArabic ? "لوحة تحكم الإدارة العامة" : "Admin Portal & Platform Overview")
+            </h1>
+            <p class="text-muted mb-0 small">
+                @(Loc.IsArabic
+                    ? "إدارة المنشآت واعتماد الملاعب ومراقبة مؤشرات الأداء والعمليات عبر منصة بلاي سبوت"
+                    : "Facility approvals, moderation controls, platform metrics, and administrative audit logs")
+            </p>
+        </div>
+
+        <div class="d-flex gap-2">
+            <a href="/admin/venues" class="ps-btn ps-btn-primary">
+                <i class="bi bi-building me-1"></i>
+                @(Loc.IsArabic ? "إدارة المنشآت والاعتمادات" : "Manage Facilities")
+                @if (d?.PendingVenues > 0)
+                {
+                    <span class="badge bg-warning text-dark ms-2 fw-bold">@d.PendingVenues</span>
+                }
+            </a>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger shadow-sm border-0 rounded-3 mb-4 d-flex align-items-center gap-2">
+            <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+            <div>@Model.ErrorMessage</div>
+        </div>
+    }
+
+    <!-- Pending Action Callout if any pending -->
+    @if (d != null && d.PendingVenues > 0)
+    {
+        <div class="card border-0 shadow-sm mb-4" style="background: linear-gradient(135deg, rgba(234, 179, 8, 0.12) 0%, rgba(234, 179, 8, 0.04) 100%); border-left: 4px solid #eab308 !important; border-radius: var(--ps-radius-lg);">
+            <div class="card-body p-3 p-md-4 d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background: rgba(234, 179, 8, 0.2); color: #ca8a04; font-size: 1.5rem;">
+                        <i class="bi bi-hourglass-split"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-1" style="color: var(--ps-text);">
+                            @(Loc.IsArabic ? $"يوجد {d.PendingVenues} منشأة رياضية بانتظار المراجعة والاعتماد" : $"{d.PendingVenues} Facility Submission(s) Pending Review")
+                        </h5>
+                        <p class="text-muted mb-0 small">
+                            @(Loc.IsArabic 
+                                ? "قم بفحص بيانات الملاعب، الأسعار، والمرافق للتأكد من مطابقتها لمعايير المنصة قبل إتاحتها للحجز." 
+                                : "Review court configurations, operating hours, and owner credentials to ensure marketplace quality before going live.")
+                        </p>
+                    </div>
+                </div>
+                <a href="/admin/venues?status=Pending" class="ps-btn ps-btn-primary">
+                    <i class="bi bi-check-circle me-1"></i>
+                    @(Loc.IsArabic ? "مراجعة الطلبات المعلقة" : "Review Submissions")
+                </a>
+            </div>
+        </div>
+    }
+
+    <!-- KPI Cards Grid -->
+    <div class="row g-3 mb-4">
+        <!-- Pending -->
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="card border-0 shadow-sm h-100 p-3" style="border-radius: var(--ps-radius-lg); background: var(--ps-card-bg);">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted small fw-semibold">@(Loc.IsArabic ? "بانتظار الاعتماد" : "Pending")</span>
+                    <span class="badge rounded-pill bg-warning-subtle text-warning"><i class="bi bi-hourglass-top"></i></span>
+                </div>
+                <div class="h3 fw-bold mb-0 text-warning">@(d?.PendingVenues ?? 0)</div>
+                <div class="text-muted small mt-1">@(Loc.IsArabic ? "منشآت للمراجعة" : "Requires Action")</div>
+            </div>
+        </div>
+
+        <!-- Approved -->
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="card border-0 shadow-sm h-100 p-3" style="border-radius: var(--ps-radius-lg); background: var(--ps-card-bg);">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted small fw-semibold">@(Loc.IsArabic ? "معتمدة ونشطة" : "Approved")</span>
+                    <span class="badge rounded-pill bg-success-subtle text-success"><i class="bi bi-check2-circle"></i></span>
+                </div>
+                <div class="h3 fw-bold mb-0 text-success">@(d?.ApprovedVenues ?? 0)</div>
+                <div class="text-muted small mt-1">@(Loc.IsArabic ? "متاحة للحجز" : "Live on Market")</div>
+            </div>
+        </div>
+
+        <!-- Rejected -->
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="card border-0 shadow-sm h-100 p-3" style="border-radius: var(--ps-radius-lg); background: var(--ps-card-bg);">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted small fw-semibold">@(Loc.IsArabic ? "مرفوضة" : "Rejected")</span>
+                    <span class="badge rounded-pill bg-danger-subtle text-danger"><i class="bi bi-x-circle"></i></span>
+                </div>
+                <div class="h3 fw-bold mb-0 text-danger">@(d?.RejectedVenues ?? 0)</div>
+                <div class="text-muted small mt-1">@(Loc.IsArabic ? "تحتاج تعديل" : "Needs Fixes")</div>
+            </div>
+        </div>
+
+        <!-- Total Courts -->
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="card border-0 shadow-sm h-100 p-3" style="border-radius: var(--ps-radius-lg); background: var(--ps-card-bg);">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted small fw-semibold">@(Loc.IsArabic ? "إجمالي الملاعب" : "Courts")</span>
+                    <span class="badge rounded-pill bg-primary-subtle text-primary"><i class="bi bi-trophy"></i></span>
+                </div>
+                <div class="h3 fw-bold mb-0" style="color: var(--ps-primary);">@(d?.TotalCourts ?? 0)</div>
+                <div class="text-muted small mt-1">@(Loc.IsArabic ? "ملاعب وصالات" : "All Pitches")</div>
+            </div>
+        </div>
+
+        <!-- Registered Players -->
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="card border-0 shadow-sm h-100 p-3" style="border-radius: var(--ps-radius-lg); background: var(--ps-card-bg);">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted small fw-semibold">@(Loc.IsArabic ? "اللاعبون" : "Players")</span>
+                    <span class="badge rounded-pill bg-info-subtle text-info"><i class="bi bi-people"></i></span>
+                </div>
+                <div class="h3 fw-bold mb-0" style="color: var(--ps-text);">@(d?.TotalPlayers ?? 0)</div>
+                <div class="text-muted small mt-1">@(Loc.IsArabic ? "حسابات نشطة" : "Athletes")</div>
+            </div>
+        </div>
+
+        <!-- Registered Owners -->
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="card border-0 shadow-sm h-100 p-3" style="border-radius: var(--ps-radius-lg); background: var(--ps-card-bg);">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted small fw-semibold">@(Loc.IsArabic ? "أصحاب الملاعب" : "Owners")</span>
+                    <span class="badge rounded-pill bg-secondary-subtle text-secondary"><i class="bi bi-person-badge"></i></span>
+                </div>
+                <div class="h3 fw-bold mb-0" style="color: var(--ps-text);">@(d?.TotalOwners ?? 0)</div>
+                <div class="text-muted small mt-1">@(Loc.IsArabic ? "مديرو المنشآت" : "Partners")</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Section: Submissions & Activity Log -->
+    <div class="row g-4">
+        <!-- Recent Submissions Table (8 cols on lg) -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm h-100" style="border-radius: var(--ps-radius-lg); background: var(--ps-card-bg);">
+                <div class="card-header bg-transparent border-0 pt-4 px-4 pb-2 d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="fw-bold mb-0" style="color: var(--ps-text);">
+                            @(Loc.IsArabic ? "أحدث المنشآت الرياضية" : "Recent Facility Submissions")
+                        </h5>
+                        <small class="text-muted">@(Loc.IsArabic ? "الملاعب والمنشآت المسجلة حديثاً على المنصة" : "New venues awaiting or recently reviewed")</small>
+                    </div>
+                    <a href="/admin/venues" class="text-decoration-none small fw-semibold" style="color: var(--ps-primary);">
+                        @(Loc.IsArabic ? "عرض الكل" : "View All") <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+                <div class="card-body px-4 pb-4">
+                    @if (d?.RecentSubmissions != null && d.RecentSubmissions.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table align-middle table-hover mb-0">
+                                <thead>
+                                    <tr class="text-muted small border-bottom">
+                                        <th>@(Loc.IsArabic ? "المنشأة" : "Facility")</th>
+                                        <th>@(Loc.IsArabic ? "المالك" : "Owner")</th>
+                                        <th>@(Loc.IsArabic ? "الموقع" : "Location")</th>
+                                        <th>@(Loc.IsArabic ? "الحالة" : "Status")</th>
+                                        <th class="text-end">@(Loc.IsArabic ? "إجراء" : "Action")</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var v in d.RecentSubmissions)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <div class="fw-semibold" style="color: var(--ps-text);">@v.Name</div>
+                                                <small class="text-muted">@v.TotalCourts @(Loc.IsArabic ? "ملاعب" : "courts")</small>
+                                            </td>
+                                            <td>
+                                                <div class="small fw-semibold">@v.OwnerName</div>
+                                                <small class="text-muted">@v.OwnerEmail</small>
+                                            </td>
+                                            <td>
+                                                <span class="small">@v.City, @v.Area</span>
+                                            </td>
+                                            <td>
+                                                @switch (v.ApprovalStatus)
+                                                {
+                                                    case CourtBook.Domain.Enums.VenueApprovalStatus.Approved:
+                                                        <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                                            <i class="bi bi-check-circle me-1"></i>@(Loc.IsArabic ? "معتمد" : "Approved")
+                                                        </span>
+                                                        break;
+                                                    case CourtBook.Domain.Enums.VenueApprovalStatus.Pending:
+                                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle">
+                                                            <i class="bi bi-clock me-1"></i>@(Loc.IsArabic ? "قيد المراجعة" : "Pending")
+                                                        </span>
+                                                        break;
+                                                    case CourtBook.Domain.Enums.VenueApprovalStatus.Rejected:
+                                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                                                            <i class="bi bi-x-circle me-1"></i>@(Loc.IsArabic ? "مرفوض" : "Rejected")
+                                                        </span>
+                                                        break;
+                                                }
+                                            </td>
+                                            <td class="text-end">
+                                                <a href="/admin/venues/details?id=@v.Id" class="ps-btn ps-btn-secondary ps-btn-sm">
+                                                    @(Loc.IsArabic ? "معاينة" : "Inspect")
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox fs-2 d-block mb-2 text-muted"></i>
+                            @(Loc.IsArabic ? "لا توجد منشآت مسجلة حالياً." : "No facility submissions found.")
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity Feed (4 cols on lg) -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm h-100" style="border-radius: var(--ps-radius-lg); background: var(--ps-card-bg);">
+                <div class="card-header bg-transparent border-0 pt-4 px-4 pb-2">
+                    <h5 class="fw-bold mb-0" style="color: var(--ps-text);">
+                        <i class="bi bi-journal-text text-primary me-2"></i>
+                        @(Loc.IsArabic ? "سجل إجراءات الإشراف" : "Audit & Moderation Log")
+                    </h5>
+                    <small class="text-muted">@(Loc.IsArabic ? "سجل قرارات الاعتماد والرفض الموثقة" : "Recorded administrative actions")</small>
+                </div>
+                <div class="card-body px-4 pb-4">
+                    @if (d?.RecentActivity != null && d.RecentActivity.Any())
+                    {
+                        <div class="activity-feed">
+                            @foreach (var act in d.RecentActivity)
+                            {
+                                var isApprove = act.Action.Equals("ApproveVenue", StringComparison.OrdinalIgnoreCase);
+                                var isReject = act.Action.Equals("RejectVenue", StringComparison.OrdinalIgnoreCase);
+
+                                <div class="d-flex gap-3 mb-3 pb-3 border-bottom border-light-subtle">
+                                    <div class="flex-shrink-0">
+                                        <div class="rounded-circle d-flex align-items-center justify-content-center"
+                                             style="width: 36px; height: 36px; background: @(isApprove ? "rgba(16, 185, 129, 0.15)" : isReject ? "rgba(239, 68, 68, 0.15)" : "rgba(59, 130, 246, 0.15)"); color: @(isApprove ? "#10b981" : isReject ? "#ef4444" : "#3b82f6"); font-size: 1rem;">
+                                            <i class="bi @(isApprove ? "bi-check-lg" : isReject ? "bi-x-lg" : "bi-pencil")"></i>
+                                        </div>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <span class="badge @(isApprove ? "bg-success-subtle text-success" : isReject ? "bg-danger-subtle text-danger" : "bg-primary-subtle text-primary") fw-bold" style="font-size: 0.75rem;">
+                                                @act.Action
+                                            </span>
+                                            <small class="text-muted" style="font-size: 0.75rem;">
+                                                @act.Timestamp.ToString("yyyy-MM-dd HH:mm")
+                                            </small>
+                                        </div>
+                                        <p class="small mb-1 text-break" style="color: var(--ps-text); line-height: 1.4;">
+                                            @act.Details
+                                        </p>
+                                        <small class="text-muted d-block" style="font-size: 0.75rem;">
+                                            <i class="bi bi-person me-1"></i>@act.AdminName
+                                        </small>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-5 text-muted">
+                            <i class="bi bi-clock-history fs-2 d-block mb-2 text-muted"></i>
+                            @(Loc.IsArabic ? "لا توجد إجراءات إشرافية مسجلة بعد." : "No moderation actions recorded yet.")
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

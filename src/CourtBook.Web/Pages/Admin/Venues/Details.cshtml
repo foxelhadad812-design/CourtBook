@@ -1,0 +1,401 @@
+@page "/admin/venues/details"
+@model CourtBook.Web.Pages.Admin.Venues.DetailsModel
+@inject CourtBook.Web.Services.ITextLocalizer Loc
+@{
+    ViewData["Title"] = Model.Venue != null 
+        ? $"{(Loc.IsArabic ? "معاينة المنشأة" : "Inspect Facility")} — {Model.Venue.Name}" 
+        : (Loc.IsArabic ? "تفاصيل المنشأة" : "Facility Details");
+    var v = Model.Venue;
+    var successMsg = TempData["SuccessMessage"] as string ?? Model.SuccessMessage;
+}
+
+<div class="container py-4">
+    @if (v != null)
+    {
+        <!-- Breadcrumbs & Action Bar -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+            <div>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-1 small">
+                        <li class="breadcrumb-item"><a href="/" class="text-decoration-none">@(Loc.IsArabic ? "الرئيسية" : "Home")</a></li>
+                        <li class="breadcrumb-item"><a href="/admin" class="text-decoration-none">@(Loc.IsArabic ? "لوحة الإدارة" : "Admin")</a></li>
+                        <li class="breadcrumb-item"><a href="/admin/venues" class="text-decoration-none">@(Loc.IsArabic ? "المنشآت" : "Facilities")</a></li>
+                        <li class="breadcrumb-item active" aria-current="page">@v.Name</li>
+                    </ol>
+                </nav>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <h1 class="h3 fw-bold mb-0" style="color: var(--ps-text);">@v.Name</h1>
+                    @switch (v.ApprovalStatus)
+                    {
+                        case CourtBook.Domain.Enums.VenueApprovalStatus.Approved:
+                            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2">
+                                <i class="bi bi-check-circle me-1"></i>@(Loc.IsArabic ? "معتمد ونشط" : "Approved & Live")
+                            </span>
+                            break;
+                        case CourtBook.Domain.Enums.VenueApprovalStatus.Pending:
+                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-2">
+                                <i class="bi bi-clock me-1"></i>@(Loc.IsArabic ? "بانتظار المراجعة" : "Pending Review")
+                            </span>
+                            break;
+                        case CourtBook.Domain.Enums.VenueApprovalStatus.Rejected:
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2">
+                                <i class="bi bi-x-circle me-1"></i>@(Loc.IsArabic ? "مرفوض" : "Rejected")
+                            </span>
+                            break;
+                    }
+                </div>
+            </div>
+
+            <!-- Approval Actions Header -->
+            <div class="d-flex gap-2">
+                <a href="/admin/venues" class="ps-btn ps-btn-secondary">
+                    <i class="bi bi-arrow-left me-1"></i>
+                    @(Loc.IsArabic ? "العودة للقائمة" : "Back to List")
+                </a>
+
+                @if (v.ApprovalStatus != CourtBook.Domain.Enums.VenueApprovalStatus.Approved)
+                {
+                    <form method="post" asp-page-handler="Approve" asp-route-id="@v.Id" class="d-inline"
+                          onsubmit="return confirm('@(Loc.IsArabic ? "تأكيد اعتماد هذه المنشأة وتفعيلها في السوق؟" : "Approve and publish this facility to the marketplace?")');">
+                        <button type="submit" class="ps-btn ps-btn-primary">
+                            <i class="bi bi-check-circle me-1"></i>
+                            @(Loc.IsArabic ? "اعتماد المنشأة" : "Approve Facility")
+                        </button>
+                    </form>
+                }
+
+                @if (v.ApprovalStatus != CourtBook.Domain.Enums.VenueApprovalStatus.Rejected)
+                {
+                    <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">
+                        <i class="bi bi-x-circle me-1"></i>
+                        @(Loc.IsArabic ? "رفض المنشأة" : "Reject Facility")
+                    </button>
+                }
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div class="alert alert-danger shadow-sm border-0 rounded-3 mb-4 d-flex align-items-center gap-2">
+                <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+                <div>@Model.ErrorMessage</div>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(successMsg))
+        {
+            <div class="alert alert-success shadow-sm border-0 rounded-3 mb-4 d-flex align-items-center gap-2">
+                <i class="bi bi-check-circle-fill fs-5"></i>
+                <div>@successMsg</div>
+            </div>
+        }
+
+        <!-- Rejection Alert Callout if Rejected -->
+        @if (v.ApprovalStatus == CourtBook.Domain.Enums.VenueApprovalStatus.Rejected && !string.IsNullOrEmpty(v.RejectionReason))
+        {
+            <div class="card border-0 shadow-sm mb-4" style="background: rgba(239, 68, 68, 0.08); border-left: 4px solid #ef4444 !important; border-radius: var(--ps-radius-lg);">
+                <div class="card-body p-3 p-md-4">
+                    <h6 class="fw-bold text-danger mb-1">
+                        <i class="bi bi-exclamation-octagon me-2"></i>
+                        @(Loc.IsArabic ? "سبب الرفض الحالي الموجه للمالك:" : "Current Rejection Feedback sent to Owner:")
+                    </h6>
+                    <p class="mb-0 text-danger" style="line-height: 1.6;">@v.RejectionReason</p>
+                </div>
+            </div>
+        }
+
+        <div class="row g-4">
+            <!-- Left Column: Details & Courts -->
+            <div class="col-lg-8">
+                <!-- General Info Card -->
+                <div class="card border-0 shadow-sm mb-4" style="border-radius: var(--ps-radius-lg); background: var(--ps-card-bg);">
+                    <div class="card-header bg-transparent border-0 pt-4 px-4 pb-2">
+                        <h5 class="fw-bold mb-0" style="color: var(--ps-text);">
+                            <i class="bi bi-info-circle text-primary me-2"></i>
+                            @(Loc.IsArabic ? "بيانات المنشأة العامة" : "General Information")
+                        </h5>
+                    </div>
+                    <div class="card-body px-4 pb-4">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <span class="text-muted small d-block">@(Loc.IsArabic ? "المدينة" : "City")</span>
+                                <span class="fw-semibold" style="color: var(--ps-text);">@v.City</span>
+                            </div>
+                            <div class="col-md-6">
+                                <span class="text-muted small d-block">@(Loc.IsArabic ? "المنطقة / الحي" : "Area")</span>
+                                <span class="fw-semibold" style="color: var(--ps-text);">@v.Area</span>
+                            </div>
+                            <div class="col-12">
+                                <span class="text-muted small d-block">@(Loc.IsArabic ? "العنوان التفصيلي" : "Full Address")</span>
+                                <span class="fw-semibold" style="color: var(--ps-text);">@v.Address</span>
+                            </div>
+                            <div class="col-md-6">
+                                <span class="text-muted small d-block">@(Loc.IsArabic ? "رقم الهاتف" : "Phone")</span>
+                                <span class="fw-semibold" style="color: var(--ps-text);">@v.Phone</span>
+                            </div>
+                            <div class="col-md-6">
+                                <span class="text-muted small d-block">@(Loc.IsArabic ? "البريد الإلكتروني" : "Email")</span>
+                                <span class="fw-semibold" style="color: var(--ps-text);">@(string.IsNullOrEmpty(v.Email) ? "—" : v.Email)</span>
+                            </div>
+                            @if (!string.IsNullOrEmpty(v.Description))
+                            {
+                                <div class="col-12">
+                                    <span class="text-muted small d-block">@(Loc.IsArabic ? "الوصف" : "Description")</span>
+                                    <p class="small mb-0 text-muted" style="line-height: 1.6;">@v.Description</p>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Courts Breakdown Card -->
+                <div class="card border-0 shadow-sm mb-4" style="border-radius: var(--ps-radius-lg); background: var(--ps-card-bg);">
+                    <div class="card-header bg-transparent border-0 pt-4 px-4 pb-2 d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="fw-bold mb-0" style="color: var(--ps-text);">
+                                <i class="bi bi-trophy text-primary me-2"></i>
+                                @(Loc.IsArabic ? "الملاعب والصالات المسجلة" : "Configured Courts & Pitches")
+                            </h5>
+                            <small class="text-muted">@(Loc.IsArabic ? $"إجمالي {v.Courts.Count} ملاعب" : $"{v.Courts.Count} courts in this facility")</small>
+                        </div>
+                    </div>
+                    <div class="card-body px-4 pb-4">
+                        @if (v.Courts.Any())
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="bg-body-tertiary">
+                                        <tr class="small text-muted border-bottom">
+                                            <th>@(Loc.IsArabic ? "الملعب" : "Court Name")</th>
+                                            <th>@(Loc.IsArabic ? "الرياضة" : "Sport")</th>
+                                            <th>@(Loc.IsArabic ? "الأرضية" : "Surface")</th>
+                                            <th>@(Loc.IsArabic ? "النوع" : "Environment")</th>
+                                            <th>@(Loc.IsArabic ? "السعر / ساعة" : "Price / Hr")</th>
+                                            <th class="text-end">@(Loc.IsArabic ? "الحالة" : "Status")</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var c in v.Courts)
+                                        {
+                                            <tr>
+                                                <td class="fw-bold" style="color: var(--ps-text);">@c.Name</td>
+                                                <td>
+                                                    <span class="badge bg-primary-subtle text-primary">@Loc.Sport(c.SportType.ToString())</span>
+                                                </td>
+                                                <td class="small">@c.SurfaceType</td>
+                                                <td class="small">@(c.IsIndoor ? (Loc.IsArabic ? "مغطى / داخلي" : "Indoor") : (Loc.IsArabic ? "مكشوف" : "Outdoor"))</td>
+                                                <td class="fw-bold text-success">@Loc.FormatCurrency(c.PricePerHour)</td>
+                                                <td class="text-end">
+                                                    @if (c.IsActive)
+                                                    {
+                                                        <span class="badge bg-success-subtle text-success">@(Loc.IsArabic ? "نشط" : "Active")</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge bg-secondary-subtle text-secondary">@(Loc.IsArabic ? "معطل" : "Inactive")</span>
+                                                    }
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center py-4 text-muted">
+                                @(Loc.IsArabic ? "لم يتم إضافة ملاعب لهذه المنشأة بعد." : "No courts added to this facility.")
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Operating Hours Card -->
+                <div class="card border-0 shadow-sm mb-4" style="border-radius: var(--ps-radius-lg); background: var(--ps-card-bg);">
+                    <div class="card-header bg-transparent border-0 pt-4 px-4 pb-2">
+                        <h5 class="fw-bold mb-0" style="color: var(--ps-text);">
+                            <i class="bi bi-clock-history text-primary me-2"></i>
+                            @(Loc.IsArabic ? "ساعات العمل الأسبوعية" : "Operating Hours")
+                        </h5>
+                    </div>
+                    <div class="card-body px-4 pb-4">
+                        @if (v.OperatingHours.Any())
+                        {
+                            <div class="row g-2">
+                                @foreach (var h in v.OperatingHours)
+                                {
+                                    <div class="col-sm-6 col-md-4">
+                                        <div class="p-2 border rounded-3 text-center bg-body-tertiary">
+                                            <div class="small fw-semibold mb-1">@Loc.DayOfWeek(h.DayOfWeek)</div>
+                                            @if (h.IsClosed)
+                                            {
+                                                <span class="badge bg-danger-subtle text-danger">@(Loc.IsArabic ? "مغلق" : "Closed")</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="small text-muted">@h.OpenTime.ToString("hh\\:mm") — @h.CloseTime.ToString("hh\\:mm")</span>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-muted small">
+                                @(Loc.IsArabic ? "لم يتم تسجيل ساعات عمل محددة." : "No specific operating hours recorded.")
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Owner & Policies -->
+            <div class="col-lg-4">
+                <!-- Owner Profile Card -->
+                <div class="card border-0 shadow-sm mb-4" style="border-radius: var(--ps-radius-lg); background: var(--ps-card-bg);">
+                    <div class="card-header bg-transparent border-0 pt-4 px-4 pb-2">
+                        <h5 class="fw-bold mb-0" style="color: var(--ps-text);">
+                            <i class="bi bi-person-badge text-primary me-2"></i>
+                            @(Loc.IsArabic ? "بيانات مالك المنشأة" : "Facility Owner Profile")
+                        </h5>
+                    </div>
+                    <div class="card-body px-4 pb-4">
+                        <div class="d-flex align-items-center gap-3 mb-3">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold"
+                                 style="width: 48px; height: 48px; background: var(--ps-primary-100); color: var(--ps-primary); font-size: 1.2rem;">
+                                @(v.OwnerName.Length > 0 ? v.OwnerName[0].ToString().ToUpper() : "O")
+                            </div>
+                            <div>
+                                <h6 class="fw-bold mb-0" style="color: var(--ps-text);">@v.OwnerName</h6>
+                                <small class="text-muted">@(Loc.IsArabic ? "مالك مسجل" : "Registered Owner")</small>
+                            </div>
+                        </div>
+
+                        <div class="border-top pt-3">
+                            <div class="mb-2">
+                                <span class="text-muted small d-block">@(Loc.IsArabic ? "البريد الإلكتروني" : "Email Address")</span>
+                                <span class="small fw-semibold">@v.OwnerEmail</span>
+                            </div>
+                            @if (!string.IsNullOrEmpty(v.OwnerPhone))
+                            {
+                                <div class="mb-2">
+                                    <span class="text-muted small d-block">@(Loc.IsArabic ? "الهاتف" : "Phone")</span>
+                                    <span class="small fw-semibold"><i class="bi bi-telephone me-1"></i>@v.OwnerPhone</span>
+                                </div>
+                            }
+                            <div>
+                                <span class="text-muted small d-block">@(Loc.IsArabic ? "معرّف المالك" : "Owner ID")</span>
+                                <span class="small text-muted font-monospace" style="font-size: 0.75rem;">@v.OwnerId</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Amenities Card -->
+                <div class="card border-0 shadow-sm mb-4" style="border-radius: var(--ps-radius-lg); background: var(--ps-card-bg);">
+                    <div class="card-header bg-transparent border-0 pt-4 px-4 pb-2">
+                        <h5 class="fw-bold mb-0" style="color: var(--ps-text);">
+                            <i class="bi bi-stars text-primary me-2"></i>
+                            @(Loc.IsArabic ? "المرافق والخدمات" : "Amenities")
+                        </h5>
+                    </div>
+                    <div class="card-body px-4 pb-4">
+                        @if (v.Amenities.Any())
+                        {
+                            <div class="d-flex flex-wrap gap-2">
+                                @foreach (var am in v.Amenities)
+                                {
+                                    <span class="badge bg-secondary-subtle text-body border px-2 py-2 small">
+                                        <i class="bi bi-check2 text-success me-1"></i>@Loc.Amenity(am)
+                                    </span>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-muted small">@(Loc.IsArabic ? "لم يتم تحديد مرافق." : "No amenities specified.")</div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Cancellation Policy Card -->
+                <div class="card border-0 shadow-sm mb-4" style="border-radius: var(--ps-radius-lg); background: var(--ps-card-bg);">
+                    <div class="card-header bg-transparent border-0 pt-4 px-4 pb-2">
+                        <h5 class="fw-bold mb-0" style="color: var(--ps-text);">
+                            <i class="bi bi-shield-exclamation text-primary me-2"></i>
+                            @(Loc.IsArabic ? "سياسة الإلغاء والاسترداد" : "Cancellation Policy")
+                        </h5>
+                    </div>
+                    <div class="card-body px-4 pb-4">
+                        <div class="mb-2">
+                            <span class="text-muted small d-block">@(Loc.IsArabic ? "فترة الإلغاء المجاني" : "Free Cancellation Window")</span>
+                            <span class="fw-bold" style="color: var(--ps-text);">@v.FreeCancellationHours @(Loc.IsArabic ? "ساعات قبل الموعد" : "hours prior")</span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="text-muted small d-block">@(Loc.IsArabic ? "رسوم الإلغاء المتأخر" : "Late Cancellation Fee")</span>
+                            <span class="fw-bold text-danger">@v.LateCancellationFeePercent%</span>
+                        </div>
+                        @if (!string.IsNullOrEmpty(v.CancellationPolicyDescription))
+                        {
+                            <div class="mt-2 text-muted small" style="line-height: 1.5;">
+                                @v.CancellationPolicyDescription
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rejection Modal -->
+        <div class="modal fade" id="rejectModal" tabindex="-1" aria-labelledby="rejectModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow" style="border-radius: var(--ps-radius-xl); background: var(--ps-card-bg);">
+                    <form method="post" asp-page-handler="Reject" asp-route-id="@v.Id">
+                        <div class="modal-header border-0 pb-0">
+                            <h5 class="modal-title fw-bold text-danger" id="rejectModalLabel">
+                                <i class="bi bi-exclamation-octagon me-2"></i>
+                                @(Loc.IsArabic ? "رفض طلب اعتماد المنشأة" : "Reject Facility Listing")
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body py-3">
+                            <p class="small text-muted mb-3">
+                                @(Loc.IsArabic
+                                    ? "يرجى كتابة سبب واضح ومفصل للرفض. سيتم إشعار المالك بهذا السبب حتى يتمكن من تعديل البيانات وإعادة التقديم."
+                                    : "Please provide a clear reason for rejecting this facility. The owner will receive this feedback via notification to correct their listing.")
+                            </p>
+
+                            <div class="mb-3">
+                                <label for="rejectReason" class="form-label small fw-semibold text-danger">
+                                    @(Loc.IsArabic ? "سبب الرفض (إلزامي)" : "Rejection Reason (Required)") *
+                                </label>
+                                <textarea class="form-control" id="rejectReason" name="reason" rows="4" required
+                                          placeholder="@(Loc.IsArabic ? "اكتب هنا سبب الرفض بالتفصيل..." : "Provide clear, actionable feedback...")">@(v.RejectionReason ?? "")</textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer border-0 pt-0">
+                            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+                                @(Loc.IsArabic ? "إلغاء" : "Cancel")
+                            </button>
+                            <button type="submit" class="btn btn-danger btn-sm px-4">
+                                <i class="bi bi-x-circle me-1"></i>
+                                @(Loc.IsArabic ? "تأكيد الرفض" : "Confirm Rejection")
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="text-center py-5">
+            <i class="bi bi-building-exclamation fs-1 text-muted d-block mb-3"></i>
+            <h4 class="fw-bold">@(Loc.IsArabic ? "لم يتم العثور على المنشأة" : "Facility Not Found")</h4>
+            <a href="/admin/venues" class="ps-btn ps-btn-primary mt-2">
+                @(Loc.IsArabic ? "العودة لقائمة المنشآت" : "Back to Facilities List")
+            </a>
+        </div>
+    }
+</div>

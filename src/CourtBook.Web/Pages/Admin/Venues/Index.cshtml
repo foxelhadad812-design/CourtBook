@@ -1,0 +1,330 @@
+@page "/admin/venues"
+@model CourtBook.Web.Pages.Admin.Venues.IndexModel
+@inject CourtBook.Web.Services.ITextLocalizer Loc
+@{
+    ViewData["Title"] = Loc.IsArabic ? "إدارة واعتماد المنشآت الرياضية" : "Facility Approvals & Moderation";
+}
+
+<div class="container py-4">
+    <!-- Breadcrumb & Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1 small">
+                    <li class="breadcrumb-item"><a href="/" class="text-decoration-none">@(Loc.IsArabic ? "الرئيسية" : "Home")</a></li>
+                    <li class="breadcrumb-item"><a href="/admin" class="text-decoration-none">@(Loc.IsArabic ? "لوحة الإدارة" : "Admin Portal")</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">@(Loc.IsArabic ? "إدارة المنشآت" : "Facilities")</li>
+                </ol>
+            </nav>
+            <h1 class="h3 fw-bold mb-1" style="color: var(--ps-text);">
+                <i class="bi bi-building text-primary me-2"></i>
+                @(Loc.IsArabic ? "إدارة واعتماد المنشآت الرياضية" : "Facility Approvals & Moderation")
+            </h1>
+            <p class="text-muted mb-0 small">
+                @(Loc.IsArabic 
+                    ? "مراجعة واعتماد طلبات إضافة الملاعب والمنشآت من أصحاب العمل، أو رفضها مع توضيح الأسباب."
+                    : "Review, approve, or reject sports facility listings submitted by venue owners.")
+            </p>
+        </div>
+
+        <div>
+            <a href="/admin" class="ps-btn ps-btn-secondary">
+                <i class="bi bi-speedometer2 me-1"></i>
+                @(Loc.IsArabic ? "لوحة المؤشرات" : "Dashboard Overview")
+            </a>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger shadow-sm border-0 rounded-3 mb-4 d-flex align-items-center gap-2">
+            <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+            <div>@Model.ErrorMessage</div>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="alert alert-success shadow-sm border-0 rounded-3 mb-4 d-flex align-items-center gap-2">
+            <i class="bi bi-check-circle-fill fs-5"></i>
+            <div>@Model.SuccessMessage</div>
+        </div>
+    }
+
+    <!-- Filter & Search Toolbar -->
+    <div class="card border-0 shadow-sm mb-4" style="border-radius: var(--ps-radius-lg); background: var(--ps-card-bg);">
+        <div class="card-body p-3">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <!-- Status Tabs -->
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="/admin/venues?status=all@(string.IsNullOrEmpty(Model.Search) ? "" : "&search=" + Uri.EscapeDataString(Model.Search))"
+                       class="btn btn-sm @(Model.Status.Equals("all", StringComparison.OrdinalIgnoreCase) ? "btn-primary" : "btn-outline-secondary") rounded-pill px-3">
+                        @(Loc.IsArabic ? "الكل" : "All")
+                        <span class="badge @(Model.Status.Equals("all", StringComparison.OrdinalIgnoreCase) ? "bg-white text-primary" : "bg-secondary") ms-1">@Model.TotalCount</span>
+                    </a>
+                    <a href="/admin/venues?status=Pending@(string.IsNullOrEmpty(Model.Search) ? "" : "&search=" + Uri.EscapeDataString(Model.Search))"
+                       class="btn btn-sm @(Model.Status.Equals("Pending", StringComparison.OrdinalIgnoreCase) ? "btn-warning text-dark fw-bold" : "btn-outline-warning") rounded-pill px-3">
+                        <i class="bi bi-hourglass-top me-1"></i>
+                        @(Loc.IsArabic ? "قيد المراجعة" : "Pending")
+                        <span class="badge @(Model.Status.Equals("Pending", StringComparison.OrdinalIgnoreCase) ? "bg-dark text-white" : "bg-warning text-dark") ms-1">@Model.PendingCount</span>
+                    </a>
+                    <a href="/admin/venues?status=Approved@(string.IsNullOrEmpty(Model.Search) ? "" : "&search=" + Uri.EscapeDataString(Model.Search))"
+                       class="btn btn-sm @(Model.Status.Equals("Approved", StringComparison.OrdinalIgnoreCase) ? "btn-success" : "btn-outline-success") rounded-pill px-3">
+                        <i class="bi bi-check2-circle me-1"></i>
+                        @(Loc.IsArabic ? "معتمدة" : "Approved")
+                        <span class="badge @(Model.Status.Equals("Approved", StringComparison.OrdinalIgnoreCase) ? "bg-white text-success" : "bg-success") ms-1">@Model.ApprovedCount</span>
+                    </a>
+                    <a href="/admin/venues?status=Rejected@(string.IsNullOrEmpty(Model.Search) ? "" : "&search=" + Uri.EscapeDataString(Model.Search))"
+                       class="btn btn-sm @(Model.Status.Equals("Rejected", StringComparison.OrdinalIgnoreCase) ? "btn-danger" : "btn-outline-danger") rounded-pill px-3">
+                        <i class="bi bi-x-circle me-1"></i>
+                        @(Loc.IsArabic ? "مرفوضة" : "Rejected")
+                        <span class="badge @(Model.Status.Equals("Rejected", StringComparison.OrdinalIgnoreCase) ? "bg-white text-danger" : "bg-danger") ms-1">@Model.RejectedCount</span>
+                    </a>
+                </div>
+
+                <!-- Search Form -->
+                <form method="get" class="d-flex gap-2 flex-grow-1 flex-md-grow-0" style="min-width: 260px;">
+                    <input type="hidden" name="status" value="@Model.Status" />
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-transparent border-end-0"><i class="bi bi-search"></i></span>
+                        <input type="text" name="search" value="@Model.Search" class="form-control border-start-0"
+                               placeholder="@(Loc.IsArabic ? "بحث بالاسم، المدينة، المالك..." : "Search name, city, owner...")" />
+                        @if (!string.IsNullOrEmpty(Model.Search))
+                        {
+                            <a href="/admin/venues?status=@Model.Status" class="btn btn-outline-secondary" title="Clear search">
+                                <i class="bi bi-x-lg"></i>
+                            </a>
+                        }
+                        <button type="submit" class="btn btn-primary">
+                            @(Loc.IsArabic ? "بحث" : "Search")
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Venues Table -->
+    <div class="card border-0 shadow-sm" style="border-radius: var(--ps-radius-lg); background: var(--ps-card-bg);">
+        <div class="card-body p-0">
+            @if (Model.Venues.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-body-tertiary">
+                            <tr class="small text-muted border-bottom">
+                                <th class="ps-4">@(Loc.IsArabic ? "المنشأة الرياضية" : "Facility Name")</th>
+                                <th>@(Loc.IsArabic ? "المالك وبيانات التواصل" : "Owner Details")</th>
+                                <th>@(Loc.IsArabic ? "المدينة والمنطقة" : "Location")</th>
+                                <th>@(Loc.IsArabic ? "الملاعب" : "Courts")</th>
+                                <th>@(Loc.IsArabic ? "الحالة" : "Status")</th>
+                                <th>@(Loc.IsArabic ? "تاريخ التقديم" : "Submitted")</th>
+                                <th class="text-end pe-4">@(Loc.IsArabic ? "الإجراءات" : "Actions")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var v in Model.Venues)
+                            {
+                                <tr>
+                                    <!-- Facility Name & Sports -->
+                                    <td class="ps-4 py-3">
+                                        <div class="fw-bold" style="color: var(--ps-text);">@v.Name</div>
+                                        @if (v.Sports.Any())
+                                        {
+                                            <div class="d-flex flex-wrap gap-1 mt-1">
+                                                @foreach (var sp in v.Sports)
+                                                {
+                                                    <span class="badge bg-body-secondary text-body-secondary small" style="font-size: 0.7rem;">
+                                                        @Loc.Sport(sp)
+                                                    </span>
+                                                }
+                                            </div>
+                                        }
+                                        @if (!string.IsNullOrEmpty(v.RejectionReason) && v.ApprovalStatus == CourtBook.Domain.Enums.VenueApprovalStatus.Rejected)
+                                        {
+                                            <div class="text-danger small mt-1">
+                                                <i class="bi bi-info-circle me-1"></i><strong>@(Loc.IsArabic ? "سبب الرفض: " : "Reason: ")</strong>@v.RejectionReason
+                                            </div>
+                                        }
+                                    </td>
+
+                                    <!-- Owner Details -->
+                                    <td>
+                                        <div class="small fw-semibold" style="color: var(--ps-text);">@v.OwnerName</div>
+                                        <div class="text-muted small">@v.OwnerEmail</div>
+                                        @if (!string.IsNullOrEmpty(v.OwnerPhone))
+                                        {
+                                            <div class="text-muted small"><i class="bi bi-telephone me-1"></i>@v.OwnerPhone</div>
+                                        }
+                                    </td>
+
+                                    <!-- Location -->
+                                    <td>
+                                        <div class="small fw-semibold">@v.City</div>
+                                        <div class="text-muted small">@v.Area</div>
+                                    </td>
+
+                                    <!-- Total Courts -->
+                                    <td>
+                                        <span class="badge bg-primary-subtle text-primary fw-bold px-2 py-1">
+                                            @v.TotalCourts @(Loc.IsArabic ? "ملاعب" : "courts")
+                                        </span>
+                                    </td>
+
+                                    <!-- Approval Status -->
+                                    <td>
+                                        @switch (v.ApprovalStatus)
+                                        {
+                                            case CourtBook.Domain.Enums.VenueApprovalStatus.Approved:
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                                                    <i class="bi bi-check-circle me-1"></i>@(Loc.IsArabic ? "معتمد" : "Approved")
+                                                </span>
+                                                break;
+                                            case CourtBook.Domain.Enums.VenueApprovalStatus.Pending:
+                                                <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-1">
+                                                    <i class="bi bi-clock me-1"></i>@(Loc.IsArabic ? "قيد المراجعة" : "Pending")
+                                                </span>
+                                                break;
+                                            case CourtBook.Domain.Enums.VenueApprovalStatus.Rejected:
+                                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">
+                                                    <i class="bi bi-x-circle me-1"></i>@(Loc.IsArabic ? "مرفوض" : "Rejected")
+                                                </span>
+                                                break;
+                                        }
+                                    </td>
+
+                                    <!-- Submitted Date -->
+                                    <td>
+                                        <span class="small text-muted">@v.CreatedAt.ToString("yyyy-MM-dd")</span>
+                                    </td>
+
+                                    <!-- Actions -->
+                                    <td class="text-end pe-4">
+                                        <div class="d-inline-flex gap-1">
+                                            <!-- Inspect Link -->
+                                            <a href="/admin/venues/details?id=@v.Id" class="btn btn-outline-primary btn-sm"
+                                               title="@(Loc.IsArabic ? "فحص ومعاينة" : "Inspect details")">
+                                                <i class="bi bi-eye"></i>
+                                                <span class="d-none d-md-inline ms-1">@(Loc.IsArabic ? "معاينة" : "Inspect")</span>
+                                            </a>
+
+                                            <!-- Quick Approve button if not already approved -->
+                                            @if (v.ApprovalStatus != CourtBook.Domain.Enums.VenueApprovalStatus.Approved)
+                                            {
+                                                <form method="post" asp-page-handler="Approve" asp-route-id="@v.Id" class="d-inline"
+                                                      onsubmit="return confirm('@(Loc.IsArabic ? "هل أنت متأكد من اعتماد هذه المنشأة؟" : "Approve this facility?")');">
+                                                    <input type="hidden" name="status" value="@Model.Status" />
+                                                    <input type="hidden" name="search" value="@Model.Search" />
+                                                    <button type="submit" class="btn btn-success btn-sm" title="@(Loc.IsArabic ? "اعتماد فوري" : "Approve")">
+                                                        <i class="bi bi-check-lg"></i>
+                                                    </button>
+                                                </form>
+                                            }
+
+                                            <!-- Quick Reject button if not already rejected -->
+                                            @if (v.ApprovalStatus != CourtBook.Domain.Enums.VenueApprovalStatus.Rejected)
+                                            {
+                                                <button type="button" class="btn btn-outline-danger btn-sm"
+                                                        data-bs-toggle="modal" data-bs-target="#rejectModal"
+                                                        data-venue-id="@v.Id" data-venue-name="@v.Name"
+                                                        title="@(Loc.IsArabic ? "رفض المنشأة" : "Reject")">
+                                                    <i class="bi bi-x-lg"></i>
+                                                </button>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-5">
+                    <i class="bi bi-search fs-1 text-muted d-block mb-3"></i>
+                    <h5 class="fw-bold mb-1" style="color: var(--ps-text);">
+                        @(Loc.IsArabic ? "لم يتم العثور على أي منشآت مطابقة" : "No Facilities Found")
+                    </h5>
+                    <p class="text-muted small mb-3">
+                        @(Loc.IsArabic ? "جرب تغيير معايير البحث أو اختيار تبويب تصفية آخر." : "Try adjusting your search criteria or filter status.")
+                    </p>
+                    <a href="/admin/venues?status=all" class="btn btn-outline-primary btn-sm rounded-pill px-3">
+                        @(Loc.IsArabic ? "إعادة ضبط التصفية" : "Reset Filters")
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Rejection Modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-labelledby="rejectModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius: var(--ps-radius-xl); background: var(--ps-card-bg);">
+            <form method="post" asp-page-handler="Reject">
+                <input type="hidden" id="modalVenueId" name="id" />
+                <input type="hidden" name="status" value="@Model.Status" />
+                <input type="hidden" name="search" value="@Model.Search" />
+
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold text-danger" id="rejectModalLabel">
+                        <i class="bi bi-exclamation-octagon me-2"></i>
+                        @(Loc.IsArabic ? "رفض طلب اعتماد المنشأة" : "Reject Facility Listing")
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <p class="small text-muted mb-3">
+                        @(Loc.IsArabic 
+                            ? "يرجى كتابة سبب واضح للرفض. سيتم إرسال هذا السبب إلى مالك المنشأة عبر الإشعارات لتصحيح البيانات المطلوبة." 
+                            : "Please provide a detailed reason for the rejection. This will be sent directly to the facility owner so they can take corrective action.")
+                    </p>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">
+                            @(Loc.IsArabic ? "اسم المنشأة" : "Facility Name")
+                        </label>
+                        <input type="text" id="modalVenueName" class="form-control" readonly disabled />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="rejectReason" class="form-label small fw-semibold text-danger">
+                            @(Loc.IsArabic ? "سبب الرفض (إلزامي)" : "Rejection Reason (Required)") *
+                        </label>
+                        <textarea class="form-control" id="rejectReason" name="reason" rows="4" required
+                                  placeholder="@(Loc.IsArabic ? "مثال: يرجى توضيح ساعات العمل يوم الجمعة وتحديث أسعار الصالات..." : "e.g., Incomplete operating hours or invalid court pricing...")"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+                        @(Loc.IsArabic ? "إلغاء" : "Cancel")
+                    </button>
+                    <button type="submit" class="btn btn-danger btn-sm px-4">
+                        <i class="bi bi-x-circle me-1"></i>
+                        @(Loc.IsArabic ? "تأكيد الرفض" : "Confirm Rejection")
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var rejectModal = document.getElementById('rejectModal');
+        if (rejectModal) {
+            rejectModal.addEventListener('show.bs.modal', function (event) {
+                var button = event.relatedTarget;
+                var venueId = button.getAttribute('data-venue-id');
+                var venueName = button.getAttribute('data-venue-name');
+
+                document.getElementById('modalVenueId').value = venueId;
+                document.getElementById('modalVenueName').value = venueName;
+                document.getElementById('rejectReason').value = '';
+            });
+        }
+    });
+</script>
+}

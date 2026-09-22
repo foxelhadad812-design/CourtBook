@@ -9,5 +9,7 @@ public enum NotificationType
     GameJoined,
     GameCancelled,
     ReviewReminder,
-    SystemAlert
+    SystemAlert,
+    VenueApproved,
+    VenueRejected
 }

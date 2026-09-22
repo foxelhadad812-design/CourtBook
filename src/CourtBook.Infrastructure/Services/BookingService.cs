@@ -138,6 +138,20 @@ public class BookingService : IBookingService
                         $"Your booking {booking.BookingReference} at {court.Venue.Name} ({court.Name}) has been confirmed.",
                         NotificationType.BookingConfirmed,
                         $"/Bookings/Details?id={booking.Id}");
+
+                    if (court.Venue != null && court.Venue.OwnerId != Guid.Empty && court.Venue.OwnerId != userId)
+                    {
+                        try
+                        {
+                            await _notificationService.SendNotificationAsync(
+                                court.Venue.OwnerId,
+                                "New Booking Received! 📅",
+                                $"New booking {booking.BookingReference} for {court.Name} by {user?.Name ?? "Player"}.",
+                                NotificationType.BookingConfirmed,
+                                "/owner/bookings");
+                        }
+                        catch { }
+                    }
                 }
 
                 return MapToResponse(booking);
@@ -389,6 +403,20 @@ public class BookingService : IBookingService
                 $"Booking {booking.BookingReference} has been cancelled. {(isFree ? "Full refund of EGP " + refund : $"Fee: EGP {fee:0.00}, Refund: EGP {refund:0.00}")}.",
                 NotificationType.BookingCancelled,
                 $"/Bookings/Details?id={booking.Id}");
+
+            if (booking.Court?.Venue?.OwnerId is not null && booking.Court.Venue.OwnerId != Guid.Empty && booking.Court.Venue.OwnerId != userId)
+            {
+                try
+                {
+                    await _notificationService.SendNotificationAsync(
+                        booking.Court.Venue.OwnerId,
+                        "Booking Cancelled ⚠️",
+                        $"Booking {booking.BookingReference} for {booking.Court.Name} has been cancelled.",
+                        NotificationType.BookingCancelled,
+                        "/owner/bookings");
+                }
+                catch { }
+            }
         }
 
         return new CancelBookingResult

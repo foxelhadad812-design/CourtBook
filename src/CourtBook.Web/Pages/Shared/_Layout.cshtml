@@ -102,6 +102,43 @@
 
             @if (loggedIn)
             {
+                <!-- Notification Bell Dropdown -->
+                <div class="dropdown me-1" id="ps-notifications-container">
+                    <button class="ps-btn ps-btn-ghost ps-btn-sm position-relative d-flex align-items-center justify-content-center"
+                            type="button" id="ps-notifications-btn" data-bs-toggle="dropdown" aria-expanded="false"
+                            title="@Loc["Nav.Notifications"]" style="width: 38px; height: 38px; border-radius: 50%;">
+                        <i class="bi bi-bell-fill fs-5 text-primary"></i>
+                        <span id="ps-notifications-badge"
+                              class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none"
+                              style="font-size: 0.65rem; padding: 0.25em 0.5em;">
+                            0
+                        </span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 p-0"
+                        style="border-radius: var(--ps-radius-lg); width: 340px; max-height: 440px; overflow-y: auto;"
+                        aria-labelledby="ps-notifications-btn">
+                        <li class="p-3 border-bottom d-flex justify-content-between align-items-center bg-body-tertiary">
+                            <span class="fw-bold small" style="color: var(--ps-text);">@Loc["Nav.Notifications"]</span>
+                            <a href="/notifications" class="small text-decoration-none fw-semibold" style="color: var(--ps-primary);">
+                                @(Loc.IsArabic ? "عرض الكل" : "View All")
+                            </a>
+                        </li>
+                        <li>
+                            <div id="ps-notifications-preview-list">
+                                <div class="p-3 text-center text-muted small">
+                                    <div class="spinner-border spinner-border-sm text-primary me-1" role="status"></div>
+                                    @(Loc.IsArabic ? "جاري تحميل الإشعارات..." : "Loading notifications...")
+                                </div>
+                            </div>
+                        </li>
+                        <li class="p-2 text-center border-top bg-body-tertiary">
+                            <a href="/notifications" class="small fw-semibold text-decoration-none" style="color: var(--ps-text);">
+                                @(Loc.IsArabic ? "مركز الإشعارات الكامل" : "Notification Center") <i class="bi bi-arrow-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
                 <!-- User dropdown -->
                 <div class="dropdown">
                     <button class="ps-btn ps-btn-secondary ps-btn-sm dropdown-toggle d-flex align-items-center gap-2"
@@ -118,7 +155,16 @@
                                 <div class="text-muted" style="font-size:11px;">@userRole</div>
                             </div>
                         </li>
-                        @if (userRole == "Owner" || userRole == "Admin")
+                        @if (userRole == "Admin")
+                        {
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="/admin">
+                                    <i class="bi bi-shield-check text-primary"></i> @Loc["Nav.AdminPortal"]
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider my-1"></li>
+                        }
+                        @if (userRole == "Owner")
                         {
                             <li>
                                 <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="/owner">
@@ -127,6 +173,11 @@
                             </li>
                             <li><hr class="dropdown-divider my-1"></li>
                         }
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="/notifications">
+                                <i class="bi bi-bell text-primary"></i> @Loc["Nav.Notifications"]
+                            </a>
+                        </li>
                         <li>
                             <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="/bookings">
                                 <i class="bi bi-calendar-check text-primary"></i> @Loc["Nav.MyBookings"]
@@ -172,8 +223,13 @@
     @if (loggedIn)
     {
         <hr class="my-2">
+        <a class="ps-nav-link" href="/notifications"><i class="bi bi-bell me-2"></i>@Loc["Nav.Notifications"]</a>
         <a class="ps-nav-link" href="/bookings"><i class="bi bi-calendar-check me-2"></i>@Loc["Nav.MyBookings"]</a>
-        @if (userRole == "Owner" || userRole == "Admin")
+        @if (userRole == "Admin")
+        {
+            <a class="ps-nav-link" href="/admin"><i class="bi bi-shield-check me-2"></i>@Loc["Nav.AdminPortal"]</a>
+        }
+        @if (userRole == "Owner")
         {
             <a class="ps-nav-link" href="/owner"><i class="bi bi-speedometer2 me-2"></i>@Loc["Nav.OwnerDashboard"]</a>
         }

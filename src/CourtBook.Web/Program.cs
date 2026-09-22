@@ -89,6 +89,34 @@ app.MapGet("/api/games/{**path}", async (string? path, HttpContext ctx, ApiClien
     return Results.Content(content, resp.Content.Headers.ContentType?.MediaType ?? "application/json", statusCode: (int)resp.StatusCode);
 }).AllowAnonymous();
 
+// Forwarding for browser client notifications
+app.MapGet("/api/notifications/unread-count", async (ApiClient api) =>
+{
+    var resp = await api.Client.GetAsync("/api/notifications/unread-count");
+    var content = await resp.Content.ReadAsStringAsync();
+    return Results.Content(content, resp.Content.Headers.ContentType?.MediaType ?? "application/json", statusCode: (int)resp.StatusCode);
+});
+
+app.MapGet("/api/notifications", async (HttpContext ctx, ApiClient api) =>
+{
+    var query = ctx.Request.QueryString.Value ?? "";
+    var resp = await api.Client.GetAsync($"/api/notifications{query}");
+    var content = await resp.Content.ReadAsStringAsync();
+    return Results.Content(content, resp.Content.Headers.ContentType?.MediaType ?? "application/json", statusCode: (int)resp.StatusCode);
+});
+
+app.MapPost("/api/notifications/{id}/read", async (Guid id, ApiClient api) =>
+{
+    var resp = await api.Client.PostAsync($"/api/notifications/{id}/read", null);
+    return Results.StatusCode((int)resp.StatusCode);
+});
+
+app.MapPost("/api/notifications/read-all", async (ApiClient api) =>
+{
+    var resp = await api.Client.PostAsync("/api/notifications/read-all", null);
+    return Results.StatusCode((int)resp.StatusCode);
+});
+
 app.MapStaticAssets();
 app.MapRazorPages()
    .WithStaticAssets();

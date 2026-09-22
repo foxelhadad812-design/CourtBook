@@ -665,10 +665,112 @@
     PlaySpot.LoadingBtn.autoBindForms();
     PlaySpot.ImageFallback.init();
     PlaySpot.Assistant.init();
+    PlaySpot.Notifications.init();
 
     // Finish loading bar on full load
     window.addEventListener('load', () => PlaySpot.LoadingBar.finish());
   });
+
+  /* ─────────────────────────────────────────────────────
+     NOTIFICATIONS MODULE
+     ───────────────────────────────────────────────────── */
+  PlaySpot.Notifications = {
+    _badge: null,
+    _previewList: null,
+    _container: null,
+
+    init() {
+      this._badge = document.getElementById('ps-notifications-badge');
+      this._previewList = document.getElementById('ps-notifications-preview-list');
+      this._container = document.getElementById('ps-notifications-container');
+
+      if (!this._container) return; // User not logged in
+
+      this.updateUnreadCount();
+
+      // Listen to dropdown opening to load preview items
+      const dropdownBtn = document.getElementById('ps-notifications-btn');
+      if (dropdownBtn) {
+        dropdownBtn.addEventListener('show.bs.dropdown', () => {
+          this.loadPreview();
+        });
+      }
+    },
+
+    async updateUnreadCount() {
+      if (!this._badge) return;
+      try {
+        const resp = await fetch('/api/notifications/unread-count');
+        if (resp.ok) {
+          const data = await resp.json();
+          const count = data.unreadCount ?? data.UnreadCount ?? 0;
+          if (count > 0) {
+            this._badge.textContent = count > 99 ? '99+' : count;
+            this._badge.classList.remove('d-none');
+          } else {
+            this._badge.textContent = '0';
+            this._badge.classList.add('d-none');
+          }
+        }
+      } catch {
+        // Silently fail
+      }
+    },
+
+    async loadPreview() {
+      if (!this._previewList) return;
+      try {
+        const resp = await fetch('/api/notifications?page=1&pageSize=5');
+        if (!resp.ok) {
+          this._previewList.innerHTML = '<div class="p-3 text-center text-muted small">Could not load notifications.</div>';
+          return;
+        }
+
+        const data = await resp.json();
+        const items = data.items || data.Items || [];
+
+        if (items.length === 0) {
+          this._previewList.innerHTML = '<div class="p-4 text-center text-muted small"><i class="bi bi-bell-slash fs-4 d-block mb-1"></i>No notifications yet.</div>';
+          return;
+        }
+
+        let html = '<div class="list-group list-group-flush">';
+        items.forEach(n => {
+          const isUnread = !n.isRead && !n.IsRead;
+          const title = n.title || n.Title || '';
+          const message = n.message || n.Message || '';
+          const actionUrl = n.actionUrl || n.ActionUrl || '';
+          const createdAt = n.createdAt || n.CreatedAt || '';
+          const dateStr = createdAt ? new Date(createdAt).toLocaleDateString() : '';
+
+          // Validate actionUrl is safe local url
+          const isSafeUrl = actionUrl && actionUrl.startsWith('/') && !actionUrl.startsWith('//') && !actionUrl.startsWith('/\\');
+
+          html += `
+            <div class="list-group-item p-3 border-bottom ${isUnread ? 'bg-body-secondary bg-opacity-25' : ''}">
+              <div class="d-flex justify-content-between align-items-start mb-1">
+                <span class="fw-bold small ${isUnread ? 'text-primary' : ''}">${this._escapeHtml(title)}</span>
+                <span class="text-muted" style="font-size: 0.7rem;">${dateStr}</span>
+              </div>
+              <p class="text-muted small mb-1 text-truncate" style="max-width: 280px;">${this._escapeHtml(message)}</p>
+              ${isSafeUrl ? `<a href="${actionUrl}" class="small text-decoration-none fw-semibold" style="font-size: 0.75rem;">View <i class="bi bi-chevron-right"></i></a>` : ''}
+            </div>
+          `;
+        });
+        html += '</div>';
+        this._previewList.innerHTML = html;
+      } catch {
+        this._previewList.innerHTML = '<div class="p-3 text-center text-muted small">Could not load notifications.</div>';
+      }
+    },
+
+    _escapeHtml(str) {
+      if (!str) return '';
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+  };
 
   // Expose globally
   window.PlaySpot = PlaySpot;

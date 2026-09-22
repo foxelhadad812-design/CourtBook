@@ -99,6 +99,7 @@ public class TextLocalizer : ITextLocalizer
         ["Nav.SignOut"] = "Sign out",
         ["Nav.GetStarted"] = "Get Started",
         ["Nav.Notifications"] = "Notifications",
+        ["Nav.AdminPortal"] = "Admin Portal",
         ["Theme.Toggle"] = "Toggle theme",
         ["Lang.Switch"] = "العربية",
 
@@ -486,6 +487,7 @@ public class TextLocalizer : ITextLocalizer
         ["Nav.SignOut"] = "تسجيل الخروج",
         ["Nav.GetStarted"] = "ابدأ الآن",
         ["Nav.Notifications"] = "الإشعارات",
+        ["Nav.AdminPortal"] = "لوحة تحكم الإدارة",
         ["Theme.Toggle"] = "تبديل المظهر (ليلي / نهاري)",
         ["Lang.Switch"] = "English",
 

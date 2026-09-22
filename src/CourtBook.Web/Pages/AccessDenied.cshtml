@@ -1,0 +1,46 @@
+@page
+@model CourtBook.Web.Pages.AccessDeniedModel
+@inject CourtBook.Web.Services.ITextLocalizer Loc
+@{
+    ViewData["Title"] = Loc.IsArabic ? "تم رفض الوصول" : "Access Denied";
+}
+
+<div class="container py-5 my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6 text-center">
+            <div class="card border-0 shadow-sm p-4 p-md-5" style="border-radius: var(--ps-radius-xl); background: var(--ps-card-bg);">
+                <div class="mb-4">
+                    <div class="d-inline-flex align-items-center justify-content-center rounded-circle"
+                         style="width: 80px; height: 80px; background: rgba(239, 68, 68, 0.12); color: #ef4444; font-size: 2.5rem;">
+                        <i class="bi bi-shield-lock-fill"></i>
+                    </div>
+                </div>
+
+                <div class="badge bg-danger-subtle text-danger fw-bold align-self-center px-3 py-2 mb-3" style="border-radius: 20px;">
+                    HTTP 403 Forbidden
+                </div>
+
+                <h2 class="fw-bold mb-3" style="color: var(--ps-text);">
+                    @(Loc.IsArabic ? "عذراً! لا تمتلك صلاحيات الوصول" : "Access Denied")
+                </h2>
+
+                <p class="text-muted mb-4" style="line-height: 1.7;">
+                    @(Loc.IsArabic 
+                        ? "هذا القسم مخصص حصرياً لمديري النظام (System Administrators). إذا كنت تمتلك حساب مسؤول، يرجى تسجيل الدخول باستخدامه." 
+                        : "This section is restricted to System Administrators only. If you have administrative credentials, please sign in with your admin account.")
+                </p>
+
+                <div class="d-flex flex-column flex-sm-row gap-2 justify-content-center">
+                    <a asp-page="/Index" class="ps-btn ps-btn-secondary">
+                        <i class="bi bi-house-door me-1"></i>
+                        @(Loc.IsArabic ? "العودة للرئيسية" : "Return to Home")
+                    </a>
+                    <a asp-page="/Login" asp-route-returnUrl="/Admin/Index" class="ps-btn ps-btn-primary">
+                        <i class="bi bi-box-arrow-in-right me-1"></i>
+                        @(Loc.IsArabic ? "تسجيل دخول كمسؤول" : "Sign In as Admin")
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

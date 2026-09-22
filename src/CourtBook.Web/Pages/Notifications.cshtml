@@ -1,0 +1,227 @@
+@page "/notifications"
+@model CourtBook.Web.Pages.NotificationsModel
+@inject CourtBook.Web.Services.ITextLocalizer Loc
+@{
+    ViewData["Title"] = Loc.IsArabic ? "مركز الإشعارات" : "Notification Center";
+}
+
+<div class="container py-4" style="max-width: 860px;">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1 small">
+                    <li class="breadcrumb-item"><a href="/" class="text-decoration-none">@(Loc.IsArabic ? "الرئيسية" : "Home")</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">@(Loc.IsArabic ? "الإشعارات" : "Notifications")</li>
+                </ol>
+            </nav>
+            <div class="d-flex align-items-center gap-2">
+                <h1 class="h3 fw-bold mb-0" style="color: var(--ps-text);">
+                    <i class="bi bi-bell-fill text-primary me-2"></i>
+                    @(Loc.IsArabic ? "مركز الإشعارات" : "Notifications")
+                </h1>
+                @if (Model.UnreadCount > 0)
+                {
+                    <span class="badge bg-danger rounded-pill fw-bold">@Model.UnreadCount</span>
+                }
+            </div>
+            <p class="text-muted mb-0 small mt-1">
+                @(Loc.IsArabic 
+                    ? "تابع تحديثات الحجوزات، اعتمادات الملاعب، ومستجدات حسابك في مكان واحد."
+                    : "Stay up to date on booking confirmations, venue reviews, and game invites.")
+            </p>
+        </div>
+
+        @if (Model.UnreadCount > 0)
+        {
+            <form method="post" asp-page-handler="MarkAllRead">
+                <button type="submit" class="ps-btn ps-btn-secondary ps-btn-sm">
+                    <i class="bi bi-check2-all me-1"></i>
+                    @(Loc.IsArabic ? "تحديد الكل كمقروء" : "Mark All as Read")
+                </button>
+            </form>
+        }
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger shadow-sm border-0 rounded-3 mb-4 d-flex align-items-center gap-2">
+            <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+            <div>@Model.ErrorMessage</div>
+        </div>
+    }
+
+    <!-- Filter Tabs -->
+    <div class="card border-0 shadow-sm mb-4" style="border-radius: var(--ps-radius-lg); background: var(--ps-card-bg);">
+        <div class="card-body p-2 px-3">
+            <div class="d-flex gap-2">
+                <a href="/notifications?filter=all"
+                   class="btn btn-sm @(Model.Filter.Equals("all", StringComparison.OrdinalIgnoreCase) ? "btn-primary" : "btn-ghost") rounded-pill px-3">
+                    @(Loc.IsArabic ? "جميع الإشعارات" : "All Notifications")
+                </a>
+                <a href="/notifications?filter=unread"
+                   class="btn btn-sm @(Model.Filter.Equals("unread", StringComparison.OrdinalIgnoreCase) ? "btn-primary" : "btn-ghost") rounded-pill px-3">
+                    @(Loc.IsArabic ? "غير المقروءة" : "Unread")
+                    @if (Model.UnreadCount > 0)
+                    {
+                        <span class="badge bg-danger rounded-pill ms-1">@Model.UnreadCount</span>
+                    }
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notifications List -->
+    <div class="card border-0 shadow-sm" style="border-radius: var(--ps-radius-lg); background: var(--ps-card-bg);">
+        <div class="card-body p-0">
+            @if (Model.Notifications.Items.Any())
+            {
+                <div class="list-group list-group-flush rounded-3">
+                    @foreach (var n in Model.Notifications.Items)
+                    {
+                        var isUnread = !n.IsRead;
+                        var isVenueApproved = n.Type.Contains("VenueApproved", StringComparison.OrdinalIgnoreCase);
+                        var isVenueRejected = n.Type.Contains("VenueRejected", StringComparison.OrdinalIgnoreCase);
+                        var isBookingConfirmed = n.Type.Contains("BookingConfirmed", StringComparison.OrdinalIgnoreCase);
+                        var isBookingCancelled = n.Type.Contains("BookingCancelled", StringComparison.OrdinalIgnoreCase);
+
+                        <div class="list-group-item p-3 p-md-4 border-bottom @(isUnread ? "bg-body-secondary bg-opacity-25" : "")"
+                             style="transition: background-color 0.2s ease;">
+                            <div class="d-flex gap-3 align-items-start">
+                                <!-- Type Icon -->
+                                <div class="flex-shrink-0">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center"
+                                         style="width: 44px; height: 44px; font-size: 1.25rem;
+                                                background: @(isVenueApproved || isBookingConfirmed ? "rgba(16, 185, 129, 0.15)" : isVenueRejected || isBookingCancelled ? "rgba(239, 68, 68, 0.15)" : "rgba(59, 130, 246, 0.15)");
+                                                color: @(isVenueApproved || isBookingConfirmed ? "#10b981" : isVenueRejected || isBookingCancelled ? "#ef4444" : "#3b82f6");">
+                                        @if (isVenueApproved)
+                                        {
+                                            <i class="bi bi-building-check"></i>
+                                        }
+                                        else if (isVenueRejected)
+                                        {
+                                            <i class="bi bi-building-exclamation"></i>
+                                        }
+                                        else if (isBookingConfirmed)
+                                        {
+                                            <i class="bi bi-calendar-check-fill"></i>
+                                        }
+                                        else if (isBookingCancelled)
+                                        {
+                                            <i class="bi bi-calendar-x-fill"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-bell-fill"></i>
+                                        }
+                                    </div>
+                                </div>
+
+                                <!-- Notification Content -->
+                                <div class="flex-grow-1">
+                                    <div class="d-flex flex-wrap justify-content-between align-items-center mb-1 gap-2">
+                                        <div class="d-flex align-items-center gap-2">
+                                            @if (isUnread)
+                                            {
+                                                <span class="d-inline-block rounded-circle bg-primary" style="width: 8px; height: 8px;" title="Unread"></span>
+                                            }
+                                            <h6 class="fw-bold mb-0 @(isUnread ? "text-primary" : "")" style="color: var(--ps-text);">
+                                                @n.Title
+                                            </h6>
+                                        </div>
+                                        <small class="text-muted" style="font-size: 0.8rem;">
+                                            <i class="bi bi-clock me-1"></i>@n.CreatedAt.ToString("yyyy-MM-dd HH:mm")
+                                        </small>
+                                    </div>
+
+                                    <p class="text-muted small mb-2" style="line-height: 1.6;">
+                                        @n.Message
+                                    </p>
+
+                                    <!-- Action Buttons -->
+                                    <div class="d-flex flex-wrap align-items-center gap-2 pt-1">
+                                        @if (Model.IsSafeLocalUrl(n.ActionUrl))
+                                        {
+                                            <a href="@n.ActionUrl" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                                                <i class="bi bi-box-arrow-up-right me-1"></i>
+                                                @(Loc.IsArabic ? "عرض التفاصيل" : "View Details")
+                                            </a>
+                                        }
+
+                                        @if (isUnread)
+                                        {
+                                            <form method="post" asp-page-handler="MarkRead" asp-route-id="@n.Id" class="d-inline">
+                                                <input type="hidden" name="filter" value="@Model.Filter" />
+                                                <input type="hidden" name="p" value="@Model.P" />
+                                                <button type="submit" class="btn btn-sm btn-ghost text-muted">
+                                                    <i class="bi bi-check2 me-1"></i>
+                                                    @(Loc.IsArabic ? "تحديد كمقروء" : "Mark as Read")
+                                                </button>
+                                            </form>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <!-- Pagination -->
+                @if (Model.Notifications.TotalPages > 1)
+                {
+                    <div class="p-3 border-top d-flex justify-content-center">
+                        <nav aria-label="Notifications pagination">
+                            <ul class="pagination pagination-sm mb-0">
+                                @if (Model.Notifications.HasPreviousPage)
+                                {
+                                    <li class="page-item">
+                                        <a class="page-link" href="/notifications?filter=@Model.Filter&p=@(Model.Notifications.Page - 1)">
+                                            @(Loc.IsArabic ? "السابق" : "Previous")
+                                        </a>
+                                    </li>
+                                }
+                                @for (int i = 1; i <= Model.Notifications.TotalPages; i++)
+                                {
+                                    <li class="page-item @(i == Model.Notifications.Page ? "active" : "")">
+                                        <a class="page-link" href="/notifications?filter=@Model.Filter&p=@i">@i</a>
+                                    </li>
+                                }
+                                @if (Model.Notifications.HasNextPage)
+                                {
+                                    <li class="page-item">
+                                        <a class="page-link" href="/notifications?filter=@Model.Filter&p=@(Model.Notifications.Page + 1)">
+                                            @(Loc.IsArabic ? "التالي" : "Next")
+                                        </a>
+                                    </li>
+                                }
+                            </ul>
+                        </nav>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="text-center py-5">
+                    <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+                         style="width: 72px; height: 72px; background: rgba(59, 130, 246, 0.1); color: #3b82f6; font-size: 2rem;">
+                        <i class="bi bi-bell-slash"></i>
+                    </div>
+                    <h5 class="fw-bold mb-1" style="color: var(--ps-text);">
+                        @(Loc.IsArabic ? "لا توجد إشعارات حالياً" : "All Caught Up!")
+                    </h5>
+                    <p class="text-muted small mb-3">
+                        @(Loc.IsArabic
+                            ? "ليس لديك أي إشعارات جديدة في هذا القسم."
+                            : "You don't have any notifications at the moment.")
+                    </p>
+                    @if (Model.Filter.Equals("unread", StringComparison.OrdinalIgnoreCase))
+                    {
+                        <a href="/notifications?filter=all" class="ps-btn ps-btn-secondary ps-btn-sm">
+                            @(Loc.IsArabic ? "عرض جميع الإشعارات السابقة" : "View All Previous Notifications")
+                        </a>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>

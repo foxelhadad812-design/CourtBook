@@ -47,6 +47,7 @@ public class NotificationsController : ControllerBase
     /// Marks a single notification as read.
     /// </summary>
     [HttpPut("{id}/read")]
+    [HttpPost("{id}/read")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> MarkAsRead(Guid id)
@@ -60,6 +61,7 @@ public class NotificationsController : ControllerBase
     /// Marks all unread notifications as read.
     /// </summary>
     [HttpPut("read-all")]
+    [HttpPost("read-all")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> MarkAllAsRead()
     {

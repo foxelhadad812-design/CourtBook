@@ -20,14 +20,37 @@ public class AdminVenuesController : ControllerBase
     }
 
     /// <summary>
-    /// Returns all venues across the platform for admin review, optionally filtered by approval status.
+    /// Returns high-level platform metrics, pending count, recent submissions and moderation activity.
+    /// </summary>
+    [HttpGet("/api/admin/dashboard")]
+    [ProducesResponseType(typeof(AdminDashboardDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetDashboard()
+    {
+        var result = await _adminVenueService.GetDashboardAsync();
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Returns all venues across the platform for admin review, optionally filtered by approval status and search term.
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(List<AdminVenueDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAll([FromQuery] VenueApprovalStatus? status)
+    public async Task<IActionResult> GetAll([FromQuery] VenueApprovalStatus? status, [FromQuery] string? search)
     {
-        var result = await _adminVenueService.GetAllVenuesAsync(status);
+        var result = await _adminVenueService.GetAllVenuesAsync(status, search);
         return Ok(result);
+    }
+
+    /// <summary>
+    /// Returns full facility details for pre-approval inspection.
+    /// </summary>
+    [HttpGet("{id}")]
+    [ProducesResponseType(typeof(AdminVenueDetailsDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetDetails(Guid id)
+    {
+        var venue = await _adminVenueService.GetVenueDetailsAsync(id);
+        return venue is null ? NotFound("Facility not found.") : Ok(venue);
     }
 
     /// <summary>

@@ -33,6 +33,7 @@ public class LoginModel : PageModel
                     return LocalRedirect(ReturnUrl);
                 }
 
+                if (result.Role == "Admin") return RedirectToPage("/Admin/Index");
                 if (result.Role == "Owner") return RedirectToPage("/Dashboard/Index");
                 return RedirectToPage("/Venues/Index");
             }
