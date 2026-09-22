@@ -26,9 +26,9 @@ public interface IPaymentService
     Task ProcessWebhookPaymentCompletedAsync(string providerOrderId, string transactionRef, decimal amountPaid, string idempotencyKey, string provider);
 
     /// <summary>
-    /// Server-side return-URL verification (never trust browser alone).
+    /// Server-side return-URL verification with user isolation (never trust browser alone).
     /// </summary>
-    Task<PaymentVerificationResponse> VerifyReturnAsync(string providerOrderId);
+    Task<PaymentVerificationResponse> VerifyReturnAsync(Guid userId, string userRole, string providerOrderId);
 
     /// <summary>
     /// Initiates a refund for a cancelled booking.

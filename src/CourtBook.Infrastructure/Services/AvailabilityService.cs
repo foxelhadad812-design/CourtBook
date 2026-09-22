@@ -62,10 +62,13 @@ public class AvailabilityService : IAvailabilityService
         // Fetch active bookings and active community games for this day in Egypt timezone
         var (dayStartUtc, dayEndUtc) = TimeZoneHelper.GetEgyptDayUtcRange(request.Date);
 
+        var nowUtc = DateTime.UtcNow;
+
         var existingBookings = await _db.Bookings
             .AsNoTracking()
             .Where(b => b.CourtId == courtId 
                      && b.Status != BookingStatus.Cancelled
+                     && !(b.Payment != null && b.Payment.Status == PaymentStatus.Processing && b.Payment.ExpiresAt != null && b.Payment.ExpiresAt < nowUtc)
                      && b.StartTime < dayEndUtc 
                      && b.EndTime > dayStartUtc)
             .Select(b => new { b.StartTime, b.EndTime })
@@ -78,8 +81,6 @@ public class AvailabilityService : IAvailabilityService
                      && g.Date == request.Date)
             .Select(g => new { g.StartTime, g.EndTime })
             .ToListAsync();
-
-        var nowUtc = DateTime.UtcNow;
         var currentSlotStart = schedule.OpenTime;
         var slotIncrement = request.DurationMinutes;
 

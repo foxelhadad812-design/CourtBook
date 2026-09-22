@@ -166,7 +166,14 @@ public class PaymobGatewayService : IPaymentGatewayService
 
         var hmac = HMACSHA512.HashData(Encoding.UTF8.GetBytes(_hmacSecret), Encoding.UTF8.GetBytes(payload));
         var computed = Convert.ToHexString(hmac).ToLowerInvariant();
-        return string.Equals(computed, incomingSignature?.ToLowerInvariant(), StringComparison.Ordinal);
+
+        if (string.IsNullOrWhiteSpace(incomingSignature))
+            return false;
+
+        var computedBytes = Encoding.UTF8.GetBytes(computed);
+        var incomingBytes = Encoding.UTF8.GetBytes(incomingSignature.Trim().ToLowerInvariant());
+
+        return CryptographicOperations.FixedTimeEquals(computedBytes, incomingBytes);
     }
 
     // ── Private helpers ─────────────────────────────────────────────────────

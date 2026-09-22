@@ -65,6 +65,34 @@ public class BookingService : IBookingService
                 if (requestStartTime < schedule.OpenTime || requestEndTime > schedule.CloseTime)
                     throw new ArgumentException("Booking time is outside court working hours.");
 
+                // Lazy cleanup: cancel any bookings on this court whose 10-minute online payment hold has expired
+                var nowUtc = DateTime.UtcNow;
+                var expiredHoldBookings = await _db.Bookings
+                    .Include(b => b.Payment)
+                    .Where(b => b.CourtId == request.CourtId
+                        && b.Status != BookingStatus.Cancelled
+                        && b.Payment != null
+                        && b.Payment.Status == PaymentStatus.Processing
+                        && b.Payment.ExpiresAt != null
+                        && b.Payment.ExpiresAt < nowUtc)
+                    .ToListAsync();
+
+                foreach (var exp in expiredHoldBookings)
+                {
+                    exp.Status = BookingStatus.Cancelled;
+                    exp.CancelledAt = nowUtc;
+                    exp.CancellationReason = "Payment hold expired (10-minute checkout window elapsed).";
+                    if (exp.Payment != null)
+                    {
+                        exp.Payment.Status = PaymentStatus.Failed;
+                        exp.PaymentStatus = PaymentStatus.Failed;
+                    }
+                }
+                if (expiredHoldBookings.Count > 0)
+                {
+                    await _db.SaveChangesAsync();
+                }
+
                 // Concurrency-safe overlap check executed inside the serializable transaction
                 var hasOverlap = await _db.Bookings
                     .AnyAsync(b => b.CourtId == request.CourtId

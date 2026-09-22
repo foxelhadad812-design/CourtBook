@@ -251,6 +251,30 @@ public class PaymentService : IPaymentService
             return;
         }
 
+        // Invalid transitions: cannot complete an already Refunded, PartiallyRefunded, or Cancelled payment
+        if (payment.Status == PaymentStatus.Refunded ||
+            payment.Status == PaymentStatus.PartiallyRefunded ||
+            payment.Status == PaymentStatus.Cancelled ||
+            payment.Booking.Status == BookingStatus.Cancelled)
+        {
+            _logger.LogWarning("Cannot complete payment {PaymentId} with terminal status {Status} or cancelled booking.",
+                payment.Id, payment.Status);
+            await RecordIdempotencyAsync(provider, idempotencyKey, payment.Id, $"TerminalState_{payment.Status}");
+            return;
+        }
+
+        // 3b. 10-Minute Hold Expiration check
+        if (payment.ExpiresAt.HasValue && payment.ExpiresAt.Value < DateTime.UtcNow && payment.Status == PaymentStatus.Processing)
+        {
+            _logger.LogWarning("Payment hold expired for Payment {PaymentId} at {ExpiresAt}. Rejecting completion.",
+                payment.Id, payment.ExpiresAt.Value);
+            payment.Status = PaymentStatus.Failed;
+            payment.Booking.PaymentStatus = PaymentStatus.Failed;
+            await _db.SaveChangesAsync();
+            await RecordIdempotencyAsync(provider, idempotencyKey, payment.Id, "HoldExpired");
+            return;
+        }
+
         // 4. Server-side amount integrity check
         if (amountPaid < payment.Amount)
         {
@@ -358,11 +382,8 @@ public class PaymentService : IPaymentService
 
     // ── Return URL Verification ─────────────────────────────────────────────
 
-    public async Task<PaymentVerificationResponse> VerifyReturnAsync(string providerOrderId)
+    public async Task<PaymentVerificationResponse> VerifyReturnAsync(Guid userId, string userRole, string providerOrderId)
     {
-        // Server-side verification — never trust browser callback alone
-        var verification = await _gateway.VerifyPaymentAsync(providerOrderId);
-
         var payment = await _db.Payments
             .Include(p => p.Booking)
             .FirstOrDefaultAsync(p => p.ProviderOrderId == providerOrderId);
@@ -373,6 +394,33 @@ public class PaymentService : IPaymentService
                 IsSuccessful = false,
                 ErrorMessage = "Payment record not found."
             };
+
+        // Strict player authorization check
+        if (userId != Guid.Empty && payment.Booking.UserId != userId && !string.Equals(userRole, "Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new UnauthorizedAccessException("You do not have permission to view or verify this payment.");
+        }
+
+        // Check if hold has expired
+        if (payment.ExpiresAt.HasValue && payment.ExpiresAt.Value < DateTime.UtcNow && payment.Status == PaymentStatus.Processing)
+        {
+            payment.Status = PaymentStatus.Failed;
+            payment.Booking.PaymentStatus = PaymentStatus.Failed;
+            await _db.SaveChangesAsync();
+
+            return new PaymentVerificationResponse
+            {
+                IsSuccessful         = false,
+                BookingId            = payment.BookingId,
+                Status               = PaymentStatus.Failed.ToString(),
+                TransactionReference = payment.TransactionReference,
+                Amount               = payment.Amount,
+                ErrorMessage         = "Payment hold expired (10 minutes elapsed). Please initiate a new booking."
+            };
+        }
+
+        // Server-side verification — never trust browser callback alone
+        var verification = await _gateway.VerifyPaymentAsync(providerOrderId);
 
         if (verification.IsSuccessful && payment.Status != PaymentStatus.Completed)
         {
@@ -431,43 +479,102 @@ public class PaymentService : IPaymentService
         if (payment is null)
             return new RefundResponse { Success = false, ErrorMessage = "Payment not found." };
 
+        var booking = payment.Booking;
+        if (booking is null)
+            return new RefundResponse { Success = false, ErrorMessage = "Associated booking not found." };
+
         if (payment.Status == PaymentStatus.Refunded || payment.Status == PaymentStatus.PartiallyRefunded)
             return new RefundResponse { Success = false, ErrorMessage = "Payment has already been refunded." };
 
         if (payment.Status != PaymentStatus.Completed)
             return new RefundResponse { Success = false, ErrorMessage = "Only completed payments can be refunded." };
 
-        // For PayAtFacility — no gateway refund needed
-        if (payment.Method == PaymentMethod.PayAtFacility)
+        // Respect cancellation policy fee: refund = paid amount - cancellation fee
+        var cancellationFee = booking.CancellationFee;
+        var eligibleRefundAmount = Math.Max(0m, payment.Amount - cancellationFee);
+        var isPartial = eligibleRefundAmount > 0 && eligibleRefundAmount < payment.Amount;
+        var newStatus = isPartial ? PaymentStatus.PartiallyRefunded : PaymentStatus.Refunded;
+
+        // Zero refund case (e.g. 100% late fee)
+        if (eligibleRefundAmount == 0m)
         {
-            payment.Status                = PaymentStatus.Refunded;
-            payment.Booking.PaymentStatus = PaymentStatus.Refunded;
+            payment.Status = PaymentStatus.Completed; // remains completed, full penalty retained
 
             _db.TransactionLedger.Add(new TransactionLedger
             {
                 Id                     = Guid.NewGuid(),
                 PaymentId              = payment.Id,
                 BookingId              = bookingId,
-                UserId                 = payment.Booking.UserId,
-                OwnerId                = payment.Booking.Court?.Venue?.OwnerId ?? Guid.Empty,
-                EntryType              = LedgerEntryType.Refund,
-                GrossAmount            = -payment.Amount,
-                CommissionAmount       = -payment.CommissionAmount,
-                NetAmount              = -payment.OwnerNetAmount,
+                UserId                 = booking.UserId,
+                OwnerId                = booking.Court?.Venue?.OwnerId ?? Guid.Empty,
+                EntryType              = LedgerEntryType.CancellationFee,
+                GrossAmount            = cancellationFee,
+                CommissionAmount       = Math.Round(cancellationFee * _commissionRate, 2),
+                NetAmount              = cancellationFee - Math.Round(cancellationFee * _commissionRate, 2),
                 CommissionRateSnapshot = _commissionRate,
                 Currency               = payment.Currency,
-                Description            = $"Pay-at-facility refund: {reason}",
+                Description            = $"Late cancellation fee retained (no refund): {reason}",
                 CreatedAt              = DateTime.UtcNow
             });
 
             await _db.SaveChangesAsync();
-            return new RefundResponse { Success = true, RefundAmount = payment.Amount };
+            return new RefundResponse { Success = true, RefundAmount = 0m, RefundTransactionId = "RETAINED_FEE" };
+        }
+
+        var commissionReversed = Math.Round(eligibleRefundAmount * _commissionRate, 2);
+        var ownerNetReversed   = Math.Round(eligibleRefundAmount - commissionReversed, 2);
+
+        // For PayAtFacility — no gateway refund needed
+        if (payment.Method == PaymentMethod.PayAtFacility)
+        {
+            payment.Status        = newStatus;
+            booking.PaymentStatus = newStatus;
+
+            _db.TransactionLedger.Add(new TransactionLedger
+            {
+                Id                     = Guid.NewGuid(),
+                PaymentId              = payment.Id,
+                BookingId              = bookingId,
+                UserId                 = booking.UserId,
+                OwnerId                = booking.Court?.Venue?.OwnerId ?? Guid.Empty,
+                EntryType              = LedgerEntryType.Refund,
+                GrossAmount            = -eligibleRefundAmount,
+                CommissionAmount       = -commissionReversed,
+                NetAmount              = -ownerNetReversed,
+                CommissionRateSnapshot = _commissionRate,
+                Currency               = payment.Currency,
+                Description            = $"Pay-at-facility {(isPartial ? "partial " : "")}refund: {reason}",
+                CreatedAt              = DateTime.UtcNow
+            });
+
+            if (cancellationFee > 0m)
+            {
+                _db.TransactionLedger.Add(new TransactionLedger
+                {
+                    Id                     = Guid.NewGuid(),
+                    PaymentId              = payment.Id,
+                    BookingId              = bookingId,
+                    UserId                 = booking.UserId,
+                    OwnerId                = booking.Court?.Venue?.OwnerId ?? Guid.Empty,
+                    EntryType              = LedgerEntryType.CancellationFee,
+                    GrossAmount            = cancellationFee,
+                    CommissionAmount       = Math.Round(cancellationFee * _commissionRate, 2),
+                    NetAmount              = cancellationFee - Math.Round(cancellationFee * _commissionRate, 2),
+                    CommissionRateSnapshot = _commissionRate,
+                    Currency               = payment.Currency,
+                    Description            = $"Retained cancellation fee on refund: {reason}",
+                    CreatedAt              = DateTime.UtcNow
+                });
+            }
+
+            await _db.SaveChangesAsync();
+            return new RefundResponse { Success = true, RefundAmount = eligibleRefundAmount };
         }
 
         // Online payment — call gateway
         var refundRequest = new RefundRequest(
             ProviderTransactionId: payment.TransactionReference ?? string.Empty,
-            Amount: payment.Amount,
+            Amount: eligibleRefundAmount,
             Reason: reason);
 
         var refundResult = await _gateway.RefundAsync(refundRequest);
@@ -475,26 +582,46 @@ public class PaymentService : IPaymentService
         if (!refundResult.Success)
             return new RefundResponse { Success = false, ErrorMessage = refundResult.ErrorMessage };
 
-        payment.Status                = PaymentStatus.Refunded;
-        payment.Booking.PaymentStatus = PaymentStatus.Refunded;
+        payment.Status        = newStatus;
+        booking.PaymentStatus = newStatus;
 
         _db.TransactionLedger.Add(new TransactionLedger
         {
             Id                     = Guid.NewGuid(),
             PaymentId              = payment.Id,
             BookingId              = bookingId,
-            UserId                 = payment.Booking.UserId,
-            OwnerId                = payment.Booking.Court?.Venue?.OwnerId ?? Guid.Empty,
+            UserId                 = booking.UserId,
+            OwnerId                = booking.Court?.Venue?.OwnerId ?? Guid.Empty,
             EntryType              = LedgerEntryType.Refund,
-            GrossAmount            = -payment.Amount,
-            CommissionAmount       = -payment.CommissionAmount,
-            NetAmount              = -payment.OwnerNetAmount,
+            GrossAmount            = -eligibleRefundAmount,
+            CommissionAmount       = -commissionReversed,
+            NetAmount              = -ownerNetReversed,
             CommissionRateSnapshot = _commissionRate,
             Currency               = payment.Currency,
-            Description            = $"Online refund via {_gateway.ProviderName}: {reason}",
+            Description            = $"Online {(isPartial ? "partial " : "")}refund via {_gateway.ProviderName}: {reason}",
             ProviderReference      = refundResult.RefundTransactionId,
             CreatedAt              = DateTime.UtcNow
         });
+
+        if (cancellationFee > 0m)
+        {
+            _db.TransactionLedger.Add(new TransactionLedger
+            {
+                Id                     = Guid.NewGuid(),
+                PaymentId              = payment.Id,
+                BookingId              = bookingId,
+                UserId                 = payment.Booking.UserId,
+                OwnerId                = payment.Booking.Court?.Venue?.OwnerId ?? Guid.Empty,
+                EntryType              = LedgerEntryType.CancellationFee,
+                GrossAmount            = cancellationFee,
+                CommissionAmount       = Math.Round(cancellationFee * _commissionRate, 2),
+                NetAmount              = cancellationFee - Math.Round(cancellationFee * _commissionRate, 2),
+                CommissionRateSnapshot = _commissionRate,
+                Currency               = payment.Currency,
+                Description            = $"Retained cancellation fee on refund: {reason}",
+                CreatedAt              = DateTime.UtcNow
+            });
+        }
 
         await _db.SaveChangesAsync();
 
@@ -505,7 +632,7 @@ public class PaymentService : IPaymentService
                 await _notifications.SendNotificationAsync(
                     payment.Booking.UserId,
                     "Refund Processed ↩️",
-                    $"Refund of EGP {payment.Amount:0.00} has been processed for booking {payment.Booking.BookingReference}.",
+                    $"Refund of EGP {eligibleRefundAmount:0.00} has been processed for booking {payment.Booking.BookingReference}.",
                     NotificationType.PaymentRefunded,
                     $"/Bookings/Details?id={bookingId}");
             }
@@ -516,7 +643,7 @@ public class PaymentService : IPaymentService
         {
             Success              = true,
             RefundTransactionId  = refundResult.RefundTransactionId,
-            RefundAmount         = payment.Amount
+            RefundAmount         = eligibleRefundAmount
         };
     }
 
@@ -589,8 +716,33 @@ public class PaymentService : IPaymentService
     public async Task<OwnerFinancialReportDto> GetOwnerFinancialReportAsync(
         Guid ownerId, DateTime? from, DateTime? to)
     {
-        var query = _db.TransactionLedger
+        var baseQuery = _db.TransactionLedger
             .AsNoTracking()
+            .Where(t => t.OwnerId == ownerId);
+
+        if (from.HasValue) baseQuery = baseQuery.Where(t => t.CreatedAt >= from.Value);
+        if (to.HasValue)   baseQuery = baseQuery.Where(t => t.CreatedAt <= to.Value);
+
+        // SQL-side aggregations directly executed in database
+        var totalGross = await baseQuery
+            .Where(e => e.EntryType == LedgerEntryType.Payment)
+            .SumAsync(e => (decimal?)e.GrossAmount) ?? 0m;
+
+        var totalCommission = await baseQuery
+            .Where(e => e.EntryType == LedgerEntryType.Payment)
+            .SumAsync(e => (decimal?)e.CommissionAmount) ?? 0m;
+
+        var totalNet = await baseQuery
+            .Where(e => e.EntryType == LedgerEntryType.Payment)
+            .SumAsync(e => (decimal?)e.NetAmount) ?? 0m;
+
+        var totalRefunds = Math.Abs(await baseQuery
+            .Where(e => e.EntryType == LedgerEntryType.Refund)
+            .SumAsync(e => (decimal?)e.GrossAmount) ?? 0m);
+
+        var totalTransactions = await baseQuery.CountAsync();
+
+        var entries = await baseQuery
             .Include(t => t.Payment)
                 .ThenInclude(p => p.Booking)
                     .ThenInclude(b => b.User)
@@ -598,26 +750,20 @@ public class PaymentService : IPaymentService
                 .ThenInclude(p => p.Booking)
                     .ThenInclude(b => b.Court)
                         .ThenInclude(c => c.Venue)
-            .Where(t => t.OwnerId == ownerId);
-
-        if (from.HasValue) query = query.Where(t => t.CreatedAt >= from.Value);
-        if (to.HasValue)   query = query.Where(t => t.CreatedAt <= to.Value);
-
-        var entries = await query.OrderByDescending(t => t.CreatedAt).ToListAsync();
-
-        var grossEntries  = entries.Where(e => e.EntryType == LedgerEntryType.Payment);
-        var refundEntries = entries.Where(e => e.EntryType == LedgerEntryType.Refund);
+            .OrderByDescending(t => t.CreatedAt)
+            .Take(100) // safety limit for view
+            .ToListAsync();
 
         return new OwnerFinancialReportDto
         {
             OwnerId           = ownerId,
             From              = from,
             To                = to,
-            TotalGross        = grossEntries.Sum(e => e.GrossAmount),
-            TotalCommission   = grossEntries.Sum(e => e.CommissionAmount),
-            TotalNet          = grossEntries.Sum(e => e.NetAmount),
-            TotalRefunds      = Math.Abs(refundEntries.Sum(e => e.GrossAmount)),
-            TotalTransactions = entries.Count,
+            TotalGross        = totalGross,
+            TotalCommission   = totalCommission,
+            TotalNet          = totalNet,
+            TotalRefunds      = totalRefunds,
+            TotalTransactions = totalTransactions,
             Entries           = entries.Select(MapToLedgerDto).ToList()
         };
     }

@@ -92,8 +92,22 @@ public class PaymentsController : ControllerBase
         if (string.IsNullOrWhiteSpace(orderId))
             return BadRequest(new { error = "orderId is required." });
 
-        var result = await _paymentService.VerifyReturnAsync(orderId);
-        return Ok(result);
+        var userId = GetUserId();
+        var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? "";
+
+        try
+        {
+            var result = await _paymentService.VerifyReturnAsync(userId, userRole, orderId);
+            return Ok(result);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { error = ex.Message });
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound(new { error = "Payment not found." });
+        }
     }
 
     // ── Webhook ─────────────────────────────────────────────────────────────
