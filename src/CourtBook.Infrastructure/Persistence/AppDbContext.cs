@@ -50,6 +50,14 @@ public class AppDbContext : DbContext
     public DbSet<GameInvitation> GameInvitations => Set<GameInvitation>();
     public DbSet<PlayerConnection> PlayerConnections => Set<PlayerConnection>();
 
+    // Phase 9.4: Financial Payouts & Settlement Infrastructure
+    public DbSet<OwnerBalance> OwnerBalances => Set<OwnerBalance>();
+    public DbSet<OwnerPayoutMethod> OwnerPayoutMethods => Set<OwnerPayoutMethod>();
+    public DbSet<PayoutRequest> PayoutRequests => Set<PayoutRequest>();
+    public DbSet<SettlementBatch> SettlementBatches => Set<SettlementBatch>();
+    public DbSet<SettlementItem> SettlementItems => Set<SettlementItem>();
+    public DbSet<RecoveryObligation> RecoveryObligations => Set<RecoveryObligation>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // Automatically applies all IEntityTypeConfiguration<T> classes in this assembly

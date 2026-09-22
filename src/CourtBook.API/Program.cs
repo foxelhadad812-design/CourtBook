@@ -71,6 +71,11 @@ builder.Services.AddHttpClient<IPaymentGatewayService, PaymobGatewayService>(cli
 });
 builder.Services.AddScoped<IPaymentService,      PaymentService>();
 
+// ── Phase 9.4: Settlement & Payout Services ─────────────────────────────────
+builder.Services.AddScoped<ISettlementService,   SettlementService>();
+builder.Services.AddScoped<IPayoutService,       PayoutService>();
+builder.Services.AddScoped<IRecoveryService,     RecoveryService>();
+
 // ── Phase 8: Real-Time SignalR & Background Workers ──────────────────────────
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<IRealTimeNotificationSender, SignalRNotificationSender>();

@@ -31,6 +31,7 @@ public static class SeedData
         await EnsureTermsDocumentsAsync(db, logger);
         await EnsureBaseAmenitiesAsync(db, logger);
         await EnsureAdminAccountAsync(db, logger, isDevelopment);
+        await EnsureHistoricalOwnerBalancesBackfilledAsync(db, logger);
     }
 
     public static async Task EnsureDemoDataAsync(AppDbContext db, ILogger logger)
@@ -1446,5 +1447,81 @@ Last Updated: September 2026
             await db.SaveChangesAsync();
             logger.LogInformation("Seeded {Count} community games across diverse sports & age groups.", games.Count);
         }
+    }
+
+    public static async Task EnsureHistoricalOwnerBalancesBackfilledAsync(AppDbContext db, ILogger logger)
+    {
+        var owners = await db.Users
+            .Where(u => u.Role == Role.Owner)
+            .ToListAsync();
+
+        var cutoff = DateTime.UtcNow.AddHours(-24);
+
+        foreach (var owner in owners)
+        {
+            var existingBalance = await db.OwnerBalances.FirstOrDefaultAsync(b => b.OwnerId == owner.Id);
+            if (existingBalance == null)
+            {
+                // Query all captured bookings for venues belonging to this owner
+                var capturedBookings = await db.Bookings
+                    .Include(b => b.Payment)
+                    .Include(b => b.Court).ThenInclude(c => c.Venue)
+                    .Where(b => b.Court.Venue.OwnerId == owner.Id
+                             && b.Payment != null
+                             && (b.Payment.Status == PaymentStatus.Completed || b.Payment.Status == PaymentStatus.PartiallyRefunded)
+                             && b.PaymentStatus != PaymentStatus.Refunded
+                             && !(b.Payment.Method == PaymentMethod.PayAtFacility && b.PaymentStatus == PaymentStatus.Pending)
+                             && b.Payment.Status != PaymentStatus.Processing)
+                    .ToListAsync();
+
+                decimal availableNet = 0m;
+                decimal pendingNet = 0m;
+
+                foreach (var b in capturedBookings)
+                {
+                    decimal net;
+                    if (b.Payment!.Status == PaymentStatus.PartiallyRefunded)
+                    {
+                        var gross = b.CancellationFee;
+                        var comm = Math.Round(gross * 0.05m, 2);
+                        net = gross - comm;
+                    }
+                    else
+                    {
+                        net = b.Payment.OwnerNetAmount;
+                    }
+
+                    if (net <= 0m) continue;
+
+                    if (b.EndTime.AddHours(24) <= DateTime.UtcNow)
+                    {
+                        availableNet += net;
+                    }
+                    else
+                    {
+                        pendingNet += net;
+                    }
+                }
+
+                db.OwnerBalances.Add(new OwnerBalance
+                {
+                    OwnerId = owner.Id,
+                    PendingBalance = pendingNet,
+                    AvailableBalance = availableNet,
+                    InFlightBalance = 0m,
+                    TotalPaidOut = 0m,
+                    TotalRefunded = 0m,
+                    OutstandingDeficit = 0m,
+                    Currency = "EGP",
+                    ConcurrencyStamp = Guid.NewGuid(),
+                    UpdatedAt = DateTime.UtcNow
+                });
+
+                logger.LogInformation("Backfilled OwnerBalance for owner {OwnerId}: Available EGP {Available}, Pending EGP {Pending}.",
+                    owner.Id, availableNet, pendingNet);
+            }
+        }
+
+        await db.SaveChangesAsync();
     }
 }

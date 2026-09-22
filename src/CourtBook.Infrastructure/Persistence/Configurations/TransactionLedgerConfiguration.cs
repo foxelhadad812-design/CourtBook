@@ -41,14 +41,31 @@ public class TransactionLedgerConfiguration : IEntityTypeConfiguration<Transacti
         builder.Property(t => t.ProviderReference)
             .HasMaxLength(200);
 
-        // Relationship: ledger entries belong to a Payment
+        builder.Property(t => t.PaymentId)
+            .IsRequired(false);
+
+        builder.Property(t => t.BookingId)
+            .IsRequired(false);
+
+        builder.Property(t => t.PayoutRequestId)
+            .IsRequired(false);
+
+        // Relationship: ledger entries belong to an optional Payment or PayoutRequest
         builder.HasOne(t => t.Payment)
             .WithMany(p => p.LedgerEntries)
             .HasForeignKey(t => t.PaymentId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired(false);
+
+        builder.HasOne(t => t.PayoutRequest)
+            .WithMany(r => r.LedgerEntries)
+            .HasForeignKey(t => t.PayoutRequestId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired(false);
 
         builder.HasIndex(t => t.PaymentId);
         builder.HasIndex(t => t.BookingId);
+        builder.HasIndex(t => t.PayoutRequestId);
         builder.HasIndex(t => t.OwnerId);
         builder.HasIndex(t => t.UserId);
         builder.HasIndex(t => t.CreatedAt);

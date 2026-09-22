@@ -341,6 +341,26 @@ public class PaymentService : IPaymentService
                     ProcessedAt           = DateTime.UtcNow
                 });
 
+                // 8. Update OwnerBalance (Funds enter PendingBalance until settlement)
+                if (ownerId != Guid.Empty)
+                {
+                    var ownerBal = await _db.OwnerBalances.FirstOrDefaultAsync(b => b.OwnerId == ownerId);
+                    if (ownerBal is null)
+                    {
+                        ownerBal = new OwnerBalance
+                        {
+                            OwnerId = ownerId,
+                            Currency = payment.Currency,
+                            ConcurrencyStamp = Guid.NewGuid(),
+                            UpdatedAt = DateTime.UtcNow
+                        };
+                        _db.OwnerBalances.Add(ownerBal);
+                    }
+                    ownerBal.PendingBalance += ownerNet;
+                    ownerBal.ConcurrencyStamp = Guid.NewGuid();
+                    ownerBal.UpdatedAt = DateTime.UtcNow;
+                }
+
                 await _db.SaveChangesAsync();
                 if (tx is not null) await tx.CommitAsync();
             }
@@ -585,6 +605,9 @@ public class PaymentService : IPaymentService
                 });
             }
 
+            await ApplyOwnerRefundBalanceAsync(
+                booking.Court?.Venue?.OwnerId ?? Guid.Empty, bookingId, payment.Id, payment.Currency, ownerNetReversed, reason);
+
             await _db.SaveChangesAsync();
             return new RefundResponse { Success = true, RefundAmount = eligibleRefundAmount };
         }
@@ -640,6 +663,9 @@ public class PaymentService : IPaymentService
                 CreatedAt              = DateTime.UtcNow
             });
         }
+
+        await ApplyOwnerRefundBalanceAsync(
+            booking.Court?.Venue?.OwnerId ?? Guid.Empty, bookingId, payment.Id, payment.Currency, ownerNetReversed, reason);
 
         await _db.SaveChangesAsync();
 
@@ -702,11 +728,11 @@ public class PaymentService : IPaymentService
         var query = _db.TransactionLedger
             .AsNoTracking()
             .Include(t => t.Payment)
-                .ThenInclude(p => p.Booking)
-                    .ThenInclude(b => b.User)
+                .ThenInclude(p => p!.Booking)
+                    .ThenInclude(b => b!.User)
             .Include(t => t.Payment)
-                .ThenInclude(p => p.Booking)
-                    .ThenInclude(b => b.Court)
+                .ThenInclude(p => p!.Booking)
+                    .ThenInclude(b => b!.Court)
                         .ThenInclude(c => c.Venue)
             .AsQueryable();
 
@@ -773,11 +799,11 @@ public class PaymentService : IPaymentService
 
         var entries = await baseQuery
             .Include(t => t.Payment)
-                .ThenInclude(p => p.Booking)
-                    .ThenInclude(b => b.User)
+                .ThenInclude(p => p!.Booking)
+                    .ThenInclude(b => b!.User)
             .Include(t => t.Payment)
-                .ThenInclude(p => p.Booking)
-                    .ThenInclude(b => b.Court)
+                .ThenInclude(p => p!.Booking)
+                    .ThenInclude(b => b!.Court)
                         .ThenInclude(c => c.Venue)
             .OrderByDescending(t => t.CreatedAt)
             .Take(100) // safety limit for view
@@ -822,11 +848,75 @@ public class PaymentService : IPaymentService
         }
     }
 
+    private async Task ApplyOwnerRefundBalanceAsync(
+        Guid ownerId, Guid bookingId, Guid paymentId, string currency, decimal ownerNetReversed, string reason)
+    {
+        if (ownerId == Guid.Empty || ownerNetReversed <= 0m) return;
+
+        var ownerBalance = await _db.OwnerBalances.FirstOrDefaultAsync(b => b.OwnerId == ownerId);
+        if (ownerBalance == null)
+        {
+            ownerBalance = new OwnerBalance
+            {
+                OwnerId = ownerId,
+                Currency = currency,
+                ConcurrencyStamp = Guid.NewGuid(),
+                UpdatedAt = DateTime.UtcNow
+            };
+            _db.OwnerBalances.Add(ownerBalance);
+        }
+
+        // Always update informational TotalRefunded (Owner-Net basis)
+        ownerBalance.TotalRefunded += ownerNetReversed;
+
+        // Check if the booking was already settled into AvailableBalance
+        var isSettled = await _db.SettlementItems.AnyAsync(s => s.BookingId == bookingId);
+
+        if (!isSettled)
+        {
+            // Unsettled: Deduct from PendingBalance
+            ownerBalance.PendingBalance = Math.Max(0m, ownerBalance.PendingBalance - ownerNetReversed);
+        }
+        else
+        {
+            // Already settled: Deduct from AvailableBalance or create RecoveryObligation
+            if (ownerBalance.AvailableBalance >= ownerNetReversed)
+            {
+                ownerBalance.AvailableBalance -= ownerNetReversed;
+            }
+            else
+            {
+                var deficit = ownerNetReversed - ownerBalance.AvailableBalance;
+                ownerBalance.AvailableBalance = 0m;
+                ownerBalance.OutstandingDeficit += deficit;
+
+                _db.RecoveryObligations.Add(new RecoveryObligation
+                {
+                    Id = Guid.NewGuid(),
+                    ObligationReference = $"REC-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid():N}"[..18].ToUpperInvariant(),
+                    OwnerId = ownerId,
+                    BookingId = bookingId,
+                    PaymentId = paymentId,
+                    TotalDeficitAmount = deficit,
+                    RemainingDeficitAmount = deficit,
+                    Currency = currency,
+                    Status = RecoveryStatus.Active,
+                    Reason = $"Refund on settled booking: {reason}",
+                    CreatedAt = DateTime.UtcNow,
+                    ConcurrencyStamp = Guid.NewGuid()
+                });
+            }
+        }
+
+        ownerBalance.ConcurrencyStamp = Guid.NewGuid();
+        ownerBalance.UpdatedAt = DateTime.UtcNow;
+    }
+
     private static TransactionLedgerDto MapToLedgerDto(TransactionLedger t) => new()
     {
         Id                     = t.Id,
-        PaymentId              = t.PaymentId,
-        BookingId              = t.BookingId,
+        PaymentId              = t.PaymentId ?? Guid.Empty,
+        BookingId              = t.BookingId ?? Guid.Empty,
         BookingReference       = t.Payment?.Booking?.BookingReference ?? string.Empty,
         EntryType              = t.EntryType.ToString(),
         GrossAmount            = t.GrossAmount,

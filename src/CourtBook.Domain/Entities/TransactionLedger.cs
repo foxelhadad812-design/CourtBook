@@ -9,9 +9,10 @@ namespace CourtBook.Domain.Entities;
 public class TransactionLedger
 {
     public Guid Id { get; set; }
-    public Guid PaymentId { get; set; }
-    public Guid BookingId { get; set; }
-    public Guid UserId { get; set; }       // Player who made/triggered the transaction
+    public Guid? PaymentId { get; set; }
+    public Guid? BookingId { get; set; }
+    public Guid? PayoutRequestId { get; set; }
+    public Guid UserId { get; set; }       // Player or Owner who triggered the transaction
     public Guid OwnerId { get; set; }      // Venue owner
     public LedgerEntryType EntryType { get; set; }
     public decimal GrossAmount { get; set; }
@@ -24,5 +25,6 @@ public class TransactionLedger
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation properties
-    public Payment Payment { get; set; } = null!;
+    public Payment? Payment { get; set; }
+    public PayoutRequest? PayoutRequest { get; set; }
 }

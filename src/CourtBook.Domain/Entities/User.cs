@@ -35,4 +35,8 @@ public class User
     public ICollection<GameInvitation> ReceivedInvitations { get; set; } = [];
     public ICollection<PlayerConnection> SentConnections { get; set; } = [];
     public ICollection<PlayerConnection> ReceivedConnections { get; set; } = [];
+    public OwnerBalance? OwnerBalance { get; set; }
+    public ICollection<OwnerPayoutMethod> PayoutMethods { get; set; } = [];
+    public ICollection<PayoutRequest> PayoutRequests { get; set; } = [];
+    public ICollection<RecoveryObligation> RecoveryObligations { get; set; } = [];
 }
