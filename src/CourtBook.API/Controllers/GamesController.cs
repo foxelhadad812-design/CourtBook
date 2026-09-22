@@ -26,7 +26,9 @@ public class GamesController : ControllerBase
     [ProducesResponseType(typeof(PagedResult<GameResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> SearchGames([FromQuery] GameSearchRequest request)
     {
-        var result = await _gameService.SearchGamesAsync(request);
+        Guid? currentUserId = User.Identity?.IsAuthenticated == true ? User.GetUserId() : null;
+        if (currentUserId == Guid.Empty) currentUserId = null;
+        var result = await _gameService.SearchGamesAsync(request, currentUserId);
         return Ok(result);
     }
 
@@ -39,7 +41,9 @@ public class GamesController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(Guid id)
     {
-        var result = await _gameService.GetByIdAsync(id);
+        Guid? currentUserId = User.Identity?.IsAuthenticated == true ? User.GetUserId() : null;
+        if (currentUserId == Guid.Empty) currentUserId = null;
+        var result = await _gameService.GetByIdAsync(id, currentUserId);
         return result.ToActionResult();
     }
 

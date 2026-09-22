@@ -48,10 +48,11 @@ public class MatchmakingService : IMatchmakingService
         var userSkillsMap = user.SportSkills
             .ToDictionary(s => s.SportType, s => s);
 
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var nowTime = TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(2)); // Egypt time offset approximation or UTC
+        var nowEgypt = TimeZoneHelper.ConvertUtcToEgypt(DateTime.UtcNow);
+        var today = DateOnly.FromDateTime(nowEgypt);
+        var nowTime = TimeOnly.FromDateTime(nowEgypt);
 
-        // Base candidate games: Open, not private, player has not joined, future or today
+        // Base candidate games: Open, not private, player has not joined, not full, future or today
         var gamesQuery = _db.Games
             .AsNoTracking()
             .Include(g => g.Venue)
@@ -62,6 +63,7 @@ public class MatchmakingService : IMatchmakingService
             .Where(g => g.Status == GameStatus.Open && !g.IsPrivate)
             .Where(g => g.Date > today || (g.Date == today && g.StartTime > nowTime))
             .Where(g => !g.Participants.Any(p => p.UserId == userId))
+            .Where(g => g.Participants.Count < g.MaxPlayers)
             .AsQueryable();
 
         // Optional query overrides
@@ -101,6 +103,11 @@ public class MatchmakingService : IMatchmakingService
 
         foreach (var game in candidateGames)
         {
+            // Strict UTC start check
+            var gameStartUtc = TimeZoneHelper.CreateUtcFromEgyptDateAndTime(game.Date, game.StartTime);
+            if (gameStartUtc <= DateTime.UtcNow)
+                continue;
+
             // Age check filter
             if (!IsAgeEligible(game, playerAge))
                 continue;
@@ -489,7 +496,7 @@ public class MatchmakingService : IMatchmakingService
             Status = g.Status.ToString(),
             Description = g.Description,
             IsPrivate = g.IsPrivate,
-            AccessCode = g.AccessCode,
+            AccessCode = null, // Security: never expose access codes in public recommendations
             HasTeams = g.HasTeams,
             AllPlayersReady = participants.Count >= g.MinPlayers && participants.All(p => p.IsReady),
             Participants = participants,

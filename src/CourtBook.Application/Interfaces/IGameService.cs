@@ -6,8 +6,8 @@ namespace CourtBook.Application.Interfaces;
 public interface IGameService
 {
     Task<Result<GameResponse>> CreateGameAsync(Guid creatorId, CreateGameRequest request);
-    Task<PagedResult<GameResponse>> SearchGamesAsync(GameSearchRequest request);
-    Task<Result<GameResponse>> GetByIdAsync(Guid gameId);
+    Task<PagedResult<GameResponse>> SearchGamesAsync(GameSearchRequest request, Guid? currentUserId = null);
+    Task<Result<GameResponse>> GetByIdAsync(Guid gameId, Guid? currentUserId = null);
     Task<Result> JoinGameAsync(Guid userId, Guid gameId, string? accessCode = null);
     Task<Result> LeaveGameAsync(Guid userId, Guid gameId);
     Task<Result> CancelGameAsync(Guid userId, string userRole, Guid gameId);

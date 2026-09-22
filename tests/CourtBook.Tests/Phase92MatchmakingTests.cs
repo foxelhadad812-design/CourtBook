@@ -1,4 +1,5 @@
 using CourtBook.Application.DTOs;
+using CourtBook.Application.Validators;
 using CourtBook.Domain.Entities;
 using CourtBook.Domain.Enums;
 using CourtBook.Infrastructure.Services;
@@ -643,5 +644,192 @@ public class Phase92MatchmakingTests
         var lobby = await gameService.GetGameLobbyAsync(creatorId, gameId);
         var p2Lobby = lobby.Value.Participants.First(p => p.UserId == player2.Id);
         Assert.Equal("TeamB", p2Lobby.Team);
+    }
+
+    [Fact]
+    public async Task Game_Private_DoesNotLeakAccessCodeOrRoster_ToUnauthorizedUsers()
+    {
+        var db = TestDbContextFactory.Create(Guid.NewGuid().ToString());
+        var (venueId, courtId, _, creatorId) = await TestDbContextFactory.SeedBasicTestDataAsync(db);
+
+        var stranger = new User { Id = Guid.NewGuid(), Name = "Stranger", Email = "stranger@test.com", PasswordHash = "hash" };
+        db.Users.Add(stranger);
+        await db.SaveChangesAsync();
+
+        var gameService = new GameService(db);
+        var createResult = await gameService.CreateGameAsync(creatorId, new CreateGameRequest
+        {
+            Title = "Top Secret VIP Match",
+            SportType = "Football",
+            VenueId = venueId,
+            CourtId = courtId,
+            Date = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(3)),
+            StartTime = "19:00",
+            EndTime = "20:30",
+            IsPrivate = true,
+            AccessCode = "SECRET123",
+            MaxPlayers = 10
+        });
+
+        Assert.True(createResult.IsSuccess);
+        var gameId = createResult.Value.Id;
+
+        // 1. Anonymous caller: AccessCode must be hidden, Participants roster empty
+        var anonView = await gameService.GetByIdAsync(gameId, currentUserId: null);
+        Assert.True(anonView.IsSuccess);
+        Assert.Null(anonView.Value.AccessCode);
+        Assert.Empty(anonView.Value.Participants);
+        Assert.Equal(1, anonView.Value.CurrentPlayersCount);
+
+        // 2. Authenticated non-participant stranger: AccessCode hidden, Participants roster empty
+        var strangerView = await gameService.GetByIdAsync(gameId, currentUserId: stranger.Id);
+        Assert.True(strangerView.IsSuccess);
+        Assert.Null(strangerView.Value.AccessCode);
+        Assert.Empty(strangerView.Value.Participants);
+
+        // 3. Creator view: AccessCode visible, Participants roster visible
+        var creatorView = await gameService.GetByIdAsync(gameId, currentUserId: creatorId);
+        Assert.True(creatorView.IsSuccess);
+        Assert.Equal("SECRET123", creatorView.Value.AccessCode);
+        Assert.NotEmpty(creatorView.Value.Participants);
+
+        // 4. Stranger joins with valid code -> Stranger can now view roster, but not AccessCode
+        var joinResult = await gameService.JoinGameAsync(stranger.Id, gameId, "SECRET123");
+        Assert.True(joinResult.IsSuccess);
+
+        var memberView = await gameService.GetByIdAsync(gameId, currentUserId: stranger.Id);
+        Assert.True(memberView.IsSuccess);
+        Assert.Null(memberView.Value.AccessCode);
+        Assert.Equal(2, memberView.Value.Participants.Count);
+    }
+
+    [Fact]
+    public async Task GameLobby_StateGuards_RejectModificationsOnCompletedCancelledOrStartedMatches()
+    {
+        var db = TestDbContextFactory.Create(Guid.NewGuid().ToString());
+        var (venueId, courtId, _, creatorId) = await TestDbContextFactory.SeedBasicTestDataAsync(db);
+
+        var player2 = new User { Id = Guid.NewGuid(), Name = "Player 2", Email = "p2@guard.com", PasswordHash = "hash" };
+        db.Users.Add(player2);
+        await db.SaveChangesAsync();
+
+        var gameService = new GameService(db);
+        var createResult = await gameService.CreateGameAsync(creatorId, new CreateGameRequest
+        {
+            Title = "State Guard Game",
+            SportType = "Football",
+            VenueId = venueId,
+            CourtId = courtId,
+            Date = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(2)),
+            StartTime = "18:00",
+            EndTime = "19:30",
+            MaxPlayers = 4
+        });
+        var gameId = createResult.Value.Id;
+        await gameService.JoinGameAsync(player2.Id, gameId);
+
+        // Cancel the game
+        var cancelResult = await gameService.CancelGameAsync(creatorId, "Client", gameId);
+        Assert.True(cancelResult.IsSuccess);
+
+        // All modifications on cancelled match must be rejected with BadRequest
+        var readyResult = await gameService.SetPlayerReadyAsync(player2.Id, gameId, true);
+        Assert.True(readyResult.IsFailure);
+        Assert.Equal("BAD_REQUEST", readyResult.Error.Code);
+
+        var assignResult = await gameService.AssignTeamAsync(creatorId, gameId, player2.Id, "TeamA");
+        Assert.True(assignResult.IsFailure);
+        Assert.Equal("BAD_REQUEST", assignResult.Error.Code);
+
+        var balanceResult = await gameService.BalanceTeamsAsync(creatorId, gameId);
+        Assert.True(balanceResult.IsFailure);
+        Assert.Equal("BAD_REQUEST", balanceResult.Error.Code);
+
+        var leaveResult = await gameService.LeaveGameAsync(player2.Id, gameId);
+        Assert.True(leaveResult.IsFailure);
+        Assert.Equal("BAD_REQUEST", leaveResult.Error.Code);
+    }
+
+    [Fact]
+    public async Task Matchmaking_ExcludesFullMatches_FromRecommendations()
+    {
+        var db = TestDbContextFactory.Create(Guid.NewGuid().ToString());
+        var (venueId, courtId, _, creatorId) = await TestDbContextFactory.SeedBasicTestDataAsync(db);
+
+        var player2 = new User { Id = Guid.NewGuid(), Name = "Player 2", Email = "p2@fullmatch.com", PasswordHash = "hash" };
+        var candidatePlayer = new User { Id = Guid.NewGuid(), Name = "Candidate", Email = "cand@test.com", PasswordHash = "hash" };
+        db.Users.AddRange(player2, candidatePlayer);
+        await db.SaveChangesAsync();
+
+        var gameService = new GameService(db);
+        var mmService = new MatchmakingService(db);
+
+        // Create a game with capacity 2
+        var createResult = await gameService.CreateGameAsync(creatorId, new CreateGameRequest
+        {
+            Title = "Full 2-player Match",
+            SportType = "Football",
+            VenueId = venueId,
+            CourtId = courtId,
+            Date = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(2)),
+            StartTime = "18:00",
+            EndTime = "19:30",
+            MaxPlayers = 2
+        });
+        var gameId = createResult.Value.Id;
+
+        // Player 2 joins -> Game is now full
+        await gameService.JoinGameAsync(player2.Id, gameId);
+
+        // Candidate requests recommendations -> Full game should not be recommended
+        var recs = await mmService.GetRecommendationsAsync(candidatePlayer.Id);
+        Assert.True(recs.IsSuccess);
+        Assert.DoesNotContain(recs.Value, r => r.Game.Id == gameId);
+    }
+
+    [Fact]
+    public void FluentValidators_EnforceCorrectness_OnRequests()
+    {
+        var createValidator = new CreateGameRequestValidator();
+        var invalidCreate = new CreateGameRequest
+        {
+            Title = "A", // too short
+            SportType = "Quidditch", // invalid sport
+            VenueId = Guid.Empty,
+            CourtId = Guid.Empty,
+            Date = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-10)), // past
+            StartTime = "invalid-time",
+            EndTime = "invalid-time",
+            MaxPlayers = 100, // > 50
+            MinPlayers = 200 // > MaxPlayers
+        };
+        var createValidation = createValidator.Validate(invalidCreate);
+        Assert.False(createValidation.IsValid);
+        Assert.Contains(createValidation.Errors, e => e.PropertyName == nameof(CreateGameRequest.Title));
+        Assert.Contains(createValidation.Errors, e => e.PropertyName == nameof(CreateGameRequest.SportType));
+        Assert.Contains(createValidation.Errors, e => e.PropertyName == nameof(CreateGameRequest.MaxPlayers));
+        Assert.Contains(createValidation.Errors, e => e.PropertyName == nameof(CreateGameRequest.MinPlayers));
+
+        var skillValidator = new UpsertPlayerSportSkillRequestValidator();
+        var invalidSkill = new UpsertPlayerSportSkillRequest
+        {
+            SportType = "UnderwaterRugby",
+            SkillScore = 9999
+        };
+        var skillValidation = skillValidator.Validate(invalidSkill);
+        Assert.False(skillValidation.IsValid);
+        Assert.Contains(skillValidation.Errors, e => e.PropertyName == nameof(UpsertPlayerSportSkillRequest.SportType));
+        Assert.Contains(skillValidation.Errors, e => e.PropertyName == nameof(UpsertPlayerSportSkillRequest.SkillScore));
+
+        var teamValidator = new AssignTeamRequestValidator();
+        var invalidTeam = new AssignTeamRequest
+        {
+            ParticipantUserId = Guid.Empty,
+            Team = "InvalidTeamName"
+        };
+        var teamValidation = teamValidator.Validate(invalidTeam);
+        Assert.False(teamValidation.IsValid);
+        Assert.Contains(teamValidation.Errors, e => e.PropertyName == nameof(AssignTeamRequest.ParticipantUserId));
+        Assert.Contains(teamValidation.Errors, e => e.PropertyName == nameof(AssignTeamRequest.Team));
     }
 }

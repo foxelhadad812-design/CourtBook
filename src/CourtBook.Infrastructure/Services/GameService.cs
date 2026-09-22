@@ -163,7 +163,7 @@ public class GameService : IGameService
                     await transaction.CommitAsync();
                 }
 
-                return await GetByIdAsync(game.Id);
+                return await GetByIdAsync(game.Id, creatorId);
             }
             catch
             {
@@ -183,7 +183,7 @@ public class GameService : IGameService
         });
     }
 
-    public async Task<PagedResult<GameResponse>> SearchGamesAsync(GameSearchRequest request)
+    public async Task<PagedResult<GameResponse>> SearchGamesAsync(GameSearchRequest request, Guid? currentUserId = null)
     {
         var query = _db.Games
             .AsNoTracking()
@@ -249,12 +249,12 @@ public class GameService : IGameService
             .Take(request.PageSize)
             .ToListAsync();
 
-        var items = games.Select(MapToResponse).ToList();
+        var items = games.Select(g => MapToResponse(g, currentUserId)).ToList();
 
         return PagedResult<GameResponse>.From(items, totalCount, request.Page, request.PageSize);
     }
 
-    public async Task<Result<GameResponse>> GetByIdAsync(Guid gameId)
+    public async Task<Result<GameResponse>> GetByIdAsync(Guid gameId, Guid? currentUserId = null)
     {
         var game = await _db.Games
             .AsNoTracking()
@@ -272,7 +272,7 @@ public class GameService : IGameService
         if (game is null)
             return Error.NotFound("Game");
 
-        return Result<GameResponse>.Ok(MapToResponse(game));
+        return Result<GameResponse>.Ok(MapToResponse(game, currentUserId));
     }
 
     public async Task<Result> JoinGameAsync(Guid userId, Guid gameId, string? accessCode = null)
@@ -489,6 +489,9 @@ public class GameService : IGameService
                 if (game.CreatorId == userId)
                     return Error.BadRequest("As the game organizer, you cannot leave the game. You can cancel it instead.");
 
+                if (game.Status == GameStatus.Cancelled || game.Status == GameStatus.Completed)
+                    return Error.BadRequest($"Cannot leave a match that is already {game.Status}.");
+
                 var participant = await _db.GameParticipants
                     .Include(p => p.User)
                     .FirstOrDefaultAsync(p => p.GameId == gameId && p.UserId == userId);
@@ -586,7 +589,7 @@ public class GameService : IGameService
             return Error.Forbidden("You do not have access to this private game lobby.");
         }
 
-        return Result<GameResponse>.Ok(MapToResponse(game));
+        return Result<GameResponse>.Ok(MapToResponse(game, userId));
     }
 
     public async Task<Result> SetPlayerReadyAsync(Guid userId, Guid gameId, bool isReady)
@@ -598,6 +601,13 @@ public class GameService : IGameService
 
         if (participant is null)
             return Error.NotFound("You are not a participant in this game.");
+
+        if (participant.Game.Status != GameStatus.Open && participant.Game.Status != GameStatus.Full)
+            return Error.BadRequest($"Cannot change ready state. Game is {participant.Game.Status}.");
+
+        var gameStartDtUtc = TimeZoneHelper.CreateUtcFromEgyptDateAndTime(participant.Game.Date, participant.Game.StartTime);
+        if (gameStartDtUtc < DateTime.UtcNow)
+            return Error.BadRequest("Cannot change ready state for a match that has already started.");
 
         participant.IsReady = isReady;
         participant.ConcurrencyStamp = Guid.NewGuid();
@@ -625,6 +635,13 @@ public class GameService : IGameService
 
         if (game.CreatorId != organizerId)
             return Error.Forbidden("Only the game organizer can assign teams.");
+
+        if (game.Status != GameStatus.Open && game.Status != GameStatus.Full)
+            return Error.BadRequest($"Cannot modify teams. Game is {game.Status}.");
+
+        var gameStartDtUtc = TimeZoneHelper.CreateUtcFromEgyptDateAndTime(game.Date, game.StartTime);
+        if (gameStartDtUtc < DateTime.UtcNow)
+            return Error.BadRequest("Cannot modify teams for a match that has already started.");
 
         var participant = game.Participants.FirstOrDefault(p => p.UserId == participantUserId);
         if (participant is null)
@@ -656,6 +673,13 @@ public class GameService : IGameService
 
         if (game.CreatorId != organizerId)
             return Error.Forbidden("Only the game organizer can balance teams.");
+
+        if (game.Status != GameStatus.Open && game.Status != GameStatus.Full)
+            return Error.BadRequest($"Cannot balance teams. Game is {game.Status}.");
+
+        var gameStartDtUtc = TimeZoneHelper.CreateUtcFromEgyptDateAndTime(game.Date, game.StartTime);
+        if (gameStartDtUtc < DateTime.UtcNow)
+            return Error.BadRequest("Cannot balance teams for a match that has already started.");
 
         if (game.Participants.Count < 2)
             return Error.BadRequest("At least 2 players are required to balance teams.");
@@ -750,7 +774,7 @@ public class GameService : IGameService
         return RandomNumberGenerator.GetString(chars, 6);
     }
 
-    private static GameResponse MapToResponse(Game g)
+    private static GameResponse MapToResponse(Game g, Guid? currentUserId = null)
     {
         string ageDisplay = g.AgeGroup switch
         {
@@ -766,28 +790,39 @@ public class GameService : IGameService
             _ => "All Ages"
         };
 
-        var participants = g.Participants?.Select(p =>
-        {
-            var sportSkill = p.User?.SportSkills?.FirstOrDefault(s => s.SportType == g.SportType);
-            int score = sportSkill?.SkillScore ?? p.User?.Profile?.SkillLevel switch
-            {
-                SkillLevel.Beginner => 1000,
-                SkillLevel.Intermediate => 1500,
-                SkillLevel.Advanced => 2000,
-                _ => 1000
-            };
+        bool isCreator = currentUserId.HasValue && (g.CreatorId == currentUserId.Value);
+        bool isParticipant = currentUserId.HasValue && (g.Participants?.Any(p => p.UserId == currentUserId.Value) == true);
 
-            return new GameParticipantDto
+        // Security: Private games hide participant rosters from unauthorized non-participants
+        bool canViewParticipants = !g.IsPrivate || isCreator || isParticipant;
+
+        var participants = canViewParticipants && g.Participants != null
+            ? g.Participants.Select(p =>
             {
-                UserId = p.UserId,
-                UserName = p.User?.Name ?? "Player",
-                JoinedAt = p.JoinedAt,
-                Team = p.Team,
-                IsReady = p.IsReady,
-                SkillScore = score,
-                SkillLevel = sportSkill?.SkillLevel.ToString() ?? p.User?.Profile?.SkillLevel.ToString() ?? "Beginner"
-            };
-        }).ToList() ?? [];
+                var sportSkill = p.User?.SportSkills?.FirstOrDefault(s => s.SportType == g.SportType);
+                int score = sportSkill?.SkillScore ?? p.User?.Profile?.SkillLevel switch
+                {
+                    SkillLevel.Beginner => 1000,
+                    SkillLevel.Intermediate => 1500,
+                    SkillLevel.Advanced => 2000,
+                    _ => 1000
+                };
+
+                return new GameParticipantDto
+                {
+                    UserId = p.UserId,
+                    UserName = p.User?.Name ?? "Player",
+                    JoinedAt = p.JoinedAt,
+                    Team = p.Team,
+                    IsReady = p.IsReady,
+                    SkillScore = score,
+                    SkillLevel = sportSkill?.SkillLevel.ToString() ?? p.User?.Profile?.SkillLevel.ToString() ?? "Beginner"
+                };
+            }).ToList()
+            : [];
+
+        // Security: Access code is ONLY exposed to the game creator/organizer
+        string? exposedAccessCode = (g.IsPrivate && isCreator) ? g.AccessCode : null;
 
         return new GameResponse
         {
@@ -811,12 +846,12 @@ public class GameService : IGameService
             AgeDisplay = ageDisplay,
             MaxPlayers = g.MaxPlayers,
             MinPlayers = g.MinPlayers,
-            CurrentPlayersCount = participants.Count,
+            CurrentPlayersCount = g.Participants?.Count ?? 0,
             PricePerPlayer = g.PricePerPlayer,
             Status = g.Status.ToString(),
             Description = g.Description,
             IsPrivate = g.IsPrivate,
-            AccessCode = g.AccessCode,
+            AccessCode = exposedAccessCode,
             HasTeams = g.HasTeams,
             AllPlayersReady = participants.Count >= g.MinPlayers && participants.All(p => p.IsReady),
             Participants = participants,
