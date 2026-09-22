@@ -209,9 +209,15 @@ public class ProfileService : IProfileService
     {
         return new PlayerPreferenceDto
         {
+            UserId = preference.UserId,
+            PreferredSports = SplitString(preference.PreferredSports),
             PreferredCities = SplitString(preference.PreferredCities),
             PreferredDays = SplitString(preference.PreferredDays),
-            PreferredTimeOfDay = SplitString(preference.PreferredTimeOfDay)
+            PreferredTimeOfDay = SplitString(preference.PreferredTimeOfDay),
+            PreferredGameType = preference.PreferredGameType,
+            MaxDistanceKm = preference.MaxDistanceKm,
+            PreferredSkillLevel = preference.PreferredSkillLevel?.ToString(),
+            UpdatedAt = preference.UpdatedAt
         };
     }
 

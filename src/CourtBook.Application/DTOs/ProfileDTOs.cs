@@ -22,9 +22,15 @@ public class UserProfileResponse
 
 public class PlayerPreferenceDto
 {
+    public Guid UserId { get; set; }
+    public List<string> PreferredSports { get; set; } = [];
     public List<string> PreferredCities { get; set; } = [];
     public List<string> PreferredDays { get; set; } = [];
     public List<string> PreferredTimeOfDay { get; set; } = [];
+    public string PreferredGameType { get; set; } = string.Empty;
+    public int? MaxDistanceKm { get; set; }
+    public string? PreferredSkillLevel { get; set; }
+    public DateTime UpdatedAt { get; set; }
 }
 
 public class UpdateProfileRequest

@@ -47,10 +47,25 @@ public class GameConfiguration : IEntityTypeConfiguration<Game>
         builder.Property(g => g.Description)
             .HasMaxLength(1000);
 
+        builder.Property(g => g.AccessCode)
+            .HasMaxLength(32)
+            .IsRequired(false);
+
+        builder.Property(g => g.IsPrivate)
+            .HasDefaultValue(false);
+
+        builder.Property(g => g.HasTeams)
+            .HasDefaultValue(true);
+
+        builder.Property(g => g.ConcurrencyStamp)
+            .IsConcurrencyToken()
+            .IsRequired();
+
         // Discovery and conflict detection indexes
         builder.HasIndex(g => new { g.SportType, g.Date, g.Status });
         builder.HasIndex(g => new { g.VenueId, g.Date, g.Status });
         builder.HasIndex(g => new { g.CourtId, g.Date, g.Status });
+        builder.HasIndex(g => new { g.IsPrivate, g.Status });
         builder.HasIndex(g => g.CreatorId);
 
         // Creator relationship

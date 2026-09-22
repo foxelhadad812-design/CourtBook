@@ -1,3 +1,4 @@
+using System.Net.Http.Json;
 using CourtBook.Application.Common;
 using CourtBook.Application.DTOs;
 using CourtBook.Web.Services;
@@ -24,13 +25,17 @@ public class IndexModel : PageModel
     [BindProperty(SupportsGet = true)] public string? AgeGroup { get; set; }
     [BindProperty(SupportsGet = true)] public string? SkillLevel { get; set; }
 
+    [BindProperty] public string? AccessCode { get; set; }
+
     public PagedResult<GameResponse>? GamesResult { get; set; }
+    public List<MatchmakingRecommendationDto> Recommendations { get; set; } = [];
     public string? ErrorMessage { get; set; }
     public string? SuccessMessage { get; set; }
 
     public async Task<IActionResult> OnGetAsync()
     {
         await LoadGamesAsync();
+        await LoadRecommendationsAsync();
         return Page();
     }
 
@@ -44,7 +49,10 @@ public class IndexModel : PageModel
 
         try
         {
-            var req = new HttpRequestMessage(HttpMethod.Post, $"/api/games/{gameId}/join");
+            var req = new HttpRequestMessage(HttpMethod.Post, $"/api/games/{gameId}/join")
+            {
+                Content = JsonContent.Create(new JoinGameRequest { AccessCode = AccessCode })
+            };
             req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
             var res = await _api.Client.SendAsync(req);
 
@@ -53,7 +61,7 @@ public class IndexModel : PageModel
                 TempData["SuccessMessage"] = _loc.IsArabic 
                     ? "تم انضمامك إلى المباراة بنجاح! حظاً موفقاً." 
                     : "You have joined the match successfully! Have a great game.";
-                return RedirectToPage("/Games", new { sport = Sport, city = City, ageGroup = AgeGroup });
+                return RedirectToPage("/Games/Lobby", new { gameId });
             }
 
             var problem = await res.Content.ReadAsStringAsync();
@@ -69,6 +77,12 @@ public class IndexModel : PageModel
                     ? "يرجى تحديث تاريخ ميلادك في الملف الشخصي لتتمكن من الانضمام للمباريات المحددة عمرياً."
                     : "Please update your profile with your date of birth to join age-restricted community games.";
             }
+            else if (problem.Contains("access code", StringComparison.OrdinalIgnoreCase))
+            {
+                ErrorMessage = _loc.IsArabic
+                    ? "رمز الدخول لهذه المباراة الخاصة غير صحيح أو مفقود."
+                    : "Invalid or missing access code for this private match.";
+            }
             else
             {
                 ErrorMessage = !string.IsNullOrWhiteSpace(problem) ? problem.Trim('"') : "Failed to join game.";
@@ -81,6 +95,7 @@ public class IndexModel : PageModel
         }
 
         await LoadGamesAsync();
+        await LoadRecommendationsAsync();
         return Page();
     }
 
@@ -114,6 +129,7 @@ public class IndexModel : PageModel
         }
 
         await LoadGamesAsync();
+        await LoadRecommendationsAsync();
         return Page();
     }
 
@@ -138,6 +154,31 @@ public class IndexModel : PageModel
         {
             _logger.LogWarning(ex, "Failed to load games query");
             GamesResult = PagedResult<GameResponse>.Empty(1, 30);
+        }
+    }
+
+    private async Task LoadRecommendationsAsync()
+    {
+        var token = HttpContext.Session.GetString("JwtToken");
+        if (string.IsNullOrEmpty(token)) return;
+
+        try
+        {
+            var req = new HttpRequestMessage(HttpMethod.Get, "/api/matchmaking/recommendations");
+            req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            var res = await _api.Client.SendAsync(req);
+            if (res.IsSuccessStatusCode)
+            {
+                var recs = await res.Content.ReadFromJsonAsync<List<MatchmakingRecommendationDto>>();
+                if (recs != null)
+                {
+                    Recommendations = recs.Take(3).ToList();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to load matchmaking recommendations");
         }
     }
 }

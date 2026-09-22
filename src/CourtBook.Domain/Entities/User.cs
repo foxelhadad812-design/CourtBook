@@ -30,4 +30,5 @@ public class User
     public ICollection<AuditLog> AuditLogs { get; set; } = [];
     public ICollection<TermsAcceptance> TermsAcceptances { get; set; } = [];
     public ICollection<RefreshToken> RefreshTokens { get; set; } = [];
+    public ICollection<PlayerSportSkill> SportSkills { get; set; } = [];
 }

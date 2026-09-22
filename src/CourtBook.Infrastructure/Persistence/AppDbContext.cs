@@ -43,6 +43,9 @@ public class AppDbContext : DbContext
     // Phase 9.1: Mobile API & Refresh Token Infrastructure
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
+    // Phase 9.2: Advanced Matchmaking & Lobby Infrastructure
+    public DbSet<PlayerSportSkill> PlayerSportSkills => Set<PlayerSportSkill>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // Automatically applies all IEntityTypeConfiguration<T> classes in this assembly

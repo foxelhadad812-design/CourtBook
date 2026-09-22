@@ -24,6 +24,10 @@ public class Game
     public decimal PricePerPlayer { get; set; } = 0;
     public GameStatus Status { get; set; } = GameStatus.Open;
     public string? Description { get; set; }
+    public bool IsPrivate { get; set; } = false;
+    public string? AccessCode { get; set; }
+    public bool HasTeams { get; set; } = true;
+    public Guid ConcurrencyStamp { get; set; } = Guid.NewGuid();
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation properties

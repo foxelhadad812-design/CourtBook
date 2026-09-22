@@ -60,16 +60,18 @@ public class GamesController : ControllerBase
 
     /// <summary>
     /// Joins an open game. Enforces max player capacity and prevents duplicate participation.
+    /// Supports access code for private matches.
     /// </summary>
     [HttpPost("{id}/join")]
     [Authorize]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> JoinGame(Guid id)
+    public async Task<IActionResult> JoinGame(Guid id, [FromBody] JoinGameRequest? request = null)
     {
         var userId = User.GetUserId();
-        var result = await _gameService.JoinGameAsync(userId, id);
+        var result = await _gameService.JoinGameAsync(userId, id, request?.AccessCode);
         return result.ToActionResult();
     }
 
@@ -101,6 +103,66 @@ public class GamesController : ControllerBase
         var userId = User.GetUserId();
         var userRole = User.GetUserRole();
         var result = await _gameService.CancelGameAsync(userId, userRole, id);
+        return result.ToActionResult();
+    }
+
+    /// <summary>
+    /// Gets the game lobby including players, ready states, and team allocations.
+    /// </summary>
+    [HttpGet("{id}/lobby")]
+    [Authorize]
+    [ProducesResponseType(typeof(GameResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetLobby(Guid id)
+    {
+        var userId = User.GetUserId();
+        var result = await _gameService.GetGameLobbyAsync(userId, id);
+        return result.ToActionResult();
+    }
+
+    /// <summary>
+    /// Sets or updates the ready status of the authenticated player in the game lobby.
+    /// </summary>
+    [HttpPut("{id}/ready")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> SetReady(Guid id, [FromBody] SetPlayerReadyRequest request)
+    {
+        var userId = User.GetUserId();
+        var result = await _gameService.SetPlayerReadyAsync(userId, id, request.IsReady);
+        return result.ToActionResult();
+    }
+
+    /// <summary>
+    /// Assigns a participant to a specific team (organizer only).
+    /// </summary>
+    [HttpPut("{id}/teams")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> AssignTeam(Guid id, [FromBody] AssignTeamRequest request)
+    {
+        var organizerId = User.GetUserId();
+        var result = await _gameService.AssignTeamAsync(organizerId, id, request.ParticipantUserId, request.Team);
+        return result.ToActionResult();
+    }
+
+    /// <summary>
+    /// Deterministically balances teams using snake-draft algorithm based on player sport skills (organizer only).
+    /// </summary>
+    [HttpPost("{id}/balance-teams")]
+    [Authorize]
+    [ProducesResponseType(typeof(BalanceTeamsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> BalanceTeams(Guid id)
+    {
+        var organizerId = User.GetUserId();
+        var result = await _gameService.BalanceTeamsAsync(organizerId, id);
         return result.ToActionResult();
     }
 }

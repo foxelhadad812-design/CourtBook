@@ -5,16 +5,19 @@ using CourtBook.Domain.Entities;
 using CourtBook.Domain.Enums;
 using CourtBook.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
 
 namespace CourtBook.Infrastructure.Services;
 
 public class GameService : IGameService
 {
     private readonly AppDbContext _db;
+    private readonly IGameLobbySender? _lobbySender;
 
-    public GameService(AppDbContext db)
+    public GameService(AppDbContext db, IGameLobbySender? lobbySender = null)
     {
         _db = db;
+        _lobbySender = lobbySender;
     }
 
     public async Task<Result<GameResponse>> CreateGameAsync(Guid creatorId, CreateGameRequest request)
@@ -105,6 +108,14 @@ public class GameService : IGameService
                         return Error.Validation("MinAge cannot be greater than MaxAge.");
                 }
 
+                string? accessCode = null;
+                if (request.IsPrivate)
+                {
+                    accessCode = !string.IsNullOrWhiteSpace(request.AccessCode)
+                        ? request.AccessCode.Trim().ToUpperInvariant()
+                        : GenerateAccessCode();
+                }
+
                 var game = new Game
                 {
                     Id = Guid.NewGuid(),
@@ -125,6 +136,10 @@ public class GameService : IGameService
                     PricePerPlayer = request.PricePerPlayer,
                     Status = GameStatus.Open,
                     Description = request.Description,
+                    IsPrivate = request.IsPrivate,
+                    AccessCode = accessCode,
+                    HasTeams = request.HasTeams,
+                    ConcurrencyStamp = Guid.NewGuid(),
                     CreatedAt = DateTime.UtcNow
                 };
 
@@ -134,6 +149,9 @@ public class GameService : IGameService
                     GameId = game.Id,
                     UserId = creatorId,
                     IsConfirmed = true,
+                    IsReady = true, // Creator is automatically ready
+                    Team = request.HasTeams ? "TeamA" : null,
+                    ConcurrencyStamp = Guid.NewGuid(),
                     JoinedAt = DateTime.UtcNow
                 });
 
@@ -174,7 +192,17 @@ public class GameService : IGameService
             .Include(g => g.Creator)
             .Include(g => g.Participants)
                 .ThenInclude(p => p.User)
+                    .ThenInclude(u => u.SportSkills)
+            .Include(g => g.Participants)
+                .ThenInclude(p => p.User)
+                    .ThenInclude(u => u.Profile)
             .AsQueryable();
+
+        // Privacy filter: by default only show public games
+        if (request.IncludePrivate != true)
+        {
+            query = query.Where(g => !g.IsPrivate);
+        }
 
         if (!string.IsNullOrWhiteSpace(request.Sport) && Enum.TryParse<SportType>(request.Sport, true, out var sport))
         {
@@ -216,11 +244,12 @@ public class GameService : IGameService
 
         var totalCount = await query.CountAsync();
 
-        var items = await query
+        var games = await query
             .Skip(request.Skip)
             .Take(request.PageSize)
-            .Select(g => MapToResponse(g))
             .ToListAsync();
+
+        var items = games.Select(MapToResponse).ToList();
 
         return PagedResult<GameResponse>.From(items, totalCount, request.Page, request.PageSize);
     }
@@ -234,6 +263,10 @@ public class GameService : IGameService
             .Include(g => g.Creator)
             .Include(g => g.Participants)
                 .ThenInclude(p => p.User)
+                    .ThenInclude(u => u.SportSkills)
+            .Include(g => g.Participants)
+                .ThenInclude(p => p.User)
+                    .ThenInclude(u => u.Profile)
             .FirstOrDefaultAsync(g => g.Id == gameId);
 
         if (game is null)
@@ -242,7 +275,7 @@ public class GameService : IGameService
         return Result<GameResponse>.Ok(MapToResponse(game));
     }
 
-    public async Task<Result> JoinGameAsync(Guid userId, Guid gameId)
+    public async Task<Result> JoinGameAsync(Guid userId, Guid gameId, string? accessCode = null)
     {
         var executionStrategy = _db.Database.CreateExecutionStrategy();
         return await executionStrategy.ExecuteAsync(async () =>
@@ -259,6 +292,16 @@ public class GameService : IGameService
                 if (game is null)
                     return Error.NotFound("Game");
 
+                // Privacy check
+                if (game.IsPrivate && game.CreatorId != userId)
+                {
+                    if (string.IsNullOrWhiteSpace(accessCode) ||
+                        !string.Equals(game.AccessCode, accessCode.Trim(), StringComparison.OrdinalIgnoreCase))
+                    {
+                        return Error.Forbidden("Invalid or missing access code for this private match.");
+                    }
+                }
+
                 if (game.Status != GameStatus.Open)
                     return Error.BadRequest($"Cannot join game. Current status is {game.Status}.");
 
@@ -274,7 +317,11 @@ public class GameService : IGameService
                 if (alreadyJoined)
                     return Error.Conflict("You have already joined this match.");
 
-                var user = await _db.Users.FindAsync(userId);
+                var user = await _db.Users
+                    .Include(u => u.SportSkills)
+                    .Include(u => u.Profile)
+                    .FirstOrDefaultAsync(u => u.Id == userId);
+
                 if (user is null)
                     return Error.NotFound("User");
 
@@ -331,14 +378,21 @@ public class GameService : IGameService
                     GameId = gameId,
                     UserId = userId,
                     IsConfirmed = true,
+                    IsReady = false,
+                    Team = null,
+                    ConcurrencyStamp = Guid.NewGuid(),
                     JoinedAt = DateTime.UtcNow
                 };
                 _db.GameParticipants.Add(participant);
 
-                if (currentParticipantsCount + 1 >= game.MaxPlayers)
+                bool isFull = (currentParticipantsCount + 1 >= game.MaxPlayers);
+                if (isFull)
                 {
                     game.Status = GameStatus.Full;
                 }
+
+                // Bump game concurrency stamp
+                game.ConcurrencyStamp = Guid.NewGuid();
 
                 await _db.SaveChangesAsync();
 
@@ -347,7 +401,55 @@ public class GameService : IGameService
                     await transaction.CommitAsync();
                 }
 
+                // Fire SignalR events outside transaction
+                if (_lobbySender != null)
+                {
+                    var skill = user.SportSkills.FirstOrDefault(s => s.SportType == game.SportType);
+                    var participantDto = new GameParticipantDto
+                    {
+                        UserId = user.Id,
+                        UserName = user.Name,
+                        JoinedAt = participant.JoinedAt,
+                        Team = null,
+                        IsReady = false,
+                        SkillScore = skill?.SkillScore ?? 1000,
+                        SkillLevel = skill?.SkillLevel.ToString() ?? user.Profile?.SkillLevel.ToString() ?? "Beginner"
+                    };
+
+                    _ = _lobbySender.SendPlayerJoinedAsync(gameId, participantDto);
+                    if (isFull)
+                    {
+                        _ = _lobbySender.SendGameFullAsync(gameId);
+                    }
+                }
+
                 return Result.Ok();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (transaction != null)
+                {
+                    await transaction.RollbackAsync();
+                }
+                else
+                {
+                    // Fallback for non-relational in-memory testing providers (which do not support real transactions)
+                    try
+                    {
+                        _db.ChangeTracker.Clear();
+                        var leftover = await _db.GameParticipants.FirstOrDefaultAsync(p => p.GameId == gameId && p.UserId == userId);
+                        if (leftover != null)
+                        {
+                            _db.GameParticipants.Remove(leftover);
+                            await _db.SaveChangesAsync();
+                        }
+                    }
+                    catch
+                    {
+                        // Ignore cleanup errors
+                    }
+                }
+                return Error.Conflict("Match capacity changed concurrently or match is now full. Please try again.");
             }
             catch
             {
@@ -387,7 +489,10 @@ public class GameService : IGameService
                 if (game.CreatorId == userId)
                     return Error.BadRequest("As the game organizer, you cannot leave the game. You can cancel it instead.");
 
-                var participant = await _db.GameParticipants.FirstOrDefaultAsync(p => p.GameId == gameId && p.UserId == userId);
+                var participant = await _db.GameParticipants
+                    .Include(p => p.User)
+                    .FirstOrDefaultAsync(p => p.GameId == gameId && p.UserId == userId);
+
                 if (participant is null)
                     return Error.NotFound("Participation");
 
@@ -395,6 +500,7 @@ public class GameService : IGameService
                 if (gameStartDtUtc < DateTime.UtcNow)
                     return Error.BadRequest("Cannot leave a match that has already started.");
 
+                var userName = participant.User?.Name ?? "Player";
                 _db.GameParticipants.Remove(participant);
 
                 if (game.Status == GameStatus.Full)
@@ -402,11 +508,17 @@ public class GameService : IGameService
                     game.Status = GameStatus.Open;
                 }
 
+                game.ConcurrencyStamp = Guid.NewGuid();
                 await _db.SaveChangesAsync();
 
                 if (transaction != null)
                 {
                     await transaction.CommitAsync();
+                }
+
+                if (_lobbySender != null)
+                {
+                    _ = _lobbySender.SendPlayerLeftAsync(gameId, userId, userName);
                 }
 
                 return Result.Ok();
@@ -439,8 +551,203 @@ public class GameService : IGameService
             return Error.Forbidden("Only the game creator or an admin can cancel this game.");
 
         game.Status = GameStatus.Cancelled;
+        game.ConcurrencyStamp = Guid.NewGuid();
         await _db.SaveChangesAsync();
+
+        if (_lobbySender != null)
+        {
+            _ = _lobbySender.SendGameCancelledAsync(gameId);
+        }
+
         return Result.Ok();
+    }
+
+    public async Task<Result<GameResponse>> GetGameLobbyAsync(Guid userId, Guid gameId)
+    {
+        var game = await _db.Games
+            .AsNoTracking()
+            .Include(g => g.Venue)
+            .Include(g => g.Court)
+            .Include(g => g.Creator)
+            .Include(g => g.Participants)
+                .ThenInclude(p => p.User)
+                    .ThenInclude(u => u.SportSkills)
+            .Include(g => g.Participants)
+                .ThenInclude(p => p.User)
+                    .ThenInclude(u => u.Profile)
+            .FirstOrDefaultAsync(g => g.Id == gameId);
+
+        if (game is null)
+            return Error.NotFound("Game");
+
+        // If private, only participants, creator, or admin can access the lobby
+        if (game.IsPrivate && game.CreatorId != userId && !game.Participants.Any(p => p.UserId == userId))
+        {
+            return Error.Forbidden("You do not have access to this private game lobby.");
+        }
+
+        return Result<GameResponse>.Ok(MapToResponse(game));
+    }
+
+    public async Task<Result> SetPlayerReadyAsync(Guid userId, Guid gameId, bool isReady)
+    {
+        var participant = await _db.GameParticipants
+            .Include(p => p.Game)
+                .ThenInclude(g => g.Participants)
+            .FirstOrDefaultAsync(p => p.GameId == gameId && p.UserId == userId);
+
+        if (participant is null)
+            return Error.NotFound("You are not a participant in this game.");
+
+        participant.IsReady = isReady;
+        participant.ConcurrencyStamp = Guid.NewGuid();
+        await _db.SaveChangesAsync();
+
+        var allReady = participant.Game.Participants.Count >= participant.Game.MinPlayers &&
+                       participant.Game.Participants.All(p => p.IsReady);
+
+        if (_lobbySender != null)
+        {
+            _ = _lobbySender.SendPlayerReadyAsync(gameId, userId, isReady, allReady);
+        }
+
+        return Result.Ok();
+    }
+
+    public async Task<Result> AssignTeamAsync(Guid organizerId, Guid gameId, Guid participantUserId, string? team)
+    {
+        var game = await _db.Games
+            .Include(g => g.Participants)
+            .FirstOrDefaultAsync(g => g.Id == gameId);
+
+        if (game is null)
+            return Error.NotFound("Game");
+
+        if (game.CreatorId != organizerId)
+            return Error.Forbidden("Only the game organizer can assign teams.");
+
+        var participant = game.Participants.FirstOrDefault(p => p.UserId == participantUserId);
+        if (participant is null)
+            return Error.NotFound("Player is not a participant in this game.");
+
+        if (!string.IsNullOrWhiteSpace(team) && team != "TeamA" && team != "TeamB")
+            return Error.Validation("Team must be either 'TeamA', 'TeamB', or null.");
+
+        participant.Team = string.IsNullOrWhiteSpace(team) ? null : team;
+        participant.ConcurrencyStamp = Guid.NewGuid();
+        await _db.SaveChangesAsync();
+
+        return Result.Ok();
+    }
+
+    public async Task<Result<BalanceTeamsResponse>> BalanceTeamsAsync(Guid organizerId, Guid gameId)
+    {
+        var game = await _db.Games
+            .Include(g => g.Participants)
+                .ThenInclude(p => p.User)
+                    .ThenInclude(u => u.SportSkills)
+            .Include(g => g.Participants)
+                .ThenInclude(p => p.User)
+                    .ThenInclude(u => u.Profile)
+            .FirstOrDefaultAsync(g => g.Id == gameId);
+
+        if (game is null)
+            return Error.NotFound("Game");
+
+        if (game.CreatorId != organizerId)
+            return Error.Forbidden("Only the game organizer can balance teams.");
+
+        if (game.Participants.Count < 2)
+            return Error.BadRequest("At least 2 players are required to balance teams.");
+
+        // Resolve skill score for each player
+        var ratedPlayers = game.Participants.Select(p =>
+        {
+            var sportSkill = p.User?.SportSkills.FirstOrDefault(s => s.SportType == game.SportType);
+            int score = sportSkill?.SkillScore ?? p.User?.Profile?.SkillLevel switch
+            {
+                SkillLevel.Beginner => 1000,
+                SkillLevel.Intermediate => 1500,
+                SkillLevel.Advanced => 2000,
+                _ => 1000
+            };
+
+            return new
+            {
+                Participant = p,
+                SkillScore = score,
+                SkillLevelStr = sportSkill?.SkillLevel.ToString() ?? p.User?.Profile?.SkillLevel.ToString() ?? "Beginner"
+            };
+        })
+        .OrderByDescending(x => x.SkillScore)
+        .ThenBy(x => x.Participant.JoinedAt)
+        .ToList();
+
+        // Deterministic Snake-Draft algorithm: A, B, B, A, A, B, B, A ...
+        var teamAPlayers = new List<GameParticipantDto>();
+        var teamBPlayers = new List<GameParticipantDto>();
+        int teamAScore = 0;
+        int teamBScore = 0;
+
+        for (int i = 0; i < ratedPlayers.Count; i++)
+        {
+            var item = ratedPlayers[i];
+            // In snake draft of size 4: indices 0,3 -> Team A, indices 1,2 -> Team B
+            // i % 4: 0 -> A, 1 -> B, 2 -> B, 3 -> A
+            bool assignToTeamA = (i % 4 == 0) || (i % 4 == 3);
+
+            string assignedTeam = assignToTeamA ? "TeamA" : "TeamB";
+            item.Participant.Team = assignedTeam;
+            item.Participant.ConcurrencyStamp = Guid.NewGuid();
+
+            var dto = new GameParticipantDto
+            {
+                UserId = item.Participant.UserId,
+                UserName = item.Participant.User?.Name ?? "Player",
+                JoinedAt = item.Participant.JoinedAt,
+                Team = assignedTeam,
+                IsReady = item.Participant.IsReady,
+                SkillScore = item.SkillScore,
+                SkillLevel = item.SkillLevelStr
+            };
+
+            if (assignToTeamA)
+            {
+                teamAPlayers.Add(dto);
+                teamAScore += item.SkillScore;
+            }
+            else
+            {
+                teamBPlayers.Add(dto);
+                teamBScore += item.SkillScore;
+            }
+        }
+
+        await _db.SaveChangesAsync();
+
+        var response = new BalanceTeamsResponse
+        {
+            GameId = gameId,
+            TeamAName = "Team A",
+            TeamBName = "Team B",
+            TeamATotalScore = teamAScore,
+            TeamBTotalScore = teamBScore,
+            TeamAPlayers = teamAPlayers,
+            TeamBPlayers = teamBPlayers
+        };
+
+        if (_lobbySender != null)
+        {
+            _ = _lobbySender.SendTeamsUpdatedAsync(gameId, response);
+        }
+
+        return Result<BalanceTeamsResponse>.Ok(response);
+    }
+
+    private static string GenerateAccessCode()
+    {
+        const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        return RandomNumberGenerator.GetString(chars, 6);
     }
 
     private static GameResponse MapToResponse(Game g)
@@ -458,6 +765,29 @@ public class GameService : IGameService
                 : "All Ages",
             _ => "All Ages"
         };
+
+        var participants = g.Participants?.Select(p =>
+        {
+            var sportSkill = p.User?.SportSkills?.FirstOrDefault(s => s.SportType == g.SportType);
+            int score = sportSkill?.SkillScore ?? p.User?.Profile?.SkillLevel switch
+            {
+                SkillLevel.Beginner => 1000,
+                SkillLevel.Intermediate => 1500,
+                SkillLevel.Advanced => 2000,
+                _ => 1000
+            };
+
+            return new GameParticipantDto
+            {
+                UserId = p.UserId,
+                UserName = p.User?.Name ?? "Player",
+                JoinedAt = p.JoinedAt,
+                Team = p.Team,
+                IsReady = p.IsReady,
+                SkillScore = score,
+                SkillLevel = sportSkill?.SkillLevel.ToString() ?? p.User?.Profile?.SkillLevel.ToString() ?? "Beginner"
+            };
+        }).ToList() ?? [];
 
         return new GameResponse
         {
@@ -481,17 +811,16 @@ public class GameService : IGameService
             AgeDisplay = ageDisplay,
             MaxPlayers = g.MaxPlayers,
             MinPlayers = g.MinPlayers,
-            CurrentPlayersCount = g.Participants?.Count ?? 0,
+            CurrentPlayersCount = participants.Count,
             PricePerPlayer = g.PricePerPlayer,
             Status = g.Status.ToString(),
             Description = g.Description,
-            CreatedAt = g.CreatedAt,
-            Participants = g.Participants?.Select(p => new GameParticipantDto
-            {
-                UserId = p.UserId,
-                UserName = p.User?.Name ?? "Player",
-                JoinedAt = p.JoinedAt
-            }).ToList() ?? []
+            IsPrivate = g.IsPrivate,
+            AccessCode = g.AccessCode,
+            HasTeams = g.HasTeams,
+            AllPlayersReady = participants.Count >= g.MinPlayers && participants.All(p => p.IsReady),
+            Participants = participants,
+            CreatedAt = g.CreatedAt
         };
     }
 }

@@ -1,0 +1,256 @@
+@page
+@model CourtBook.Web.Pages.Games.LobbyModel
+@using CourtBook.Web.Helpers
+@{
+    ViewData["Title"] = Loc.IsArabic ? $"غرفة انتظار المباراة — {Model.Game?.Title}" : $"Game Lobby — {Model.Game?.Title}";
+    var game = Model.Game;
+}
+
+<div class="container py-4 py-md-5">
+
+    @if (game == null)
+    {
+        <div class="alert alert-danger">
+            @(Loc.IsArabic ? "المباراة غير متوفرة أو تم إلغاؤها." : "Game not found or has been cancelled.")
+        </div>
+        return;
+    }
+
+    <!-- ── Header & Game Meta ──────────────────────────────────────────────── -->
+    <div class="card border-0 shadow-sm p-4 p-md-5 mb-4 text-white overflow-hidden position-relative"
+         style="background: linear-gradient(135deg, #0A0D12 0%, #13171F 50%, #064E3B 100%); border-radius: var(--ps-radius-2xl);">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-3"
+                     style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.35); color: #34D399; font-size: 0.85rem; font-weight: 600;">
+                    <i class="bi bi-people-fill"></i>
+                    <span>@(game.IsPrivate ? (Loc.IsArabic ? "مباراة خاصة" : "Private Match") : (Loc.IsArabic ? "مباراة عامة" : "Public Match"))</span>
+                    @if (game.IsPrivate && Model.IsOrganizer)
+                    {
+                        <span class="badge bg-warning text-dark ms-2">
+                            @(Loc.IsArabic ? "رمز الدخول:" : "Access Code:") @game.AccessCode
+                        </span>
+                    }
+                </div>
+                <h1 class="display-6 fw-extrabold mb-2 text-white">@game.Title</h1>
+                <p class="text-white-50 mb-0 small">
+                    <i class="bi bi-geo-alt-fill text-primary"></i> @game.VenueName &bull; @game.VenueCity &bull; @game.CourtName
+                    &nbsp;|&nbsp;
+                    <i class="bi bi-calendar-event text-primary"></i> @game.Date.ToString("ddd, dd MMM yyyy") &bull; @game.StartTime – @game.EndTime
+                </p>
+            </div>
+            <div class="col-lg-4 text-lg-end mt-4 mt-lg-0">
+                <div class="d-flex flex-column align-items-lg-end gap-2">
+                    <span class="badge bg-primary fs-6 px-3 py-2 rounded-pill">
+                        @game.CurrentPlayersCount / @game.MaxPlayers @(Loc.IsArabic ? "لاعبين" : "Players")
+                    </span>
+                    @if (game.AllPlayersReady)
+                    {
+                        <span class="badge bg-success fs-6 px-3 py-2 rounded-pill">
+                            <i class="bi bi-check-all me-1"></i> @(Loc.IsArabic ? "جميع اللاعبين جاهزون!" : "All Players Ready!")
+                        </span>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Alerts ───────────────────────────────────────────────────────────── -->
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger border-0 shadow-sm mb-4 rounded-4" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @Model.ErrorMessage
+        </div>
+    }
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success border-0 shadow-sm mb-4 rounded-4" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["SuccessMessage"]
+        </div>
+    }
+
+    <!-- ── Player Actions Bar ──────────────────────────────────────────────── -->
+    <div class="card border-0 shadow-sm p-4 mb-4 rounded-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div class="d-flex align-items-center gap-3">
+                @if (Model.IsParticipant)
+                {
+                    <form method="post" asp-page-handler="ToggleReady" asp-route-gameId="@game.Id" asp-route-ready="@(!Model.CurrentPlayerIsReady)">
+                        @if (Model.CurrentPlayerIsReady)
+                        {
+                            <button type="submit" class="btn btn-success px-4 py-2 rounded-pill fw-bold">
+                                <i class="bi bi-check-circle-fill me-1"></i> @(Loc.IsArabic ? "أنت جاهز (إلغاء)" : "You are Ready (Click to cancel)")
+                            </button>
+                        }
+                        else
+                        {
+                            <button type="submit" class="ps-btn ps-btn-primary px-4 py-2 rounded-pill fw-bold">
+                                <i class="bi bi-hand-thumbs-up-fill me-1"></i> @(Loc.IsArabic ? "أنا جاهز للمباراة" : "Mark as Ready")
+                            </button>
+                        }
+                    </form>
+                }
+
+                @if (Model.IsOrganizer)
+                {
+                    <form method="post" asp-page-handler="BalanceTeams" asp-route-gameId="@game.Id">
+                        <button type="submit" class="btn btn-outline-primary px-4 py-2 rounded-pill fw-bold">
+                            <i class="bi bi-shuffle me-1"></i> @(Loc.IsArabic ? "موازنة الفرق تلقائياً (Snake Draft)" : "Balance Teams (Snake Draft)")
+                        </button>
+                    </form>
+                }
+            </div>
+
+            <div>
+                <a href="/Games" class="btn btn-outline-secondary px-3 py-2 rounded-pill">
+                    <i class="bi bi-arrow-left me-1"></i> @(Loc.IsArabic ? "العودة للمباريات" : "Back to Games")
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Teams Grid ──────────────────────────────────────────────────────── -->
+    <div class="row g-4">
+        <!-- Team A -->
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100 rounded-4 overflow-hidden">
+                <div class="card-header bg-primary text-white p-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-shield-shaded me-2"></i>@(Loc.IsArabic ? "الفريق أ (Team A)" : "Team A")</h5>
+                    <span class="badge bg-white text-primary rounded-pill">@game.TeamAPlayers.Count @(Loc.IsArabic ? "لاعبين" : "players")</span>
+                </div>
+                <div class="card-body p-4">
+                    @if (!game.TeamAPlayers.Any())
+                    {
+                        <p class="text-muted text-center py-4 mb-0">@(Loc.IsArabic ? "لم يتم تعيين لاعبين في هذا الفريق بعد." : "No players assigned yet.")</p>
+                    }
+                    else
+                    {
+                        <ul class="list-group list-group-flush">
+                            @foreach (var player in game.TeamAPlayers)
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-3">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <i class="bi bi-person-circle fs-4 text-primary"></i>
+                                        <div>
+                                            <strong class="d-block text-dark">@player.UserName</strong>
+                                            <span class="text-muted small">@player.SkillLevel (@player.SkillScore pts)</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        @if (player.IsReady)
+                                        {
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1">
+                                                <i class="bi bi-check-circle me-1"></i>@(Loc.IsArabic ? "جاهز" : "Ready")
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill px-3 py-1">
+                                                @(Loc.IsArabic ? "في الانتظار" : "Waiting")
+                                            </span>
+                                        }
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Team B -->
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100 rounded-4 overflow-hidden">
+                <div class="card-header bg-dark text-white p-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-shield-shaded me-2"></i>@(Loc.IsArabic ? "الفريق ب (Team B)" : "Team B")</h5>
+                    <span class="badge bg-white text-dark rounded-pill">@game.TeamBPlayers.Count @(Loc.IsArabic ? "لاعبين" : "players")</span>
+                </div>
+                <div class="card-body p-4">
+                    @if (!game.TeamBPlayers.Any())
+                    {
+                        <p class="text-muted text-center py-4 mb-0">@(Loc.IsArabic ? "لم يتم تعيين لاعبين في هذا الفريق بعد." : "No players assigned yet.")</p>
+                    }
+                    else
+                    {
+                        <ul class="list-group list-group-flush">
+                            @foreach (var player in game.TeamBPlayers)
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-3">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <i class="bi bi-person-circle fs-4 text-dark"></i>
+                                        <div>
+                                            <strong class="d-block text-dark">@player.UserName</strong>
+                                            <span class="text-muted small">@player.SkillLevel (@player.SkillScore pts)</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        @if (player.IsReady)
+                                        {
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1">
+                                                <i class="bi bi-check-circle me-1"></i>@(Loc.IsArabic ? "جاهز" : "Ready")
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill px-3 py-1">
+                                                @(Loc.IsArabic ? "في الانتظار" : "Waiting")
+                                            </span>
+                                        }
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+@section Scripts {
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const gameId = "@game.Id";
+        const token = "@HttpContext.Session.GetString("JwtToken")";
+        if (!token) return;
+
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/hubs/games?access_token=" + encodeURIComponent(token))
+            .withAutomaticReconnect()
+            .build();
+
+        connection.on("PlayerJoined", function (participant) {
+            console.log("Player joined lobby:", participant);
+            location.reload();
+        });
+
+        connection.on("PlayerLeft", function (data) {
+            console.log("Player left lobby:", data);
+            location.reload();
+        });
+
+        connection.on("PlayerReady", function (data) {
+            console.log("Player ready state updated:", data);
+            location.reload();
+        });
+
+        connection.on("TeamUpdated", function (teams) {
+            console.log("Teams updated:", teams);
+            location.reload();
+        });
+
+        connection.on("GameCancelled", function () {
+            alert("@(Loc.IsArabic ? "تم إلغاء المباراة من قبل المنظم." : "This game has been cancelled by the organizer.")");
+            window.location.href = "/Games";
+        });
+
+        connection.start().then(function () {
+            console.log("Connected to GameLobbyHub");
+            connection.invoke("JoinLobby", gameId).catch(err => console.error("Error joining lobby group:", err));
+        }).catch(err => console.error("SignalR Connection Error:", err));
+    });
+</script>
+}

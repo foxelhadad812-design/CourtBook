@@ -6,6 +6,9 @@ public class GameParticipant
     public Guid GameId { get; set; }
     public Guid UserId { get; set; }
     public bool IsConfirmed { get; set; } = true;
+    public string? Team { get; set; }
+    public bool IsReady { get; set; } = false;
+    public Guid ConcurrencyStamp { get; set; } = Guid.NewGuid();
     public DateTime JoinedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation properties

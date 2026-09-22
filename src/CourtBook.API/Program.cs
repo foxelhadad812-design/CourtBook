@@ -54,6 +54,7 @@ builder.Services.AddScoped<IAvailabilityService, AvailabilityService>();
 builder.Services.AddScoped<IReviewService,       ReviewService>();
 builder.Services.AddScoped<IFavoriteService,     FavoriteService>();
 builder.Services.AddScoped<IGameService,         GameService>();
+builder.Services.AddScoped<IMatchmakingService,  MatchmakingService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IProfileService,      ProfileService>();
 builder.Services.AddScoped<IOwnerService,        OwnerService>();
@@ -70,6 +71,7 @@ builder.Services.AddScoped<IPaymentService,      PaymentService>();
 // ── Phase 8: Real-Time SignalR & Background Workers ──────────────────────────
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<IRealTimeNotificationSender, SignalRNotificationSender>();
+builder.Services.AddSingleton<IGameLobbySender, SignalRGameLobbySender>();
 builder.Services.AddHostedService<PaymentHoldWorker>();
 
 // ── FluentValidation ──────────────────────────────────────────────────────────
@@ -290,6 +292,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<NotificationHub>("/hubs/notifications");
+app.MapHub<GameLobbyHub>("/hubs/games");
 
 app.Run();
 
