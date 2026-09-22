@@ -11,6 +11,7 @@ namespace CourtBook.Infrastructure.Services;
 /// <summary>
 /// Builds a signed JWT containing the user's identity claims.
 /// Key, issuer, and audience are read from JwtSettings in appsettings.json.
+/// Supports both short-lived access tokens (ExpiryInMinutes) and legacy day-based tokens (ExpiryInDays).
 /// </summary>
 public class TokenService : ITokenService
 {
@@ -21,7 +22,7 @@ public class TokenService : ITokenService
         _config = config;
     }
 
-    public string GenerateToken(User user)
+    public (string Token, DateTime ExpiresAt) GenerateAccessToken(User user)
     {
         var jwtSettings = _config.GetSection("JwtSettings");
 
@@ -40,15 +41,32 @@ public class TokenService : ITokenService
             new Claim(JwtRegisteredClaimNames.Jti,   Guid.NewGuid().ToString())
         };
 
-        var expiry = int.Parse(jwtSettings["ExpiryInDays"]!);
+        DateTime expiresAt;
+        if (int.TryParse(jwtSettings["ExpiryInMinutes"], out var minutes) && minutes > 0)
+        {
+            expiresAt = DateTime.UtcNow.AddMinutes(minutes);
+        }
+        else if (int.TryParse(jwtSettings["ExpiryInDays"], out var days) && days > 0)
+        {
+            expiresAt = DateTime.UtcNow.AddDays(days);
+        }
+        else
+        {
+            expiresAt = DateTime.UtcNow.AddMinutes(60);
+        }
 
         var token = new JwtSecurityToken(
             issuer:             jwtSettings["Issuer"],
             audience:           jwtSettings["Audience"],
             claims:             claims,
-            expires:            DateTime.UtcNow.AddDays(expiry),
+            expires:            expiresAt,
             signingCredentials: credentials);
 
-        return new JwtSecurityTokenHandler().WriteToken(token);
+        return (new JwtSecurityTokenHandler().WriteToken(token), expiresAt);
+    }
+
+    public string GenerateToken(User user)
+    {
+        return GenerateAccessToken(user).Token;
     }
 }

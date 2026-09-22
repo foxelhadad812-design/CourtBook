@@ -56,3 +56,29 @@ public class RegisterRequestValidator : AbstractValidator<RegisterRequest>
         });
     }
 }
+
+public class RefreshTokenRequestValidator : AbstractValidator<RefreshTokenRequest>
+{
+    public RefreshTokenRequestValidator()
+    {
+        RuleFor(x => x.RefreshToken)
+            .NotEmpty().WithMessage("Refresh token is required.")
+            .MaximumLength(512);
+
+        RuleFor(x => x.DeviceId).MaximumLength(128);
+        RuleFor(x => x.DeviceName).MaximumLength(128);
+        RuleFor(x => x.Platform).MaximumLength(64);
+        RuleFor(x => x.AppVersion).MaximumLength(64);
+    }
+}
+
+public class RevokeTokenRequestValidator : AbstractValidator<RevokeTokenRequest>
+{
+    public RevokeTokenRequestValidator()
+    {
+        RuleFor(x => x.RefreshToken)
+            .NotEmpty().WithMessage("Refresh token is required.")
+            .MaximumLength(512);
+    }
+}
+

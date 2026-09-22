@@ -11,4 +11,10 @@ public class RegisterRequest
     public DateOnly? DateOfBirth { get; set; }
     public bool AcceptTerms { get; set; }
     public string? TermsVersion { get; set; }
+
+    // Optional device & client metadata for mobile session tracking
+    public string? DeviceId { get; set; }
+    public string? DeviceName { get; set; }
+    public string? Platform { get; set; }
+    public string? AppVersion { get; set; }
 }

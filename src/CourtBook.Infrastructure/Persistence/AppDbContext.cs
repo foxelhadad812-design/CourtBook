@@ -40,6 +40,9 @@ public class AppDbContext : DbContext
     public DbSet<IdempotencyLog> IdempotencyLogs => Set<IdempotencyLog>();
     public DbSet<TransactionLedger> TransactionLedger => Set<TransactionLedger>();
 
+    // Phase 9.1: Mobile API & Refresh Token Infrastructure
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // Automatically applies all IEntityTypeConfiguration<T> classes in this assembly

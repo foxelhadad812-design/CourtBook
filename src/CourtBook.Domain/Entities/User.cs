@@ -29,4 +29,5 @@ public class User
     public ICollection<Notification> Notifications { get; set; } = [];
     public ICollection<AuditLog> AuditLogs { get; set; } = [];
     public ICollection<TermsAcceptance> TermsAcceptances { get; set; } = [];
+    public ICollection<RefreshToken> RefreshTokens { get; set; } = [];
 }
