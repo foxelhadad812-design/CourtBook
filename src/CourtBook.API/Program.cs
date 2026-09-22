@@ -78,7 +78,13 @@ builder.Services.AddScoped<IPayoutService,       PayoutService>();
 builder.Services.AddScoped<IRecoveryService,     RecoveryService>();
 
 // ── Phase 8: Real-Time SignalR & Background Workers ──────────────────────────
-builder.Services.AddSignalR();
+var signalRBuilder = builder.Services.AddSignalR();
+var redisConnectionString = builder.Configuration["Redis:ConnectionString"];
+if (!string.IsNullOrWhiteSpace(redisConnectionString))
+{
+    signalRBuilder.AddStackExchangeRedis(redisConnectionString);
+}
+
 builder.Services.AddSingleton<IRealTimeNotificationSender, SignalRNotificationSender>();
 builder.Services.AddSingleton<IGameLobbySender, SignalRGameLobbySender>();
 builder.Services.AddHostedService<PaymentHoldWorker>();

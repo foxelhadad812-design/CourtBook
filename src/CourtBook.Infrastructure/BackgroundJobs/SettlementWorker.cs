@@ -99,11 +99,14 @@ public class SettlementWorker : BackgroundService
         if (!db.Database.IsRelational())
         {
             // Non-relational (In-Memory provider for unit/integration tests): execute directly without sp_getapplock
-            var settlementService = scope.ServiceProvider.GetRequiredService<ISettlementService>();
-            var result = await settlementService.ExecuteSettlementBatchAsync(bufferHours, null, ct);
-            _logger.LogInformation("Settlement sweep executed (In-Memory). Batch={BatchRef}, Items={ItemCount}, Net=EGP {TotalNet}.",
-                result.BatchReference, result.ItemCount, result.TotalNet);
-            return;
+            using (_logger.BeginScope(new Dictionary<string, object> { ["Worker"] = nameof(SettlementWorker), ["LockResource"] = LockResourceName }))
+            {
+                var settlementService = scope.ServiceProvider.GetRequiredService<ISettlementService>();
+                var result = await settlementService.ExecuteSettlementBatchAsync(bufferHours, null, ct);
+                _logger.LogInformation("Settlement sweep executed (In-Memory). Batch={BatchRef}, Items={ItemCount}, Net=EGP {TotalNet}.",
+                    result.BatchReference, result.ItemCount, result.TotalNet);
+                return;
+            }
         }
 
         var connection = db.Database.GetDbConnection();
@@ -145,16 +148,19 @@ public class SettlementWorker : BackgroundService
                 }
 
                 lockAcquired = true;
-                _logger.LogInformation("Acquired distributed lock '{LockResource}'. Starting settlement sweep.", LockResourceName);
+                using (_logger.BeginScope(new Dictionary<string, object> { ["Worker"] = nameof(SettlementWorker), ["LockResource"] = LockResourceName }))
+                {
+                    _logger.LogInformation("Acquired distributed lock '{LockResource}'. Starting settlement sweep.", LockResourceName);
+
+                    // 2. Execute settlement sweep
+                    var service = scope.ServiceProvider.GetRequiredService<ISettlementService>();
+                    var batchDto = await service.ExecuteSettlementBatchAsync(bufferHours, null, ct);
+
+                    _logger.LogInformation(
+                        "Settlement sweep completed successfully. Batch={BatchRef}, Items={ItemCount}, Net=EGP {TotalNet:0.00}.",
+                        batchDto.BatchReference, batchDto.ItemCount, batchDto.TotalNet);
+                }
             }
-
-            // 2. Execute settlement sweep
-            var service = scope.ServiceProvider.GetRequiredService<ISettlementService>();
-            var batchDto = await service.ExecuteSettlementBatchAsync(bufferHours, null, ct);
-
-            _logger.LogInformation(
-                "Settlement sweep completed successfully. Batch={BatchRef}, Items={ItemCount}, Net=EGP {TotalNet:0.00}.",
-                batchDto.BatchReference, batchDto.ItemCount, batchDto.TotalNet);
         }
         finally
         {

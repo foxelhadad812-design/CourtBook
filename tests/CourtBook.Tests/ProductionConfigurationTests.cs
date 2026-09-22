@@ -113,4 +113,16 @@ public class ProductionConfigurationTests
         var demoPlayer = await db.Users.FirstOrDefaultAsync(u => u.Email == "omar@gmail.com");
         Assert.Null(demoPlayer);
     }
+
+    [Theory]
+    [InlineData(null, false)]
+    [InlineData("", false)]
+    [InlineData("   ", false)]
+    [InlineData("localhost:6379", true)]
+    [InlineData("redis.internal:6379,password=secret", true)]
+    public void RedisConnectionString_EvaluatesPresenceCorrectly(string? connectionString, bool expectedConfigured)
+    {
+        var isConfigured = !string.IsNullOrWhiteSpace(connectionString);
+        Assert.Equal(expectedConfigured, isConfigured);
+    }
 }

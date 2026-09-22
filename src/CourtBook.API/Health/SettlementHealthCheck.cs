@@ -44,63 +44,70 @@ public class SettlementHealthCheck : IHealthCheck
             using var scope = _scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-            var lastCompleted = await db.SettlementBatches
+            var lastBatch = await db.SettlementBatches
                 .AsNoTracking()
                 .Where(b => b.Status == SettlementStatus.Completed)
                 .OrderByDescending(b => b.CreatedAt)
-                .Select(b => (DateTime?)b.CreatedAt)
                 .FirstOrDefaultAsync(cancellationToken);
 
             var totalBatches = await db.SettlementBatches
                 .AsNoTracking()
                 .CountAsync(b => b.Status == SettlementStatus.Completed, cancellationToken);
 
-            var data = new Dictionary<string, object>
-            {
-                ["ThresholdHours"] = thresholdHours,
-                ["TotalCompletedBatches"] = totalBatches,
-                ["LastExecutionUtc"] = lastCompleted?.ToString("u") ?? "None"
-            };
-
-            if (lastCompleted.HasValue)
-            {
-                var age = DateTime.UtcNow - lastCompleted.Value;
-                data["AgeHours"] = Math.Round(age.TotalHours, 1);
-
-                if (age <= TimeSpan.FromHours(thresholdHours))
-                {
-                    return HealthCheckResult.Healthy(
-                        $"Last settlement batch completed {age.TotalHours:0.0} hours ago at {lastCompleted:u}.", data);
-                }
-
-                return HealthCheckResult.Degraded(
-                    $"Last settlement batch was completed {age.TotalHours:0.0} hours ago, exceeding the operational threshold of {thresholdHours} hours.",
-                    null, data);
-            }
-
-            // Zero historical settlement batches ever completed
             var bufferHours = int.TryParse(_configuration["SettlementWorker:BufferHours"], out var bHours) && bHours >= 0
                 ? bHours
                 : 24;
             var cutoff = DateTime.UtcNow.AddHours(-bufferHours);
 
-            var hasEligibleOverdueBookings = await db.Bookings
+            var overdueUnsettledBookings = await db.Bookings
                 .AsNoTracking()
-                .AnyAsync(b => b.EndTime <= cutoff
-                            && b.Payment != null
-                            && (b.Payment.Status == PaymentStatus.Completed || b.Payment.Status == PaymentStatus.PartiallyRefunded)
-                            && b.PaymentStatus != PaymentStatus.Refunded
-                            && !(b.Payment.Method == PaymentMethod.PayAtFacility && b.PaymentStatus == PaymentStatus.Pending)
-                            && b.Payment.Status != PaymentStatus.Processing
-                            && !db.SettlementItems.Any(s => s.BookingId == b.Id),
-                            cancellationToken);
+                .Where(b => b.EndTime <= cutoff
+                         && b.Payment != null
+                         && (b.Payment.Status == PaymentStatus.Completed || b.Payment.Status == PaymentStatus.PartiallyRefunded)
+                         && b.PaymentStatus != PaymentStatus.Refunded
+                         && !(b.Payment.Method == PaymentMethod.PayAtFacility && b.PaymentStatus == PaymentStatus.Pending)
+                         && b.Payment.Status != PaymentStatus.Processing
+                         && !db.SettlementItems.Any(s => s.BookingId == b.Id))
+                .Select(b => b.EndTime)
+                .ToListAsync(cancellationToken);
 
-            data["HasEligibleOverdueBookings"] = hasEligibleOverdueBookings;
+            var overdueCount = overdueUnsettledBookings.Count;
+            var oldestOverdueAgeHours = overdueCount > 0
+                ? Math.Round((DateTime.UtcNow - overdueUnsettledBookings.Min()).TotalHours, 1)
+                : 0.0;
 
-            if (hasEligibleOverdueBookings)
+            var lastCompleted = lastBatch?.CreatedAt;
+            var lastBatchAgeHours = lastCompleted.HasValue
+                ? Math.Round((DateTime.UtcNow - lastCompleted.Value).TotalHours, 1)
+                : (double?)null;
+
+            var data = new Dictionary<string, object>
+            {
+                ["ThresholdHours"] = thresholdHours,
+                ["TotalCompletedBatches"] = totalBatches,
+                ["LastBatchReference"] = lastBatch?.BatchReference ?? "None",
+                ["LastBatchAgeHours"] = lastBatchAgeHours.HasValue ? (object)lastBatchAgeHours.Value : "None",
+                ["OverdueUnsettledBookingsCount"] = overdueCount,
+                ["OldestUnsettledBookingAgeHours"] = oldestOverdueAgeHours
+            };
+
+            if (lastCompleted.HasValue && lastBatchAgeHours.HasValue)
+            {
+                if (lastBatchAgeHours.Value <= thresholdHours)
+                {
+                    return HealthCheckResult.Healthy(
+                        $"Last settlement batch '{lastBatch!.BatchReference}' completed {lastBatchAgeHours.Value:0.0} hours ago at {lastCompleted:u}.", data);
+                }
+
+                return HealthCheckResult.Degraded(
+                    $"Last settlement batch '{lastBatch!.BatchReference}' was completed {lastBatchAgeHours.Value:0.0} hours ago, exceeding the operational threshold of {thresholdHours} hours.",
+                    null, data);
+            }
+
+            if (overdueCount > 0)
             {
                 return HealthCheckResult.Degraded(
-                    "System has eligible cleared bookings awaiting first settlement run.", null, data);
+                    $"System has {overdueCount} eligible cleared bookings awaiting first settlement run.", null, data);
             }
 
             return HealthCheckResult.Healthy(

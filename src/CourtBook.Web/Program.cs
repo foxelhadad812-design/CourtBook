@@ -9,7 +9,19 @@ builder.Services.AddRazorPages();
 builder.Services.AddHttpContextAccessor();
 
 // Cache & Session State (defaults to memory; cluster deployments can swap in AddStackExchangeRedisCache)
-builder.Services.AddDistributedMemoryCache();
+var webRedisConnectionString = builder.Configuration["Redis:ConnectionString"];
+if (!string.IsNullOrWhiteSpace(webRedisConnectionString))
+{
+    builder.Services.AddStackExchangeRedisCache(options =>
+    {
+        options.Configuration = webRedisConnectionString;
+        options.InstanceName = "CourtBookWeb_";
+    });
+}
+else
+{
+    builder.Services.AddDistributedMemoryCache();
+}
 
 builder.Services.AddSession(options =>
 {
