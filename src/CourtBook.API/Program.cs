@@ -157,6 +157,18 @@ builder.Services.AddRateLimiter(options =>
         o.QueueLimit         = 5;
     });
 
+    options.OnRejected = async (context, token) =>
+    {
+        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        context.HttpContext.Response.Headers["X-RateLimit-Limit"] = "120";
+        context.HttpContext.Response.Headers["Retry-After"] = "60";
+        if (context.Lease.TryGetMetadata(System.Threading.RateLimiting.MetadataName.RetryAfter, out var retryAfter))
+        {
+            context.HttpContext.Response.Headers["Retry-After"] = ((int)retryAfter.TotalSeconds).ToString();
+        }
+        await context.HttpContext.Response.WriteAsync("Too many requests. Please try again later.", cancellationToken: token);
+    };
+
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });
 
@@ -338,6 +350,37 @@ app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.Health
 {
     Predicate = _ => true
 });
+app.MapHealthChecks("/health/details", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = _ => true,
+    ResponseWriter = async (context, report) =>
+    {
+        context.Response.ContentType = "application/json";
+        var payload = new
+        {
+            status = report.Status.ToString(),
+            totalDurationMs = Math.Round(report.TotalDuration.TotalMilliseconds, 2),
+            timestamp = DateTime.UtcNow.ToString("o"),
+            checks = report.Entries.ToDictionary(
+                entry => entry.Key,
+                entry => new
+                {
+                    status = entry.Value.Status.ToString(),
+                    description = entry.Value.Description,
+                    durationMs = Math.Round(entry.Value.Duration.TotalMilliseconds, 2),
+                    data = entry.Value.Data
+                }
+            )
+        };
+
+        var json = System.Text.Json.JsonSerializer.Serialize(payload, new System.Text.Json.JsonSerializerOptions
+        {
+            WriteIndented = true
+        });
+
+        await context.Response.WriteAsync(json);
+    }
+});
 
 app.UseHttpsRedirection();
 
@@ -345,6 +388,16 @@ app.UseHttpsRedirection();
 app.UseCors(app.Environment.IsDevelopment() ? "DevCors" : "PlaySpotCors");
 
 app.UseRateLimiter();
+app.Use(async (context, next) =>
+{
+    var endpoint = context.GetEndpoint();
+    var rateLimitMetadata = endpoint?.Metadata.GetMetadata<Microsoft.AspNetCore.RateLimiting.EnableRateLimitingAttribute>();
+    if (rateLimitMetadata != null)
+    {
+        context.Response.Headers["X-RateLimit-Policy"] = rateLimitMetadata.PolicyName ?? "api";
+    }
+    await next();
+});
 app.UseAuthentication();
 app.UseAuthorization();
 

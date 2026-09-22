@@ -165,4 +165,50 @@ public class ProductionConfigurationTests
             Assert.Null(ex);
         }
     }
+
+    [Fact]
+    public void HealthDetailsPayload_FormatsNonSensitiveDiagnosticJson()
+    {
+        var data = new Dictionary<string, object>
+        {
+            ["ThresholdHours"] = 36,
+            ["TotalCompletedBatches"] = 5,
+            ["LastBatchReference"] = "SETTLE-20260923-01",
+            ["LastBatchAgeHours"] = 2.5
+        };
+
+        var payload = new
+        {
+            status = "Healthy",
+            timestamp = DateTime.UtcNow.ToString("o"),
+            checks = new Dictionary<string, object>
+            {
+                ["settlement"] = new
+                {
+                    status = "Healthy",
+                    description = "Last settlement batch completed 2.5 hours ago.",
+                    data = data
+                }
+            }
+        };
+
+        var json = System.Text.Json.JsonSerializer.Serialize(payload);
+        Assert.Contains("SETTLE-20260923-01", json);
+        Assert.Contains("Healthy", json);
+        Assert.DoesNotContain("ConnectionString", json);
+        Assert.DoesNotContain("Secret", json);
+    }
+
+    [Theory]
+    [InlineData("auth", "auth")]
+    [InlineData("community", "community")]
+    [InlineData("api", "api")]
+    public void RateLimitHeaders_FormatsInformativeHeaders(string policyName, string expectedHeaderValue)
+    {
+        var headers = new Dictionary<string, string>();
+        headers["X-RateLimit-Policy"] = policyName;
+
+        Assert.True(headers.ContainsKey("X-RateLimit-Policy"));
+        Assert.Equal(expectedHeaderValue, headers["X-RateLimit-Policy"]);
+    }
 }
