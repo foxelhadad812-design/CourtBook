@@ -251,10 +251,11 @@ public class PaymentService : IPaymentService
             return;
         }
 
-        // Invalid transitions: cannot complete an already Refunded, PartiallyRefunded, or Cancelled payment
+        // Invalid transitions: cannot complete an already Refunded, PartiallyRefunded, Cancelled, or Failed payment
         if (payment.Status == PaymentStatus.Refunded ||
             payment.Status == PaymentStatus.PartiallyRefunded ||
             payment.Status == PaymentStatus.Cancelled ||
+            payment.Status == PaymentStatus.Failed ||
             payment.Booking.Status == BookingStatus.Cancelled)
         {
             _logger.LogWarning("Cannot complete payment {PaymentId} with terminal status {Status} or cancelled booking.",
@@ -399,6 +400,23 @@ public class PaymentService : IPaymentService
         if (userId != Guid.Empty && payment.Booking.UserId != userId && !string.Equals(userRole, "Admin", StringComparison.OrdinalIgnoreCase))
         {
             throw new UnauthorizedAccessException("You do not have permission to view or verify this payment.");
+        }
+
+        // Guard against verifying already terminated/failed payments
+        if (payment.Status == PaymentStatus.Failed ||
+            payment.Status == PaymentStatus.Cancelled ||
+            payment.Status == PaymentStatus.Refunded ||
+            payment.Status == PaymentStatus.PartiallyRefunded)
+        {
+            return new PaymentVerificationResponse
+            {
+                IsSuccessful         = false,
+                BookingId            = payment.BookingId,
+                Status               = payment.Status.ToString(),
+                TransactionReference = payment.TransactionReference,
+                Amount               = payment.Amount,
+                ErrorMessage         = $"Payment cannot be verified because it is already in terminal state: {payment.Status}."
+            };
         }
 
         // Check if hold has expired

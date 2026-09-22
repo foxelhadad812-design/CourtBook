@@ -30,14 +30,14 @@ if (string.IsNullOrWhiteSpace(connectionString))
         "Set it via environment variable ConnectionStrings__DefaultConnection in production.");
 }
 
-if (builder.Environment.IsProduction())
+if (builder.Environment.IsProduction() || builder.Environment.IsStaging())
 {
     var lowerConn = connectionString.ToLowerInvariant();
     if (lowerConn.Contains("(localdb)") || lowerConn.Contains("localhost") || lowerConn.Contains("127.0.0.1"))
     {
         throw new InvalidOperationException(
-            "CRITICAL SECURITY ERROR: Production environment cannot use localhost or LocalDB database connection. " +
-            "Please provide a production SQL Server instance.");
+            $"CRITICAL SECURITY ERROR: {builder.Environment.EnvironmentName} environment cannot use localhost or LocalDB database connection. " +
+            "Please provide an external SQL Server instance.");
     }
 }
 
@@ -142,20 +142,21 @@ if (rawKey.Length < 32)
         "CRITICAL SECURITY ERROR: JwtSettings:Key must be at least 32 characters (256 bits) for HMAC-SHA256.");
 }
 
-if (builder.Environment.IsProduction())
+if (builder.Environment.IsProduction() || builder.Environment.IsStaging())
 {
     var knownInsecurePlaceholders = new[]
     {
         "CourtBook_Super_Secret_Key_For_Jwt_Authentication_2024!",
         "PlaySpot_Dev_Secret_Key_Must_Be_At_Least_32_Chars_Long!",
         "CHANGE_THIS_TO_A_LONG_SECRET_KEY_32CHARS",
-        "OVERRIDE_VIA_ENV_VAR_OR_PROD_SECRET_MIN_32_CHARS"
+        "OVERRIDE_VIA_ENV_VAR_OR_PROD_SECRET_MIN_32_CHARS",
+        "OVERRIDE_VIA_ENV_VAR_OR_SECRET_MIN_32_CHARS"
     };
 
     if (knownInsecurePlaceholders.Any(p => string.Equals(p, rawKey, StringComparison.OrdinalIgnoreCase)))
     {
         throw new InvalidOperationException(
-            "CRITICAL SECURITY ERROR: Production environment cannot use a known development or placeholder JWT secret key! " +
+            $"CRITICAL SECURITY ERROR: {builder.Environment.EnvironmentName} environment cannot use a known development or placeholder JWT secret key! " +
             "Please configure a secure random 256-bit secret key via environment variable JwtSettings__Key.");
     }
 }

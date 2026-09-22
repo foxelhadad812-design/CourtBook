@@ -17,7 +17,7 @@ builder.Services.AddSession(options =>
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
     options.Cookie.SameSite = SameSiteMode.Lax;
-    options.Cookie.SecurePolicy = builder.Environment.IsProduction()
+    options.Cookie.SecurePolicy = builder.Environment.IsProduction() || builder.Environment.IsStaging()
         ? CookieSecurePolicy.Always
         : CookieSecurePolicy.SameAsRequest;
 });
@@ -27,9 +27,9 @@ builder.Services.AddSingleton<ITextLocalizer, TextLocalizer>();
 builder.Services.AddTransient<SessionTokenHandler>();
 
 var apiBaseUrl = builder.Configuration["ApiSettings:BaseUrl"] ?? "http://localhost:5257";
-if (builder.Environment.IsProduction() && string.IsNullOrWhiteSpace(builder.Configuration["ApiSettings:BaseUrl"]))
+if ((builder.Environment.IsProduction() || builder.Environment.IsStaging()) && string.IsNullOrWhiteSpace(builder.Configuration["ApiSettings:BaseUrl"]))
 {
-    throw new InvalidOperationException("CRITICAL CONFIGURATION ERROR: ApiSettings:BaseUrl must be explicitly configured in Production.");
+    throw new InvalidOperationException($"CRITICAL CONFIGURATION ERROR: ApiSettings:BaseUrl must be explicitly configured in {builder.Environment.EnvironmentName}.");
 }
 
 builder.Services.AddHttpClient<ApiClient>(client =>

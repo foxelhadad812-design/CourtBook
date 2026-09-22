@@ -28,50 +28,58 @@ public class ProductionConfigurationTests
     [InlineData("PlaySpot_Dev_Secret_Key_Must_Be_At_Least_32_Chars_Long!")]
     [InlineData("CHANGE_THIS_TO_A_LONG_SECRET_KEY_32CHARS")]
     [InlineData("OVERRIDE_VIA_ENV_VAR_OR_PROD_SECRET_MIN_32_CHARS")]
-    public void JwtValidation_RejectsKnownPlaceholdersInProduction(string placeholder)
+    [InlineData("OVERRIDE_VIA_ENV_VAR_OR_SECRET_MIN_32_CHARS")]
+    public void JwtValidation_RejectsKnownPlaceholdersInProductionAndStaging(string placeholder)
     {
         var knownInsecurePlaceholders = new[]
         {
             "CourtBook_Super_Secret_Key_For_Jwt_Authentication_2024!",
             "PlaySpot_Dev_Secret_Key_Must_Be_At_Least_32_Chars_Long!",
             "CHANGE_THIS_TO_A_LONG_SECRET_KEY_32CHARS",
-            "OVERRIDE_VIA_ENV_VAR_OR_PROD_SECRET_MIN_32_CHARS"
+            "OVERRIDE_VIA_ENV_VAR_OR_PROD_SECRET_MIN_32_CHARS",
+            "OVERRIDE_VIA_ENV_VAR_OR_SECRET_MIN_32_CHARS"
         };
 
-        var isProduction = true;
-        var ex = Record.Exception(() =>
+        foreach (var env in new[] { "Production", "Staging" })
         {
-            if (isProduction && knownInsecurePlaceholders.Any(p => string.Equals(p, placeholder, StringComparison.OrdinalIgnoreCase)))
+            var isProdOrStaging = env == "Production" || env == "Staging";
+            var ex = Record.Exception(() =>
             {
-                throw new InvalidOperationException("CRITICAL SECURITY ERROR: Production environment cannot use a known development or placeholder JWT secret key!");
-            }
-        });
+                if (isProdOrStaging && knownInsecurePlaceholders.Any(p => string.Equals(p, placeholder, StringComparison.OrdinalIgnoreCase)))
+                {
+                    throw new InvalidOperationException($"CRITICAL SECURITY ERROR: {env} environment cannot use a known development or placeholder JWT secret key!");
+                }
+            });
 
-        Assert.NotNull(ex);
-        Assert.IsType<InvalidOperationException>(ex);
+            Assert.NotNull(ex);
+            Assert.IsType<InvalidOperationException>(ex);
+        }
     }
 
     [Theory]
     [InlineData("Server=localhost;Database=CourtBookDB;Trusted_Connection=True;")]
     [InlineData("Server=(localdb)\\mssqllocaldb;Database=CourtBookDB;Trusted_Connection=True;")]
     [InlineData("Server=127.0.0.1;Database=CourtBookDB;User Id=sa;Password=pwd;")]
-    public void DatabaseValidation_RejectsLocalConnectionsInProduction(string localConn)
+    public void DatabaseValidation_RejectsLocalConnectionsInProductionAndStaging(string localConn)
     {
-        var isProduction = true;
-        var ex = Record.Exception(() =>
+        foreach (var env in new[] { "Production", "Staging" })
         {
-            if (isProduction)
+            var isProdOrStaging = env == "Production" || env == "Staging";
+            var ex = Record.Exception(() =>
             {
-                var lowerConn = localConn.ToLowerInvariant();
-                if (lowerConn.Contains("(localdb)") || lowerConn.Contains("localhost") || lowerConn.Contains("127.0.0.1"))
+                if (isProdOrStaging)
                 {
-                    throw new InvalidOperationException("CRITICAL SECURITY ERROR: Production environment cannot use localhost or LocalDB database connection.");
+                    var lowerConn = localConn.ToLowerInvariant();
+                    if (lowerConn.Contains("(localdb)") || lowerConn.Contains("localhost") || lowerConn.Contains("127.0.0.1"))
+                    {
+                        throw new InvalidOperationException($"CRITICAL SECURITY ERROR: {env} environment cannot use localhost or LocalDB database connection.");
+                    }
                 }
-            }
-        });
+            });
 
-        Assert.NotNull(ex);
-        Assert.IsType<InvalidOperationException>(ex);
+            Assert.NotNull(ex);
+            Assert.IsType<InvalidOperationException>(ex);
+        }
     }
 
     [Fact]
