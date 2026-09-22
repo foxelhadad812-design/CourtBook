@@ -166,4 +166,36 @@ public class AuthController : ControllerBase
 
         return Ok(new { message = "Session revoked successfully." });
     }
+
+    /// <summary>Changes the authenticated user's password and revokes all active device sessions.</summary>
+    [Authorize]
+    [HttpPost("change-password")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+    {
+        var userId = User.GetUserId();
+        if (userId == Guid.Empty)
+            return Unauthorized();
+
+        try
+        {
+            var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+            await _authService.ChangePasswordAsync(userId, request, ip);
+            return Ok(new { message = "Password changed successfully. All active sessions have been invalidated." });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound(new { message = "User not found." });
+        }
+    }
 }

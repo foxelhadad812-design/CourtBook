@@ -427,6 +427,37 @@ public class AuthService : IAuthService
         return true;
     }
 
+    /// <summary>
+    /// Changes the user's password, updates the hash, and revokes all active device sessions/refresh tokens.
+    /// </summary>
+    public async Task<bool> ChangePasswordAsync(Guid userId, ChangePasswordRequest request, string? ipAddress = null)
+    {
+        if (string.IsNullOrWhiteSpace(request.CurrentPassword) || string.IsNullOrWhiteSpace(request.NewPassword))
+            throw new ArgumentException("Current and new passwords are required.");
+
+        if (request.NewPassword.Length < 6)
+            throw new ArgumentException("New password must be at least 6 characters long.");
+
+        if (string.Equals(request.CurrentPassword, request.NewPassword, StringComparison.Ordinal))
+            throw new ArgumentException("New password cannot be identical to the current password.");
+
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+        if (user is null)
+            throw new KeyNotFoundException("User not found.");
+
+        if (!BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash))
+            throw new UnauthorizedAccessException("Current password is incorrect.");
+
+        // 1. Update password hash
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+
+        // 2. Invalidate all active device sessions / refresh tokens
+        await RevokeAllUserTokensAsync(userId, ipAddress, "Password changed - all active sessions terminated");
+
+        await _db.SaveChangesAsync();
+        return true;
+    }
+
     // ── Helper Utilities ─────────────────────────────────────────────────────────
 
     /// <summary>

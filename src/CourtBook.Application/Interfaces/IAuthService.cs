@@ -28,4 +28,7 @@ public interface IAuthService
 
     /// <summary>Revokes a specific device session belonging to the user.</summary>
     Task<bool> RevokeSessionAsync(Guid userId, Guid sessionId, string? ipAddress = null);
+
+    /// <summary>Changes the user's password and revokes all active device sessions/refresh tokens.</summary>
+    Task<bool> ChangePasswordAsync(Guid userId, ChangePasswordRequest request, string? ipAddress = null);
 }

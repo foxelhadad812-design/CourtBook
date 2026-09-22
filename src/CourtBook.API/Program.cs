@@ -12,6 +12,7 @@ using CourtBook.Infrastructure.Persistence;
 using CourtBook.Infrastructure.Services;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
@@ -319,6 +320,42 @@ builder.Services.AddOpenApi(options =>
     options.AddDocumentTransformer<BearerSecurityTransformer>();
 });
 
+// ── Forwarded Headers (Reverse Proxy Configuration) ─────────────────────────
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+
+    // Security: Do NOT blindly trust arbitrary forwarded headers.
+    // By default, ASP.NET Core limits KnownProxies/KnownNetworks to loopback (127.0.0.1, ::1).
+    // Operators can configure trusted proxies and CIDR networks via appsettings / env vars.
+    var configuredProxies = builder.Configuration.GetSection("ForwardedHeaders:KnownProxies").Get<string[]>();
+    if (configuredProxies is { Length: > 0 })
+    {
+        foreach (var proxy in configuredProxies)
+        {
+            if (System.Net.IPAddress.TryParse(proxy, out var ip))
+            {
+                options.KnownProxies.Add(ip);
+            }
+        }
+    }
+
+    var configuredNetworks = builder.Configuration.GetSection("ForwardedHeaders:KnownNetworks").Get<string[]>();
+    if (configuredNetworks is { Length: > 0 })
+    {
+        foreach (var net in configuredNetworks)
+        {
+            var parts = net.Split('/');
+            if (parts.Length == 2 &&
+                System.Net.IPAddress.TryParse(parts[0], out var prefix) &&
+                int.TryParse(parts[1], out var prefixLength))
+            {
+                options.KnownIPNetworks.Add(new System.Net.IPNetwork(prefix, prefixLength));
+            }
+        }
+    }
+});
+
 // ── ProblemDetails ────────────────────────────────────────────────────────────
 builder.Services.AddProblemDetails();
 
@@ -331,7 +368,11 @@ await SeedData.SeedAsync(app.Services, app.Environment.IsDevelopment());
 // Order matters. GlobalExceptionMiddleware must be first to catch everything.
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
-if (app.Environment.IsDevelopment())
+// Apply forwarded headers from trusted reverse proxies early before security/routing
+app.UseForwardedHeaders();
+
+var enableOpenApiInProd = builder.Configuration.GetValue<bool>("OpenApi:EnableInProduction");
+if (app.Environment.IsDevelopment() || enableOpenApiInProd)
 {
     app.MapOpenApi();
     app.MapScalarApiReference(options =>
@@ -344,17 +385,45 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-// Health check endpoints — no auth required
+// Health check endpoints — public probes for orchestration / load balancers
 app.MapHealthChecks("/health");
 app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
 {
     Predicate = _ => true
 });
+
+// Detailed health diagnostics — restricted in production to authorized callers or local loopback
 app.MapHealthChecks("/health/details", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
 {
     Predicate = _ => true,
     ResponseWriter = async (context, report) =>
     {
+        var env = context.RequestServices.GetRequiredService<IWebHostEnvironment>();
+        if (!env.IsDevelopment())
+        {
+            var config = context.RequestServices.GetRequiredService<IConfiguration>();
+            var requiredKey = config["HealthChecks:DetailsApiKey"];
+
+            var providedHeaderKey = context.Request.Headers["X-Health-Key"].FirstOrDefault();
+            var providedQueryKey = context.Request.Query["apiKey"].FirstOrDefault();
+
+            var isKeyAuthorized = !string.IsNullOrWhiteSpace(requiredKey) &&
+                                  (string.Equals(providedHeaderKey, requiredKey, StringComparison.Ordinal) ||
+                                   string.Equals(providedQueryKey, requiredKey, StringComparison.Ordinal));
+
+            var isLocal = context.Connection.RemoteIpAddress != null &&
+                          (System.Net.IPAddress.IsLoopback(context.Connection.RemoteIpAddress) ||
+                           context.Connection.RemoteIpAddress.Equals(context.Connection.LocalIpAddress));
+
+            if (!isKeyAuthorized && !isLocal)
+            {
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                context.Response.ContentType = "application/json";
+                await context.Response.WriteAsync("{\"error\":\"Forbidden: Detailed health diagnostics are restricted in this environment.\"}");
+                return;
+            }
+        }
+
         context.Response.ContentType = "application/json";
         var payload = new
         {

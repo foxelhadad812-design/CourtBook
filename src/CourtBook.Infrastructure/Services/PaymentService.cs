@@ -1,4 +1,6 @@
+using System.Collections.Concurrent;
 using System.Data;
+using System.Data.Common;
 using CourtBook.Application.Common;
 using CourtBook.Application.DTOs;
 using CourtBook.Application.Interfaces;
@@ -24,6 +26,8 @@ namespace CourtBook.Infrastructure.Services;
 /// </summary>
 public class PaymentService : IPaymentService
 {
+    private static readonly ConcurrentDictionary<string, SemaphoreSlim> _webhookLocks = new(StringComparer.OrdinalIgnoreCase);
+
     private readonly AppDbContext _db;
     private readonly IPaymentGatewayService _gateway;
     private readonly INotificationService? _notifications;
@@ -217,187 +221,278 @@ public class PaymentService : IPaymentService
         string providerOrderId, string transactionRef, decimal amountPaid,
         string idempotencyKey, string provider)
     {
-        // 1. Idempotency check — prevent duplicate processing
-        var alreadyProcessed = await _db.IdempotencyLogs
-            .AnyAsync(l => l.Provider == provider && l.ProviderTransactionId == idempotencyKey);
+        // Concurrency synchronization: serialize concurrent duplicate webhook attempts for the same provider + key
+        var lockKey = $"{provider}:{idempotencyKey}".Trim().ToLowerInvariant();
+        var semaphore = _webhookLocks.GetOrAdd(lockKey, _ => new SemaphoreSlim(1, 1));
+        await semaphore.WaitAsync(TimeSpan.FromSeconds(30));
 
-        if (alreadyProcessed)
+        DbConnection? connection = null;
+        var sqlLockAcquired = false;
+        var sqlLockResource = $"CourtBook:Webhook:{provider}:{idempotencyKey}";
+        if (sqlLockResource.Length > 255) sqlLockResource = sqlLockResource[..255];
+
+        try
         {
-            _logger.LogInformation("Duplicate webhook ignored: Provider={Provider}, TxId={TxId}",
-                provider, idempotencyKey);
-            return;
-        }
-
-        // 2. Find payment by provider order ID
-        var payment = await _db.Payments
-            .Include(p => p.Booking)
-                .ThenInclude(b => b.Court)
-                    .ThenInclude(c => c.Venue)
-            .FirstOrDefaultAsync(p => p.ProviderOrderId == providerOrderId);
-
-        if (payment is null)
-        {
-            _logger.LogWarning("Webhook received for unknown order {OrderId}", providerOrderId);
-            // Still record idempotency to avoid replay
-            await RecordIdempotencyAsync(provider, idempotencyKey, null, "UnknownOrder");
-            return;
-        }
-
-        // 3. Guard: only transition from Processing (or Pending) → Completed
-        if (payment.Status == PaymentStatus.Completed)
-        {
-            _logger.LogInformation("Payment {PaymentId} already completed — skipping.", payment.Id);
-            await RecordIdempotencyAsync(provider, idempotencyKey, payment.Id, "AlreadyCompleted");
-            return;
-        }
-
-        // Invalid transitions: cannot complete an already Refunded, PartiallyRefunded, Cancelled, or Failed payment
-        if (payment.Status == PaymentStatus.Refunded ||
-            payment.Status == PaymentStatus.PartiallyRefunded ||
-            payment.Status == PaymentStatus.Cancelled ||
-            payment.Status == PaymentStatus.Failed ||
-            payment.Booking.Status == BookingStatus.Cancelled)
-        {
-            _logger.LogWarning("Cannot complete payment {PaymentId} with terminal status {Status} or cancelled booking.",
-                payment.Id, payment.Status);
-            await RecordIdempotencyAsync(provider, idempotencyKey, payment.Id, $"TerminalState_{payment.Status}");
-            return;
-        }
-
-        // 3b. 10-Minute Hold Expiration check
-        if (payment.ExpiresAt.HasValue && payment.ExpiresAt.Value < DateTime.UtcNow && payment.Status == PaymentStatus.Processing)
-        {
-            _logger.LogWarning("Payment hold expired for Payment {PaymentId} at {ExpiresAt}. Rejecting completion.",
-                payment.Id, payment.ExpiresAt.Value);
-            payment.Status = PaymentStatus.Failed;
-            payment.Booking.PaymentStatus = PaymentStatus.Failed;
-            await _db.SaveChangesAsync();
-            await RecordIdempotencyAsync(provider, idempotencyKey, payment.Id, "HoldExpired");
-            return;
-        }
-
-        // 4. Server-side amount integrity check
-        if (amountPaid < payment.Amount)
-        {
-            _logger.LogWarning("Amount mismatch: expected {Expected}, received {Actual} for Payment {PaymentId}",
-                payment.Amount, amountPaid, payment.Id);
-            payment.Status = PaymentStatus.Failed;
-            payment.Booking.PaymentStatus = PaymentStatus.Failed;
-            await _db.SaveChangesAsync();
-            await RecordIdempotencyAsync(provider, idempotencyKey, payment.Id, "AmountMismatch");
-            return;
-        }
-
-        // 5. Mark payment completed (inside a transaction for data consistency)
-        var strategy = _db.Database.CreateExecutionStrategy();
-        await strategy.ExecuteAsync(async () =>
-        {
-            using var tx = _db.Database.IsRelational()
-                ? await _db.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted)
-                : null;
-            try
+            // Acquire SQL Server session-level application lock if running on relational database
+            if (_db.Database.IsRelational())
             {
-                payment.Status                = PaymentStatus.Completed;
-                payment.TransactionReference  = transactionRef;
-                payment.PaidAt                = DateTime.UtcNow;
-                payment.Booking.PaymentStatus = PaymentStatus.Completed;
-
-                // Calculate commission and owner net
-                var commission = Math.Round(amountPaid * _commissionRate, 2);
-                var ownerNet   = Math.Round(amountPaid - commission, 2);
-                payment.CommissionAmount = commission;
-                payment.OwnerNetAmount   = ownerNet;
-
-                var ownerId = payment.Booking.Court?.Venue?.OwnerId ?? Guid.Empty;
-
-                // 6. Write ledger entries
-                _db.TransactionLedger.Add(new TransactionLedger
+                try
                 {
-                    Id                     = Guid.NewGuid(),
-                    PaymentId              = payment.Id,
-                    BookingId              = payment.BookingId,
-                    UserId                 = payment.Booking.UserId,
-                    OwnerId                = ownerId,
-                    EntryType              = LedgerEntryType.Payment,
-                    GrossAmount            = amountPaid,
-                    CommissionAmount       = commission,
-                    NetAmount              = ownerNet,
-                    CommissionRateSnapshot = _commissionRate,
-                    Currency               = payment.Currency,
-                    Description            = $"Payment for booking {payment.Booking.BookingReference}",
-                    ProviderReference      = transactionRef,
-                    CreatedAt              = DateTime.UtcNow
-                });
-
-                // 7. Record idempotency
-                _db.IdempotencyLogs.Add(new IdempotencyLog
-                {
-                    Id                    = Guid.NewGuid(),
-                    Provider              = provider,
-                    ProviderTransactionId = idempotencyKey,
-                    ResponseStatusCode    = 200,
-                    Action                = "PaymentCompleted",
-                    PaymentId             = payment.Id,
-                    ProcessedAt           = DateTime.UtcNow
-                });
-
-                // 8. Update OwnerBalance (Funds enter PendingBalance until settlement)
-                if (ownerId != Guid.Empty)
-                {
-                    var ownerBal = await _db.OwnerBalances.FirstOrDefaultAsync(b => b.OwnerId == ownerId);
-                    if (ownerBal is null)
+                    connection = _db.Database.GetDbConnection();
+                    if (connection.State != ConnectionState.Open)
                     {
-                        ownerBal = new OwnerBalance
-                        {
-                            OwnerId = ownerId,
-                            Currency = payment.Currency,
-                            ConcurrencyStamp = Guid.NewGuid(),
-                            UpdatedAt = DateTime.UtcNow
-                        };
-                        _db.OwnerBalances.Add(ownerBal);
+                        await connection.OpenAsync();
                     }
-                    ownerBal.PendingBalance += ownerNet;
-                    ownerBal.ConcurrencyStamp = Guid.NewGuid();
-                    ownerBal.UpdatedAt = DateTime.UtcNow;
+
+                    await using var getLockCmd = connection.CreateCommand();
+                    getLockCmd.CommandText = @"
+                        DECLARE @result INT;
+                        EXEC @result = sp_getapplock
+                            @Resource = @resourceName,
+                            @LockMode = 'Exclusive',
+                            @LockOwner = 'Session',
+                            @LockTimeout = 5000;
+                        SELECT @result;";
+                    var p = getLockCmd.CreateParameter();
+                    p.ParameterName = "@resourceName";
+                    p.Value = sqlLockResource;
+                    getLockCmd.Parameters.Add(p);
+
+                    var scalar = await getLockCmd.ExecuteScalarAsync();
+                    var lockResult = scalar is not null ? Convert.ToInt32(scalar) : -999;
+                    if (lockResult >= 0)
+                    {
+                        sqlLockAcquired = true;
+                    }
                 }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to acquire distributed lock for webhook {Resource}. Relying on in-memory semaphore and database unique constraints.", sqlLockResource);
+                }
+            }
 
+            // 1. Idempotency check — prevent duplicate processing
+            var alreadyProcessed = await _db.IdempotencyLogs
+                .AnyAsync(l => l.Provider == provider && l.ProviderTransactionId == idempotencyKey);
+
+            if (alreadyProcessed)
+            {
+                _logger.LogInformation("Duplicate webhook ignored: Provider={Provider}, TxId={TxId}",
+                    provider, idempotencyKey);
+                return;
+            }
+
+            // 2. Find payment by provider order ID
+            var payment = await _db.Payments
+                .Include(p => p.Booking)
+                    .ThenInclude(b => b.Court)
+                        .ThenInclude(c => c.Venue)
+                .FirstOrDefaultAsync(p => p.ProviderOrderId == providerOrderId);
+
+            if (payment is null)
+            {
+                _logger.LogWarning("Webhook received for unknown order {OrderId}", providerOrderId);
+                // Still record idempotency to avoid replay
+                await RecordIdempotencyAsync(provider, idempotencyKey, null, "UnknownOrder");
+                return;
+            }
+
+            // 3. Guard: only transition from Processing (or Pending) → Completed
+            if (payment.Status == PaymentStatus.Completed)
+            {
+                _logger.LogInformation("Payment {PaymentId} already completed — skipping.", payment.Id);
+                await RecordIdempotencyAsync(provider, idempotencyKey, payment.Id, "AlreadyCompleted");
+                return;
+            }
+
+            // Invalid transitions: cannot complete an already Refunded, PartiallyRefunded, Cancelled, or Failed payment
+            if (payment.Status == PaymentStatus.Refunded ||
+                payment.Status == PaymentStatus.PartiallyRefunded ||
+                payment.Status == PaymentStatus.Cancelled ||
+                payment.Status == PaymentStatus.Failed ||
+                payment.Booking.Status == BookingStatus.Cancelled)
+            {
+                _logger.LogWarning("Cannot complete payment {PaymentId} with terminal status {Status} or cancelled booking.",
+                    payment.Id, payment.Status);
+                await RecordIdempotencyAsync(provider, idempotencyKey, payment.Id, $"TerminalState_{payment.Status}");
+                return;
+            }
+
+            // 3b. 10-Minute Hold Expiration check
+            if (payment.ExpiresAt.HasValue && payment.ExpiresAt.Value < DateTime.UtcNow && payment.Status == PaymentStatus.Processing)
+            {
+                _logger.LogWarning("Payment hold expired for Payment {PaymentId} at {ExpiresAt}. Rejecting completion.",
+                    payment.Id, payment.ExpiresAt.Value);
+                payment.Status = PaymentStatus.Failed;
+                payment.Booking.PaymentStatus = PaymentStatus.Failed;
                 await _db.SaveChangesAsync();
-                if (tx is not null) await tx.CommitAsync();
+                await RecordIdempotencyAsync(provider, idempotencyKey, payment.Id, "HoldExpired");
+                return;
             }
-            catch
+
+            // 4. Server-side amount integrity check
+            if (amountPaid < payment.Amount)
             {
-                if (tx is not null) await tx.RollbackAsync();
-                throw;
+                _logger.LogWarning("Amount mismatch: expected {Expected}, received {Actual} for Payment {PaymentId}",
+                    payment.Amount, amountPaid, payment.Id);
+                payment.Status = PaymentStatus.Failed;
+                payment.Booking.PaymentStatus = PaymentStatus.Failed;
+                await _db.SaveChangesAsync();
+                await RecordIdempotencyAsync(provider, idempotencyKey, payment.Id, "AmountMismatch");
+                return;
             }
-        });
 
-        // 8. Payment receipt notification (outside transaction)
-        if (_notifications is not null)
-        {
-            try
+            // 5. Mark payment completed (inside a transaction for data consistency)
+            var strategy = _db.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
             {
-                await _notifications.SendNotificationAsync(
-                    payment.Booking.UserId,
-                    "Payment Received ✅",
-                    $"Payment of EGP {amountPaid:0.00} confirmed for booking {payment.Booking.BookingReference}.",
-                    NotificationType.PaymentReceipt,
-                    $"/Bookings/Details?id={payment.BookingId}");
+                using var tx = _db.Database.IsRelational()
+                    ? await _db.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted)
+                    : null;
+                try
+                {
+                    payment.Status                = PaymentStatus.Completed;
+                    payment.TransactionReference  = transactionRef;
+                    payment.PaidAt                = DateTime.UtcNow;
+                    payment.Booking.PaymentStatus = PaymentStatus.Completed;
 
-                var ownerId = payment.Booking.Court?.Venue?.OwnerId ?? Guid.Empty;
-                if (ownerId != Guid.Empty)
+                    // Calculate commission and owner net
+                    var commission = Math.Round(amountPaid * _commissionRate, 2);
+                    var ownerNet   = Math.Round(amountPaid - commission, 2);
+                    payment.CommissionAmount = commission;
+                    payment.OwnerNetAmount   = ownerNet;
+
+                    var ownerId = payment.Booking.Court?.Venue?.OwnerId ?? Guid.Empty;
+
+                    // 6. Write ledger entries
+                    _db.TransactionLedger.Add(new TransactionLedger
+                    {
+                        Id                     = Guid.NewGuid(),
+                        PaymentId              = payment.Id,
+                        BookingId              = payment.BookingId,
+                        UserId                 = payment.Booking.UserId,
+                        OwnerId                = ownerId,
+                        EntryType              = LedgerEntryType.Payment,
+                        GrossAmount            = amountPaid,
+                        CommissionAmount       = commission,
+                        NetAmount              = ownerNet,
+                        CommissionRateSnapshot = _commissionRate,
+                        Currency               = payment.Currency,
+                        Description            = $"Payment for booking {payment.Booking.BookingReference}",
+                        ProviderReference      = transactionRef,
+                        CreatedAt              = DateTime.UtcNow
+                    });
+
+                    // 7. Record idempotency
+                    _db.IdempotencyLogs.Add(new IdempotencyLog
+                    {
+                        Id                    = Guid.NewGuid(),
+                        Provider              = provider,
+                        ProviderTransactionId = idempotencyKey,
+                        ResponseStatusCode    = 200,
+                        Action                = "PaymentCompleted",
+                        PaymentId             = payment.Id,
+                        ProcessedAt           = DateTime.UtcNow
+                    });
+
+                    // 8. Update OwnerBalance (Funds enter PendingBalance until settlement)
+                    if (ownerId != Guid.Empty)
+                    {
+                        var ownerBal = await _db.OwnerBalances.FirstOrDefaultAsync(b => b.OwnerId == ownerId);
+                        if (ownerBal is null)
+                        {
+                            ownerBal = new OwnerBalance
+                            {
+                                OwnerId = ownerId,
+                                Currency = payment.Currency,
+                                ConcurrencyStamp = Guid.NewGuid(),
+                                UpdatedAt = DateTime.UtcNow
+                            };
+                            _db.OwnerBalances.Add(ownerBal);
+                        }
+                        ownerBal.PendingBalance += ownerNet;
+                        ownerBal.ConcurrencyStamp = Guid.NewGuid();
+                        ownerBal.UpdatedAt = DateTime.UtcNow;
+                    }
+
+                    await _db.SaveChangesAsync();
+                    if (tx is not null) await tx.CommitAsync();
+                }
+                catch (DbUpdateException)
+                {
+                    if (tx is not null) await tx.RollbackAsync();
+
+                    // Check if unique index IX_IdempotencyLog_Provider_TransactionId resolved concurrent delivery
+                    var isDuplicate = await _db.IdempotencyLogs
+                        .AnyAsync(l => l.Provider == provider && l.ProviderTransactionId == idempotencyKey);
+                    if (isDuplicate)
+                    {
+                        _logger.LogInformation("Concurrent duplicate webhook safely resolved by database unique constraint for Provider={Provider}, TxId={TxId}",
+                            provider, idempotencyKey);
+                        return;
+                    }
+                    throw;
+                }
+                catch
+                {
+                    if (tx is not null) await tx.RollbackAsync();
+                    throw;
+                }
+            });
+
+            // 8. Payment receipt notification (outside transaction, inside try block)
+            if (_notifications is not null)
+            {
+                try
                 {
                     await _notifications.SendNotificationAsync(
-                        ownerId,
-                        "Payment Received 💰",
-                        $"Payment received for booking {payment.Booking.BookingReference}. Net: EGP {payment.OwnerNetAmount:0.00}.",
-                        NotificationType.PaymentReceived,
-                        "/owner/bookings");
+                        payment.Booking.UserId,
+                        "Payment Received ✅",
+                        $"Payment of EGP {amountPaid:0.00} confirmed for booking {payment.Booking.BookingReference}.",
+                        NotificationType.PaymentReceipt,
+                        $"/Bookings/Details?id={payment.BookingId}");
+
+                    var ownerId = payment.Booking.Court?.Venue?.OwnerId ?? Guid.Empty;
+                    if (ownerId != Guid.Empty)
+                    {
+                        await _notifications.SendNotificationAsync(
+                            ownerId,
+                            "Payment Received 💰",
+                            $"Payment received for booking {payment.Booking.BookingReference}. Net: EGP {payment.OwnerNetAmount:0.00}.",
+                            NotificationType.PaymentReceived,
+                            "/owner/bookings");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to send payment notification for booking {BookingId}", payment.BookingId);
                 }
             }
-            catch (Exception ex)
+        }
+        finally
+        {
+            if (sqlLockAcquired && connection != null && connection.State == ConnectionState.Open)
             {
-                _logger.LogWarning(ex, "Failed to send payment notification for booking {BookingId}", payment.BookingId);
+                try
+                {
+                    await using var releaseCmd = connection.CreateCommand();
+                    releaseCmd.CommandText = @"
+                        EXEC sp_releaseapplock
+                            @Resource = @resourceName,
+                            @LockOwner = 'Session';";
+                    var p = releaseCmd.CreateParameter();
+                    p.ParameterName = "@resourceName";
+                    p.Value = sqlLockResource;
+                    releaseCmd.Parameters.Add(p);
+                    await releaseCmd.ExecuteNonQueryAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to release distributed lock for webhook {Resource}", sqlLockResource);
+                }
             }
+
+            semaphore.Release();
         }
     }
 
