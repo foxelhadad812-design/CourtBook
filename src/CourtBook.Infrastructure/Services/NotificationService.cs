@@ -15,17 +15,20 @@ public class NotificationService : INotificationService
     private readonly ILogger<NotificationService> _logger;
     private readonly IEmailSender? _emailSender;
     private readonly IPushNotificationSender? _pushSender;
+    private readonly IRealTimeNotificationSender? _realTimeSender;
 
     public NotificationService(
         AppDbContext db,
         ILogger<NotificationService> logger,
         IEmailSender? emailSender = null,
-        IPushNotificationSender? pushSender = null)
+        IPushNotificationSender? pushSender = null,
+        IRealTimeNotificationSender? realTimeSender = null)
     {
         _db = db;
         _logger = logger;
         _emailSender = emailSender;
         _pushSender = pushSender;
+        _realTimeSender = realTimeSender;
     }
 
     public async Task SendNotificationAsync(Guid userId, string title, string message, NotificationType type, string? actionUrl = null)
@@ -52,6 +55,29 @@ public class NotificationService : INotificationService
         {
             try { await _pushSender.SendPushAsync(userId, title, message, actionUrl); }
             catch (Exception ex) { _logger.LogWarning(ex, "Push delivery failed for user {UserId}", userId); }
+        }
+
+        // Real-time delivery (SignalR)
+        if (_realTimeSender is not null)
+        {
+            try
+            {
+                var payload = new
+                {
+                    id = notification.Id,
+                    title = notification.Title,
+                    message = notification.Message,
+                    type = notification.Type.ToString(),
+                    actionUrl = notification.ActionUrl,
+                    createdAt = notification.CreatedAt,
+                    isRead = false
+                };
+                await _realTimeSender.SendNotificationToUserAsync(userId, payload);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Real-time notification delivery failed for user {UserId}", userId);
+            }
         }
     }
 

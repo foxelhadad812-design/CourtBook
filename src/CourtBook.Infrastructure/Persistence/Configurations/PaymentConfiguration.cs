@@ -50,5 +50,6 @@ public class PaymentConfiguration : IEntityTypeConfiguration<Payment>
 
         builder.HasIndex(p => p.Status);
         builder.HasIndex(p => p.ProviderOrderId);
+        builder.HasIndex(p => new { p.Status, p.ExpiresAt });
     }
 }

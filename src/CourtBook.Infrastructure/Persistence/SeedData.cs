@@ -16,7 +16,7 @@ public static class SeedData
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<AppDbContext>>();
 
         // 1. System prerequisites: always seeded (even in Production)
-        await EnsureSystemPrerequisitesAsync(db, logger);
+        await EnsureSystemPrerequisitesAsync(db, logger, isDevelopment);
 
         // 2. Demo data: only seeded in Development
         if (isDevelopment)
@@ -25,12 +25,12 @@ public static class SeedData
         }
     }
 
-    public static async Task EnsureSystemPrerequisitesAsync(AppDbContext db, ILogger logger)
+    public static async Task EnsureSystemPrerequisitesAsync(AppDbContext db, ILogger logger, bool isDevelopment = true)
     {
         await db.Database.MigrateAsync();
         await EnsureTermsDocumentsAsync(db, logger);
         await EnsureBaseAmenitiesAsync(db, logger);
-        await EnsureAdminAccountAsync(db, logger);
+        await EnsureAdminAccountAsync(db, logger, isDevelopment);
     }
 
     public static async Task EnsureDemoDataAsync(AppDbContext db, ILogger logger)
@@ -140,18 +140,40 @@ Last Updated: September 2026
         }
     }
 
-    public static async Task EnsureAdminAccountAsync(AppDbContext db, ILogger logger)
+    public static async Task EnsureAdminAccountAsync(AppDbContext db, ILogger logger, bool isDevelopment = true)
     {
         var admin = await db.Users.FirstOrDefaultAsync(u => u.Role == Role.Admin);
         if (admin == null)
         {
-            logger.LogInformation("Seeding default System Administrator account...");
+            var envPassword = Environment.GetEnvironmentVariable("ADMIN_INITIAL_PASSWORD") 
+                              ?? Environment.GetEnvironmentVariable("Admin__InitialPassword");
+
+            string initialPassword;
+            if (!string.IsNullOrWhiteSpace(envPassword))
+            {
+                initialPassword = envPassword;
+                logger.LogInformation("Creating System Administrator account using environment configuration password.");
+            }
+            else if (isDevelopment)
+            {
+                initialPassword = "Admin@123";
+                logger.LogInformation("Seeding default System Administrator account for development...");
+            }
+            else
+            {
+                // In production/staging, never default to static known password
+                initialPassword = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(18));
+                logger.LogWarning("SECURITY ALERT: No ADMIN_INITIAL_PASSWORD configured! Generated random one-time administrator password: {InitialPassword}. Please rotate immediately.", initialPassword);
+            }
+
+            var adminEmail = Environment.GetEnvironmentVariable("ADMIN_EMAIL") ?? "admin@courtbook.eg";
+
             admin = new User
             {
                 Id = Guid.NewGuid(),
                 Name = "PlaySpot Admin",
-                Email = "admin@courtbook.eg",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123"),
+                Email = adminEmail,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(initialPassword),
                 Phone = "01000000001",
                 Role = Role.Admin,
                 DateOfBirth = new DateOnly(1990, 1, 1),
@@ -159,7 +181,7 @@ Last Updated: September 2026
             };
             await db.Users.AddAsync(admin);
             await db.SaveChangesAsync();
-            logger.LogInformation("Default System Administrator account created (admin@courtbook.eg).");
+            logger.LogInformation("System Administrator account created ({Email}).", admin.Email);
         }
     }
 

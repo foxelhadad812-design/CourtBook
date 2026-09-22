@@ -678,6 +678,7 @@
     _badge: null,
     _previewList: null,
     _container: null,
+    _connection: null,
 
     init() {
       this._badge = document.getElementById('ps-notifications-badge');
@@ -695,6 +696,121 @@
           this.loadPreview();
         });
       }
+
+      // Initialize SignalR real-time client
+      this.initSignalR();
+    },
+
+    initSignalR() {
+      if (typeof signalR === 'undefined') {
+        console.warn('SignalR library not available. Falling back to HTTP sync.');
+        return;
+      }
+
+      const tokenMeta = document.querySelector('meta[name="jwt-token"]');
+      const apiMeta = document.querySelector('meta[name="api-base-url"]');
+      const token = tokenMeta ? tokenMeta.getAttribute('content') : null;
+      const apiBase = apiMeta ? apiMeta.getAttribute('content') : '';
+
+      if (!token) return;
+
+      const hubUrl = `${apiBase}/hubs/notifications`;
+
+      try {
+        this._connection = new signalR.HubConnectionBuilder()
+          .withUrl(hubUrl, {
+            accessTokenFactory: () => token,
+            skipNegotiation: false,
+            transport: signalR.HttpTransportType.WebSockets | signalR.HttpTransportType.LongPolling
+          })
+          .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
+          .configureLogging(signalR.LogLevel.Warning)
+          .build();
+
+        this._connection.on('ReceiveNotification', (notification) => {
+          this.handleIncomingNotification(notification);
+        });
+
+        this._connection.onreconnecting((error) => {
+          console.log('PlaySpot SignalR reconnecting...', error);
+        });
+
+        this._connection.onreconnected((connectionId) => {
+          console.log('PlaySpot SignalR reconnected. ConnectionId:', connectionId);
+          this.updateUnreadCount();
+        });
+
+        this._connection.onclose((error) => {
+          console.log('PlaySpot SignalR connection closed.', error);
+        });
+
+        this._connection.start()
+          .then(() => {
+            console.log('PlaySpot SignalR notifications connected.');
+          })
+          .catch(err => {
+            console.warn('SignalR connection failed (will auto-retry on reconnect):', err);
+          });
+      } catch (err) {
+        console.warn('Failed to initialize SignalR connection:', err);
+      }
+    },
+
+    handleIncomingNotification(notification) {
+      if (!notification) return;
+
+      // 1. Increment unread count badge
+      this.incrementUnreadCount();
+
+      // 2. Extract notification details
+      const title = notification.title || notification.Title || 'New Notification';
+      const message = notification.message || notification.Message || '';
+      const type = (notification.type || notification.Type || '').toLowerCase();
+      const actionUrl = notification.actionUrl || notification.ActionUrl;
+
+      let toastType = 'info';
+      if (type.includes('receipt') || type.includes('received') || type.includes('confirmed')) {
+        toastType = 'success';
+      } else if (type.includes('failed') || type.includes('expired') || type.includes('cancelled')) {
+        toastType = 'warning';
+      }
+
+      // 3. Show dynamic toast
+      if (PlaySpot.Toast) {
+        PlaySpot.Toast.show(toastType, message, {
+          title: `🔔 ${title}`,
+          duration: 6000
+        });
+      }
+
+      // 4. Update preview list in-place if dropdown is already populated
+      if (this._previewList) {
+        const listGroup = this._previewList.querySelector('.list-group');
+        if (listGroup) {
+          const isSafeUrl = actionUrl && actionUrl.startsWith('/') && !actionUrl.startsWith('//') && !actionUrl.startsWith('/\\');
+          const itemHtml = `
+            <div class="list-group-item p-3 border-bottom bg-body-secondary bg-opacity-25 ps-animate-fade-in">
+              <div class="d-flex justify-content-between align-items-start mb-1">
+                <span class="fw-bold small text-primary">${this._escapeHtml(title)}</span>
+                <span class="badge bg-primary-subtle text-primary" style="font-size: 0.65rem;">Just now</span>
+              </div>
+              <p class="text-muted small mb-1 text-truncate" style="max-width: 280px;">${this._escapeHtml(message)}</p>
+              ${isSafeUrl ? `<a href="${actionUrl}" class="small text-decoration-none fw-semibold" style="font-size: 0.75rem;">View <i class="bi bi-chevron-right"></i></a>` : ''}
+            </div>
+          `;
+          listGroup.insertAdjacentHTML('afterbegin', itemHtml);
+        }
+      }
+    },
+
+    incrementUnreadCount() {
+      if (!this._badge) return;
+      const currentText = this._badge.textContent.trim();
+      let current = parseInt(currentText, 10);
+      if (isNaN(current)) current = 0;
+      current += 1;
+      this._badge.textContent = current > 99 ? '99+' : current;
+      this._badge.classList.remove('d-none');
     },
 
     async updateUnreadCount() {

@@ -3,7 +3,10 @@ using System.Threading.RateLimiting;
 using Asp.Versioning;
 using CourtBook.Application.Interfaces;
 using CourtBook.Application.Validators;
+using CourtBook.API.Hubs;
 using CourtBook.API.Middleware;
+using CourtBook.API.Services;
+using CourtBook.Infrastructure.BackgroundJobs;
 using CourtBook.Infrastructure.Persistence;
 using CourtBook.Infrastructure.Services;
 using FluentValidation;
@@ -64,6 +67,11 @@ builder.Services.AddHttpClient<IPaymentGatewayService, PaymobGatewayService>(cli
 });
 builder.Services.AddScoped<IPaymentService,      PaymentService>();
 
+// ── Phase 8: Real-Time SignalR & Background Workers ──────────────────────────
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<IRealTimeNotificationSender, SignalRNotificationSender>();
+builder.Services.AddHostedService<PaymentHoldWorker>();
+
 // ── FluentValidation ──────────────────────────────────────────────────────────
 // Registers all validators from the Application assembly automatically.
 builder.Services.AddValidatorsFromAssemblyContaining<LoginRequestValidator>();
@@ -86,7 +94,10 @@ builder.Services.AddCors(options =>
 
     // Permissive policy for development only
     options.AddPolicy("DevCors", policy =>
-        policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
+        policy.SetIsOriginAllowed(_ => true)
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials());
 });
 
 // ── Rate Limiting ──────────────────────────────────────────────────────────────
@@ -169,6 +180,20 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey         = new SymmetricSecurityKey(key),
         ClockSkew                = TimeSpan.FromSeconds(30), // tight clock skew
     };
+
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+            {
+                context.Token = accessToken;
+            }
+            return Task.CompletedTask;
+        }
+    };
 });
 
 builder.Services.AddAuthorization();
@@ -243,8 +268,12 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-// Health check endpoint — no auth required
+// Health check endpoints — no auth required
 app.MapHealthChecks("/health");
+app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = _ => true
+});
 
 app.UseHttpsRedirection();
 
@@ -256,6 +285,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<NotificationHub>("/hubs/notifications");
 
 app.Run();
 

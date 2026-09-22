@@ -8,6 +8,9 @@ builder.Services.AddRazorPages();
 
 builder.Services.AddHttpContextAccessor();
 
+// Cache & Session State (defaults to memory; cluster deployments can swap in AddStackExchangeRedisCache)
+builder.Services.AddDistributedMemoryCache();
+
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromHours(1);
