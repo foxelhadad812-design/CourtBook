@@ -46,6 +46,10 @@ public class AppDbContext : DbContext
     // Phase 9.2: Advanced Matchmaking & Lobby Infrastructure
     public DbSet<PlayerSportSkill> PlayerSportSkills => Set<PlayerSportSkill>();
 
+    // Phase 9.3: Community & Marketplace Infrastructure
+    public DbSet<GameInvitation> GameInvitations => Set<GameInvitation>();
+    public DbSet<PlayerConnection> PlayerConnections => Set<PlayerConnection>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // Automatically applies all IEntityTypeConfiguration<T> classes in this assembly

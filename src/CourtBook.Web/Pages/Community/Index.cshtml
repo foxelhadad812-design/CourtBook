@@ -1,0 +1,309 @@
+@page
+@model CourtBook.Web.Pages.Community.IndexModel
+@{
+    ViewData["Title"] = Loc.IsArabic ? "مجتمع اللاعبين والتواصل" : "Player Community & Connections";
+}
+
+<div class="container py-4">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h1 class="h2 fw-bold mb-1" style="color: var(--ps-text);">
+                <i class="bi bi-people-fill text-primary me-2"></i>@(Loc.IsArabic ? "مجتمع اللاعبين" : "Player Community")
+            </h1>
+            <p class="text-muted mb-0">
+                @(Loc.IsArabic ? "ابحث عن زملاء للعب، كوّن شبكة أصدقائك الرياضية، وتابع تقييمات اللاعبين الموثوقة." : "Discover players, build your sports network, and view verified player reliability ratings.")
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="/Community/Invitations" class="ps-btn ps-btn-outline-primary d-flex align-items-center gap-2">
+                <i class="bi bi-envelope-paper"></i> @(Loc.IsArabic ? "دعوات المباريات" : "Game Invitations")
+            </a>
+            <a href="/Profile/GameHistory" class="ps-btn ps-btn-secondary d-flex align-items-center gap-2">
+                <i class="bi bi-clock-history"></i> @(Loc.IsArabic ? "سجل المباريات" : "Match History")
+            </a>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show d-flex align-items-center gap-2" role="alert">
+            <i class="bi bi-check-circle-fill"></i>
+            <div>@Model.SuccessMessage</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center gap-2" role="alert">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <div>@Model.ErrorMessage</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Tabs Navigation -->
+    <ul class="nav nav-pills mb-4 gap-2">
+        <li class="nav-item">
+            <a class="nav-link @(Model.ActiveTab == "players" ? "active" : "") fw-semibold" href="/Community?ActiveTab=players">
+                <i class="bi bi-search me-1"></i> @(Loc.IsArabic ? "استكشاف اللاعبين" : "Find Players")
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @(Model.ActiveTab == "connections" ? "active" : "") fw-semibold" href="/Community?ActiveTab=connections">
+                <i class="bi bi-person-check me-1"></i> @(Loc.IsArabic ? "شبكة أصدقائي" : "My Connections")
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @(Model.ActiveTab == "pending" ? "active" : "") fw-semibold" href="/Community?ActiveTab=pending">
+                <i class="bi bi-person-plus me-1"></i> @(Loc.IsArabic ? "طلبات التواصل" : "Pending Requests")
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @(Model.ActiveTab == "blocked" ? "active" : "") fw-semibold" href="/Community?ActiveTab=blocked">
+                <i class="bi bi-slash-circle me-1"></i> @(Loc.IsArabic ? "المحظورون" : "Blocked Users")
+            </a>
+        </li>
+    </ul>
+
+    <!-- Tab 1: Find Players -->
+    @if (Model.ActiveTab == "players")
+    {
+        <!-- Filter Form -->
+        <div class="card border-0 shadow-sm mb-4" style="background: var(--ps-card-bg); border-radius: var(--ps-radius-lg);">
+            <div class="card-body p-3">
+                <form method="get" class="row g-2 align-items-center">
+                    <input type="hidden" name="ActiveTab" value="players" />
+                    <div class="col-md-5">
+                        <div class="input-group">
+                            <span class="input-group-text bg-transparent border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                            <input type="text" name="Query" value="@Model.Query" class="form-control border-start-0" placeholder="@(Loc.IsArabic ? "ابحث بالاسم أو السيرة الذاتية..." : "Search player name or bio...")" />
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <select name="Sport" class="form-select">
+                            <option value="">@(Loc.IsArabic ? "كل الرياضات" : "All Sports")</option>
+                            <option value="Football" selected="@(Model.Sport == "Football")">@(Loc.IsArabic ? "كرة قدم" : "Football")</option>
+                            <option value="Padel" selected="@(Model.Sport == "Padel")">@(Loc.IsArabic ? "بادل" : "Padel")</option>
+                            <option value="Tennis" selected="@(Model.Sport == "Tennis")">@(Loc.IsArabic ? "تنس" : "Tennis")</option>
+                            <option value="Basketball" selected="@(Model.Sport == "Basketball")">@(Loc.IsArabic ? "كرة سلة" : "Basketball")</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <input type="text" name="City" value="@Model.City" class="form-control" placeholder="@(Loc.IsArabic ? "المدينة (مثال: القاهرة)" : "City (e.g. Cairo)")" />
+                    </div>
+                    <div class="col-md-1">
+                        <button type="submit" class="ps-btn ps-btn-primary w-100">@(Loc.IsArabic ? "بحث" : "Search")</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Players Grid -->
+        @if (Model.PlayersResult?.Items.Any() == true)
+        {
+            <div class="row g-3">
+                @foreach (var p in Model.PlayersResult.Items)
+                {
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card h-100 border-0 shadow-sm p-3" style="background: var(--ps-card-bg); border-radius: var(--ps-radius-lg);">
+                            <div class="d-flex align-items-center gap-3 mb-3">
+                                <div style="width: 50px; height: 50px; border-radius: 50%; background: var(--ps-primary-100); display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; color: var(--ps-primary);">
+                                    @(p.Name.Length > 0 ? p.Name[0].ToString().ToUpper() : "P")
+                                </div>
+                                <div>
+                                    <h5 class="fw-bold mb-0" style="color: var(--ps-text);">
+                                        <a href="/Profile/Public?userId=@p.UserId" class="text-decoration-none" style="color: var(--ps-text);">@p.Name</a>
+                                    </h5>
+                                    <span class="badge bg-primary-subtle text-primary mt-1">@p.SkillLevel</span>
+                                    @if (!string.IsNullOrEmpty(p.PreferredSport))
+                                    {
+                                        <span class="badge bg-secondary-subtle text-secondary mt-1">@p.PreferredSport</span>
+                                    }
+                                </div>
+                            </div>
+
+                            @if (!string.IsNullOrEmpty(p.Bio))
+                            {
+                                <p class="text-muted small mb-3 text-truncate-2">@p.Bio</p>
+                            }
+
+                            <!-- Reputation Badge -->
+                            <div class="d-flex justify-content-between align-items-center bg-body-tertiary p-2 rounded mb-3">
+                                <span class="small fw-semibold text-muted">@(Loc.IsArabic ? "درجة الموثوقية" : "Reliability Score")</span>
+                                <span class="badge @(p.Reputation.ReliabilityScore >= 80 ? "bg-success" : p.Reputation.ReliabilityScore >= 50 ? "bg-warning" : "bg-secondary")">
+                                    @p.Reputation.ReliabilityScore% (@p.Reputation.ReliabilityTier)
+                                </span>
+                            </div>
+
+                            <div class="mt-auto d-flex gap-2">
+                                <a href="/Profile/Public?userId=@p.UserId" class="ps-btn ps-btn-outline-primary ps-btn-sm flex-fill text-center">
+                                    @(Loc.IsArabic ? "عرض الملف" : "View Profile")
+                                </a>
+                                @if (p.ConnectionStatusWithCaller == "None")
+                                {
+                                    <form method="post" asp-page-handler="Connect" asp-route-targetUserId="@p.UserId" class="flex-fill">
+                                        <button type="submit" class="ps-btn ps-btn-primary ps-btn-sm w-100">
+                                            <i class="bi bi-person-plus"></i> @(Loc.IsArabic ? "تواصل" : "Connect")
+                                        </button>
+                                    </form>
+                                }
+                                else if (p.ConnectionStatusWithCaller == "PendingSent")
+                                {
+                                    <button class="ps-btn ps-btn-secondary ps-btn-sm flex-fill" disabled>
+                                        @(Loc.IsArabic ? "تم الإرسال" : "Pending")
+                                    </button>
+                                }
+                                else if (p.ConnectionStatusWithCaller == "Connected")
+                                {
+                                    <span class="badge bg-success-subtle text-success d-flex align-items-center justify-content-center flex-fill">
+                                        <i class="bi bi-check2 me-1"></i> @(Loc.IsArabic ? "متصل" : "Connected")
+                                    </span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-5">
+                <i class="bi bi-people fs-1 text-muted"></i>
+                <h5 class="mt-2 text-muted">@(Loc.IsArabic ? "لم يتم العثور على لاعبين مطابقين للبحث." : "No matching players found.")</h5>
+            </div>
+        }
+    }
+
+    <!-- Tab 2: My Connections -->
+    @if (Model.ActiveTab == "connections")
+    {
+        @if (Model.ConnectionsResult?.Items.Any() == true)
+        {
+            <div class="row g-3">
+                @foreach (var c in Model.ConnectionsResult.Items)
+                {
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card border-0 shadow-sm p-3 h-100" style="background: var(--ps-card-bg); border-radius: var(--ps-radius-lg);">
+                            <div class="d-flex align-items-center gap-3 mb-3">
+                                <div style="width: 48px; height: 48px; border-radius: 50%; background: var(--ps-primary-100); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; color: var(--ps-primary);">
+                                    @(c.UserName.Length > 0 ? c.UserName[0].ToString().ToUpper() : "P")
+                                </div>
+                                <div>
+                                    <h5 class="fw-bold mb-0">
+                                        <a href="/Profile/Public?userId=@c.UserId" class="text-decoration-none" style="color: var(--ps-text);">@c.UserName</a>
+                                    </h5>
+                                    <span class="badge bg-primary-subtle text-primary">@c.SkillLevel</span>
+                                </div>
+                            </div>
+                            <div class="mt-auto d-flex gap-2">
+                                <a href="/Profile/Public?userId=@c.UserId" class="ps-btn ps-btn-outline-primary ps-btn-sm flex-fill text-center">
+                                    @(Loc.IsArabic ? "الملف الشخصي" : "Profile")
+                                </a>
+                                <form method="post" asp-page-handler="Remove" asp-route-connectionId="@c.Id">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="@(Loc.IsArabic ? "إلغاء التواصل" : "Remove Connection")">
+                                        <i class="bi bi-person-dash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-5">
+                <i class="bi bi-person-hearts fs-1 text-muted"></i>
+                <h5 class="mt-2 text-muted">@(Loc.IsArabic ? "ليس لديك اتصالات حالياً. ابدأ بإضافة لاعبين من تبويب 'استكشاف اللاعبين'." : "You have no connections yet. Start connecting with players!")</h5>
+            </div>
+        }
+    }
+
+    <!-- Tab 3: Pending Requests -->
+    @if (Model.ActiveTab == "pending")
+    {
+        @if (Model.PendingRequestsResult?.Items.Any() == true)
+        {
+            <div class="list-group shadow-sm border-0">
+                @foreach (var req in Model.PendingRequestsResult.Items)
+                {
+                    <div class="list-group-item d-flex justify-content-between align-items-center p-3" style="background: var(--ps-card-bg);">
+                        <div class="d-flex align-items-center gap-3">
+                            <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--ps-primary-100); display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; color: var(--ps-primary);">
+                                @(req.UserName.Length > 0 ? req.UserName[0].ToString().ToUpper() : "P")
+                            </div>
+                            <div>
+                                <h6 class="fw-bold mb-0">@req.UserName</h6>
+                                <span class="badge bg-secondary-subtle text-secondary">@req.SkillLevel</span>
+                                <small class="text-muted ms-2">@(req.IsInitiator ? (Loc.IsArabic ? "أرسلت له طلباً" : "Request Sent by You") : (Loc.IsArabic ? "أرسل لك طلباً" : "Request Received"))</small>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            @if (!req.IsInitiator)
+                            {
+                                <form method="post" asp-page-handler="Accept" asp-route-connectionId="@req.Id">
+                                    <button type="submit" class="ps-btn ps-btn-primary ps-btn-sm">
+                                        <i class="bi bi-check"></i> @(Loc.IsArabic ? "قبول" : "Accept")
+                                    </button>
+                                </form>
+                                <form method="post" asp-page-handler="Decline" asp-route-connectionId="@req.Id">
+                                    <button type="submit" class="ps-btn ps-btn-secondary ps-btn-sm">
+                                        <i class="bi bi-x"></i> @(Loc.IsArabic ? "رفض" : "Decline")
+                                    </button>
+                                </form>
+                            }
+                            else
+                            {
+                                <form method="post" asp-page-handler="Remove" asp-route-connectionId="@req.Id">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        @(Loc.IsArabic ? "إلغاء الطلب" : "Cancel Request")
+                                    </button>
+                                </form>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-5">
+                <i class="bi bi-inbox fs-1 text-muted"></i>
+                <h5 class="mt-2 text-muted">@(Loc.IsArabic ? "لا توجد طلبات تواصل معلقة حالياً." : "No pending connection requests.")</h5>
+            </div>
+        }
+    }
+
+    <!-- Tab 4: Blocked Users -->
+    @if (Model.ActiveTab == "blocked")
+    {
+        @if (Model.BlockedUsersResult?.Items.Any() == true)
+        {
+            <div class="list-group shadow-sm border-0">
+                @foreach (var b in Model.BlockedUsersResult.Items)
+                {
+                    <div class="list-group-item d-flex justify-content-between align-items-center p-3" style="background: var(--ps-card-bg);">
+                        <div>
+                            <h6 class="fw-bold mb-0 text-danger"><i class="bi bi-slash-circle me-1"></i> @b.UserName</h6>
+                            <small class="text-muted">@(Loc.IsArabic ? "محظور من إرسال الدعوات أو التواصل معك" : "Blocked from sending invitations or connecting")</small>
+                        </div>
+                        <form method="post" asp-page-handler="Unblock" asp-route-targetUserId="@b.UserId">
+                            <button type="submit" class="btn btn-sm btn-outline-secondary">
+                                @(Loc.IsArabic ? "إلغاء الحظر" : "Unblock")
+                            </button>
+                        </form>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-5">
+                <i class="bi bi-shield-check fs-1 text-muted"></i>
+                <h5 class="mt-2 text-muted">@(Loc.IsArabic ? "قائمة الحظر فارغة." : "No blocked users.")</h5>
+            </div>
+        }
+    }
+</div>

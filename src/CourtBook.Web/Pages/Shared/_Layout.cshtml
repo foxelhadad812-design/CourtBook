@@ -88,7 +88,11 @@
             </a>
             <a class="ps-nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Games", StringComparison.OrdinalIgnoreCase) == true ? "active" : "")"
                href="/games">
-                <i class="bi bi-people"></i> @Loc["Nav.Games"]
+                <i class="bi bi-trophy"></i> @Loc["Nav.Games"]
+            </a>
+            <a class="ps-nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Community", StringComparison.OrdinalIgnoreCase) == true ? "active" : "")"
+               href="/Community">
+                <i class="bi bi-people"></i> @(Loc.IsArabic ? "المجتمع" : "Community")
             </a>
         </div>
 
@@ -199,6 +203,21 @@
                         <li>
                             <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="/notifications">
                                 <i class="bi bi-bell text-primary"></i> @Loc["Nav.Notifications"]
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="/Community">
+                                <i class="bi bi-people text-primary"></i> @(Loc.IsArabic ? "مجتمع اللاعبين" : "Player Community")
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="/Community/Invitations">
+                                <i class="bi bi-envelope-paper text-primary"></i> @(Loc.IsArabic ? "دعوات المباريات" : "Game Invitations")
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="/Profile/GameHistory">
+                                <i class="bi bi-clock-history text-primary"></i> @(Loc.IsArabic ? "سجل المباريات" : "Match History")
                             </a>
                         </li>
                         <li>

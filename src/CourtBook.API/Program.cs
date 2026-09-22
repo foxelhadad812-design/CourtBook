@@ -55,6 +55,9 @@ builder.Services.AddScoped<IReviewService,       ReviewService>();
 builder.Services.AddScoped<IFavoriteService,     FavoriteService>();
 builder.Services.AddScoped<IGameService,         GameService>();
 builder.Services.AddScoped<IMatchmakingService,  MatchmakingService>();
+builder.Services.AddScoped<IInvitationService,       InvitationService>();
+builder.Services.AddScoped<IConnectionService,       ConnectionService>();
+builder.Services.AddScoped<IPlayerCommunityService,  PlayerCommunityService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IProfileService,      ProfileService>();
 builder.Services.AddScoped<IOwnerService,        OwnerService>();
@@ -113,6 +116,20 @@ builder.Services.AddRateLimiter(options =>
             factory: _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit          = 10,
+                Window               = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit           = 0
+            }));
+
+    // Community & anti-spam rate limiter (partitioned by user ID or remote IP)
+    options.AddPolicy("community", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                          ?? httpContext.Connection.RemoteIpAddress?.ToString()
+                          ?? "anonymous",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit          = 30,
                 Window               = TimeSpan.FromMinutes(1),
                 QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
                 QueueLimit           = 0

@@ -15,5 +15,9 @@ public enum NotificationType
     PaymentReceipt,
     PaymentFailed,
     PaymentRefunded,
-    PaymentReceived
+    PaymentReceived,
+    GameInviteAccepted,
+    GameInviteDeclined,
+    ConnectionRequest,
+    ConnectionAccepted
 }

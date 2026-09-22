@@ -1,0 +1,148 @@
+@page
+@model CourtBook.Web.Pages.Profile.GameHistoryModel
+@{
+    ViewData["Title"] = Loc.IsArabic ? "سجل المباريات والموثوقية" : "Match History & Reputation";
+}
+
+<div class="container py-4">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h1 class="h2 fw-bold mb-1" style="color: var(--ps-text);">
+                <i class="bi bi-clock-history text-primary me-2"></i>@(Loc.IsArabic ? "سجل المباريات" : "Match History")
+            </h1>
+            <p class="text-muted mb-0">
+                @(Loc.IsArabic ? "استعرض سجل المباريات السابقة ومؤشرات الأداء والموثوقية." : "Review your past matches, attendance record, and reliability rating.")
+            </p>
+        </div>
+        <div>
+            <a href="/Community" class="ps-btn ps-btn-secondary d-flex align-items-center gap-2">
+                <i class="bi bi-people"></i> @(Loc.IsArabic ? "مجتمع اللاعبين" : "Player Community")
+            </a>
+        </div>
+    </div>
+
+    <!-- Reputation & Summary Card -->
+    @if (Model.Reputation != null)
+    {
+        <div class="card border-0 shadow-sm mb-4" style="background: var(--ps-card-bg); border-radius: var(--ps-radius-lg);">
+            <div class="card-body p-4">
+                <div class="row g-4 align-items-center">
+                    <div class="col-md-4 text-center border-end">
+                        <span class="text-muted small fw-semibold">@(Loc.IsArabic ? "معدل الموثوقية الرياضية" : "Reliability Score")</span>
+                        <div class="display-5 fw-bold text-primary mt-1">@Model.Reputation.ReliabilityScore%</div>
+                        <span class="badge @(Model.Reputation.ReliabilityScore >= 80 ? "bg-success" : Model.Reputation.ReliabilityScore >= 50 ? "bg-warning" : "bg-secondary") px-3 py-1">
+                            @Model.Reputation.ReliabilityTier
+                        </span>
+                        <p class="text-muted small mt-2 mb-0">@Model.Reputation.Explanation</p>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="row g-3 text-center">
+                            <div class="col-sm-3 col-6">
+                                <div class="bg-body-tertiary p-3 rounded">
+                                    <div class="h4 fw-bold mb-0">@Model.Reputation.CompletedMatchesCount</div>
+                                    <small class="text-muted">@(Loc.IsArabic ? "مباريات مكتملة" : "Completed")</small>
+                                </div>
+                            </div>
+                            <div class="col-sm-3 col-6">
+                                <div class="bg-body-tertiary p-3 rounded">
+                                    <div class="h4 fw-bold mb-0">@Model.Reputation.TotalJoinedMatches</div>
+                                    <small class="text-muted">@(Loc.IsArabic ? "إجمالي المشاركات" : "Total Joined")</small>
+                                </div>
+                            </div>
+                            <div class="col-sm-3 col-6">
+                                <div class="bg-body-tertiary p-3 rounded">
+                                    <div class="h4 fw-bold mb-0">@Model.Reputation.AttendanceRate%</div>
+                                    <small class="text-muted">@(Loc.IsArabic ? "نسبة الحضور" : "Attendance")</small>
+                                </div>
+                            </div>
+                            <div class="col-sm-3 col-6">
+                                <div class="bg-body-tertiary p-3 rounded">
+                                    <div class="h4 fw-bold mb-0">@Model.Reputation.OrganizedMatchesCount</div>
+                                    <small class="text-muted">@(Loc.IsArabic ? "مباريات نظمتها" : "Organized")</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Filter Form -->
+    <div class="card border-0 shadow-sm mb-4" style="background: var(--ps-card-bg); border-radius: var(--ps-radius-lg);">
+        <div class="card-body p-3">
+            <form method="get" class="row g-2 align-items-center">
+                <div class="col-md-5">
+                    <select name="Sport" class="form-select">
+                        <option value="">@(Loc.IsArabic ? "كل الرياضات" : "All Sports")</option>
+                        <option value="Football" selected="@(Model.Sport == "Football")">@(Loc.IsArabic ? "كرة قدم" : "Football")</option>
+                        <option value="Padel" selected="@(Model.Sport == "Padel")">@(Loc.IsArabic ? "بادل" : "Padel")</option>
+                        <option value="Tennis" selected="@(Model.Sport == "Tennis")">@(Loc.IsArabic ? "تنس" : "Tennis")</option>
+                        <option value="Basketball" selected="@(Model.Sport == "Basketball")">@(Loc.IsArabic ? "كرة سلة" : "Basketball")</option>
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <select name="Status" class="form-select">
+                        <option value="">@(Loc.IsArabic ? "كل الحالات" : "All Statuses")</option>
+                        <option value="Completed" selected="@(Model.Status == "Completed")">@(Loc.IsArabic ? "مكتملة" : "Completed")</option>
+                        <option value="Open" selected="@(Model.Status == "Open")">@(Loc.IsArabic ? "مفتوحة" : "Open")</option>
+                        <option value="Cancelled" selected="@(Model.Status == "Cancelled")">@(Loc.IsArabic ? "ملغاة" : "Cancelled")</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="ps-btn ps-btn-primary w-100">@(Loc.IsArabic ? "تصفية" : "Filter")</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Match History Grid -->
+    @if (Model.HistoryResult?.Items.Any() == true)
+    {
+        <div class="row g-3">
+            @foreach (var m in Model.HistoryResult.Items)
+            {
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100 border-0 shadow-sm p-3" style="background: var(--ps-card-bg); border-radius: var(--ps-radius-lg);">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="badge bg-primary-subtle text-primary fw-bold">@m.SportType</span>
+                            <span class="badge @(m.Status == "Completed" ? "bg-success" : m.Status == "Cancelled" ? "bg-danger" : "bg-info")">
+                                @m.Status
+                            </span>
+                        </div>
+
+                        <h5 class="fw-bold mb-1" style="color: var(--ps-text);">@m.Title</h5>
+                        <p class="text-muted small mb-1">
+                            <i class="bi bi-geo-alt text-primary"></i> @m.VenueName (@m.CourtName) - @m.City
+                        </p>
+                        <p class="text-muted small mb-2">
+                            <i class="bi bi-calendar-event text-primary"></i> @m.Date.ToString("yyyy-MM-dd") (@m.StartTime - @m.EndTime)
+                        </p>
+
+                        <div class="bg-body-tertiary p-2 rounded small d-flex justify-content-between align-items-center mt-auto">
+                            <div>
+                                @if (!string.IsNullOrEmpty(m.Team))
+                                {
+                                    <span class="badge bg-secondary-subtle text-secondary me-1">@m.Team</span>
+                                }
+                                @if (m.IsCreator)
+                                {
+                                    <span class="badge bg-info-subtle text-info">@(Loc.IsArabic ? "منظم" : "Organizer")</span>
+                                }
+                            </div>
+                            <span class="fw-bold">@m.TotalPlayers @(Loc.IsArabic ? "لاعبين" : "players")</span>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="text-center py-5">
+            <i class="bi bi-calendar-x fs-1 text-muted"></i>
+            <h5 class="mt-2 text-muted">@(Loc.IsArabic ? "لا توجد مباريات مسجلة في التاريخ." : "No match history found.")</h5>
+        </div>
+    }
+</div>

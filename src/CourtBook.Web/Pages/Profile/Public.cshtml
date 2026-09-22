@@ -1,0 +1,189 @@
+@page
+@model CourtBook.Web.Pages.Profile.PublicModel
+@{
+    ViewData["Title"] = Model.Profile?.Name ?? (Loc.IsArabic ? "ملف اللاعب" : "Player Profile");
+}
+
+<div class="container py-4">
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show d-flex align-items-center gap-2" role="alert">
+            <i class="bi bi-check-circle-fill"></i>
+            <div>@Model.SuccessMessage</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center gap-2" role="alert">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <div>@Model.ErrorMessage</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (Model.Profile != null)
+    {
+        var p = Model.Profile;
+        <div class="row g-4">
+            <!-- Left: Profile Info -->
+            <div class="col-lg-4">
+                <div class="card border-0 shadow-sm p-4 text-center" style="background: var(--ps-card-bg); border-radius: var(--ps-radius-lg);">
+                    <div class="mx-auto mb-3" style="width: 90px; height: 90px; border-radius: 50%; background: var(--ps-primary-100); display: flex; align-items: center; justify-content: center; font-size: 36px; font-weight: bold; color: var(--ps-primary);">
+                        @(p.Name.Length > 0 ? p.Name[0].ToString().ToUpper() : "P")
+                    </div>
+                    <h3 class="fw-bold mb-1" style="color: var(--ps-text);">@p.Name</h3>
+                    <div class="d-flex justify-content-center gap-2 my-2">
+                        <span class="badge bg-primary-subtle text-primary">@p.SkillLevel</span>
+                        @if (!string.IsNullOrEmpty(p.PreferredSport))
+                        {
+                            <span class="badge bg-secondary-subtle text-secondary">@p.PreferredSport</span>
+                        }
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(p.Bio))
+                    {
+                        <p class="text-muted small mt-2">@p.Bio</p>
+                    }
+
+                    <hr class="my-3 opacity-25" />
+
+                    <div class="d-flex justify-content-between text-muted small mb-2">
+                        <span>@(Loc.IsArabic ? "عضو منذ" : "Member Since")</span>
+                        <span>@p.MemberSince.ToString("MMM yyyy")</span>
+                    </div>
+
+                    @if (p.PreferredCities.Any())
+                    {
+                        <div class="d-flex justify-content-between text-muted small mb-3">
+                            <span>@(Loc.IsArabic ? "المدن المفضلة" : "Preferred Cities")</span>
+                            <span>@string.Join(", ", p.PreferredCities)</span>
+                        </div>
+                    }
+
+                    <!-- Actions -->
+                    <div class="d-grid gap-2 mt-4">
+                        @if (p.ConnectionStatusWithCaller == "None")
+                        {
+                            <form method="post" asp-page-handler="Connect" asp-route-userId="@p.UserId">
+                                <button type="submit" class="ps-btn ps-btn-primary w-100">
+                                    <i class="bi bi-person-plus"></i> @(Loc.IsArabic ? "إرسال طلب تواصل" : "Send Connection Request")
+                                </button>
+                            </form>
+                        }
+                        else if (p.ConnectionStatusWithCaller == "PendingSent")
+                        {
+                            <button class="ps-btn ps-btn-secondary w-100" disabled>
+                                <i class="bi bi-hourglass-split"></i> @(Loc.IsArabic ? "تم إرسال طلب التواصل" : "Connection Request Pending")
+                            </button>
+                        }
+                        else if (p.ConnectionStatusWithCaller == "Connected")
+                        {
+                            <span class="badge bg-success-subtle text-success p-2">
+                                <i class="bi bi-check2-circle me-1"></i> @(Loc.IsArabic ? "أنت وهذا اللاعب متصلان" : "Connected")
+                            </span>
+                        }
+
+                        <a href="/Profile/GameHistory?userId=@p.UserId" class="ps-btn ps-btn-outline-primary">
+                            <i class="bi bi-clock-history"></i> @(Loc.IsArabic ? "عرض سجل مبارياته" : "View Match History")
+                        </a>
+
+                        @if (p.ConnectionStatusWithCaller != "Self")
+                        {
+                            @if (p.ConnectionStatusWithCaller == "BlockedByCaller")
+                            {
+                                <form method="post" asp-page-handler="Unblock" asp-route-userId="@p.UserId">
+                                    <button type="submit" class="btn btn-outline-secondary btn-sm w-100">
+                                        <i class="bi bi-unlock"></i> @(Loc.IsArabic ? "إلغاء حظر هذا اللاعب" : "Unblock Player")
+                                    </button>
+                                </form>
+                            }
+                            else
+                            {
+                                <form method="post" asp-page-handler="Block" asp-route-userId="@p.UserId">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm w-100">
+                                        <i class="bi bi-slash-circle"></i> @(Loc.IsArabic ? "حظر هذا اللاعب" : "Block Player")
+                                    </button>
+                                </form>
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Reputation & Skills Breakdown -->
+            <div class="col-lg-8">
+                <!-- Reputation Card -->
+                <div class="card border-0 shadow-sm p-4 mb-4" style="background: var(--ps-card-bg); border-radius: var(--ps-radius-lg);">
+                    <h5 class="fw-bold mb-3" style="color: var(--ps-text);">
+                        <i class="bi bi-shield-check text-primary me-2"></i>@(Loc.IsArabic ? "الموثوقية الرياضية وسجل الحضور" : "Sports Reliability & Attendance")
+                    </h5>
+
+                    <div class="row g-3 text-center mb-3">
+                        <div class="col-sm-4">
+                            <div class="bg-body-tertiary p-3 rounded">
+                                <div class="display-6 fw-bold text-primary">@p.Reputation.ReliabilityScore%</div>
+                                <span class="badge @(p.Reputation.ReliabilityScore >= 80 ? "bg-success" : p.Reputation.ReliabilityScore >= 50 ? "bg-warning" : "bg-secondary") mt-1">
+                                    @p.Reputation.ReliabilityTier
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="bg-body-tertiary p-3 rounded">
+                                <div class="display-6 fw-bold text-success">@p.Reputation.CompletedMatchesCount</div>
+                                <small class="text-muted">@(Loc.IsArabic ? "مباريات مكتملة" : "Completed Matches")</small>
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="bg-body-tertiary p-3 rounded">
+                                <div class="display-6 fw-bold text-info">@p.Reputation.AttendanceRate%</div>
+                                <small class="text-muted">@(Loc.IsArabic ? "معدل الحضور" : "Attendance Rate")</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p class="text-muted small mb-0">@p.Reputation.Explanation</p>
+                </div>
+
+                <!-- Sport Skills Breakdown -->
+                <div class="card border-0 shadow-sm p-4" style="background: var(--ps-card-bg); border-radius: var(--ps-radius-lg);">
+                    <h5 class="fw-bold mb-3" style="color: var(--ps-text);">
+                        <i class="bi bi-trophy text-primary me-2"></i>@(Loc.IsArabic ? "المهارات حسب الرياضة" : "Sport Skill Ratings")
+                    </h5>
+
+                    @if (p.Reputation.SportBreakdown.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>@(Loc.IsArabic ? "الرياضة" : "Sport")</th>
+                                        <th>@(Loc.IsArabic ? "المستوى" : "Level")</th>
+                                        <th>@(Loc.IsArabic ? "نقاط المهارة" : "Skill Score")</th>
+                                        <th>@(Loc.IsArabic ? "المباريات الملعوبة" : "Matches Played")</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var s in p.Reputation.SportBreakdown)
+                                    {
+                                        <tr>
+                                            <td class="fw-semibold">@s.SportType</td>
+                                            <td><span class="badge bg-primary-subtle text-primary">@s.SkillLevel</span></td>
+                                            <td class="fw-bold text-primary">@s.SkillScore</td>
+                                            <td>@s.MatchesPlayed</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-0">@(Loc.IsArabic ? "لم يتم تسجيل تقييمات مهارة مخصصة حتى الآن." : "No specific sport ratings registered yet.")</p>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>

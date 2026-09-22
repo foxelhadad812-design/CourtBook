@@ -31,4 +31,8 @@ public class User
     public ICollection<TermsAcceptance> TermsAcceptances { get; set; } = [];
     public ICollection<RefreshToken> RefreshTokens { get; set; } = [];
     public ICollection<PlayerSportSkill> SportSkills { get; set; } = [];
+    public ICollection<GameInvitation> SentInvitations { get; set; } = [];
+    public ICollection<GameInvitation> ReceivedInvitations { get; set; } = [];
+    public ICollection<PlayerConnection> SentConnections { get; set; } = [];
+    public ICollection<PlayerConnection> ReceivedConnections { get; set; } = [];
 }

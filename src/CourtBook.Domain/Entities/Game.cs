@@ -35,4 +35,5 @@ public class Game
     public Court Court { get; set; } = null!;
     public User Creator { get; set; } = null!;
     public ICollection<GameParticipant> Participants { get; set; } = [];
+    public ICollection<GameInvitation> Invitations { get; set; } = [];
 }

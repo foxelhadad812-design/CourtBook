@@ -1,0 +1,186 @@
+@page
+@model CourtBook.Web.Pages.Community.InvitationsModel
+@{
+    ViewData["Title"] = Loc.IsArabic ? "دعوات المباريات" : "Game Invitations";
+}
+
+<div class="container py-4">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h1 class="h2 fw-bold mb-1" style="color: var(--ps-text);">
+                <i class="bi bi-envelope-paper-fill text-primary me-2"></i>@(Loc.IsArabic ? "دعوات المباريات" : "Game Invitations")
+            </h1>
+            <p class="text-muted mb-0">
+                @(Loc.IsArabic ? "إدارة وقبول الدعوات المرسلة والمستلمة لمباريات المجتمع." : "Manage and respond to match invitations sent to or by you.")
+            </p>
+        </div>
+        <div>
+            <a href="/Community" class="ps-btn ps-btn-secondary d-flex align-items-center gap-2">
+                <i class="bi bi-people"></i> @(Loc.IsArabic ? "مجتمع اللاعبين" : "Player Community")
+            </a>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show d-flex align-items-center gap-2" role="alert">
+            <i class="bi bi-check-circle-fill"></i>
+            <div>@Model.SuccessMessage</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center gap-2" role="alert">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <div>@Model.ErrorMessage</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Tabs Navigation -->
+    <ul class="nav nav-pills mb-4 gap-2">
+        <li class="nav-item">
+            <a class="nav-link @(Model.Tab == "received" ? "active" : "") fw-semibold" href="/Community/Invitations?Tab=received">
+                <i class="bi bi-inbox me-1"></i> @(Loc.IsArabic ? "الدعوات المستلمة" : "Received Invitations")
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @(Model.Tab == "sent" ? "active" : "") fw-semibold" href="/Community/Invitations?Tab=sent">
+                <i class="bi bi-send me-1"></i> @(Loc.IsArabic ? "الدعوات المرسلة" : "Sent Invitations")
+            </a>
+        </li>
+    </ul>
+
+    <!-- Received Invitations -->
+    @if (Model.Tab == "received")
+    {
+        @if (Model.ReceivedInvitations?.Items.Any() == true)
+        {
+            <div class="row g-3">
+                @foreach (var inv in Model.ReceivedInvitations.Items)
+                {
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card h-100 border-0 shadow-sm p-3" style="background: var(--ps-card-bg); border-radius: var(--ps-radius-lg);">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="badge bg-primary-subtle text-primary fw-bold">@inv.SportType</span>
+                                @if (inv.IsExpired)
+                                {
+                                    <span class="badge bg-danger-subtle text-danger">@(Loc.IsArabic ? "منتهية" : "Expired")</span>
+                                }
+                                else if (inv.Status == "Accepted")
+                                {
+                                    <span class="badge bg-success-subtle text-success">@(Loc.IsArabic ? "مقبولة" : "Accepted")</span>
+                                }
+                                else if (inv.Status == "Declined")
+                                {
+                                    <span class="badge bg-secondary-subtle text-secondary">@(Loc.IsArabic ? "مرفوضة" : "Declined")</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning-subtle text-warning">@(Loc.IsArabic ? "معلقة" : "Pending")</span>
+                                }
+                            </div>
+
+                            <h5 class="fw-bold mb-1" style="color: var(--ps-text);">@inv.GameTitle</h5>
+                            <p class="text-muted small mb-2">
+                                <i class="bi bi-geo-alt text-primary"></i> @inv.VenueName (@inv.City)
+                            </p>
+                            <p class="text-muted small mb-2">
+                                <i class="bi bi-calendar-event text-primary"></i> @inv.GameDate.ToString("yyyy-MM-dd") (@inv.StartTime - @inv.EndTime)
+                            </p>
+
+                            <div class="bg-body-tertiary p-2 rounded small mb-3">
+                                <strong>@(Loc.IsArabic ? "مرسلة من:" : "Invited by:")</strong> @inv.InviterName
+                                @if (!string.IsNullOrEmpty(inv.Message))
+                                {
+                                    <div class="text-muted mt-1 fst-italic">"@inv.Message"</div>
+                                }
+                            </div>
+
+                            <div class="mt-auto d-flex gap-2">
+                                @if (inv.Status == "Pending" && !inv.IsExpired)
+                                {
+                                    <form method="post" asp-page-handler="Accept" asp-route-invitationId="@inv.Id" class="flex-fill">
+                                        <button type="submit" class="ps-btn ps-btn-primary ps-btn-sm w-100">
+                                            <i class="bi bi-check-lg"></i> @(Loc.IsArabic ? "قبول وانضمام" : "Accept & Join")
+                                        </button>
+                                    </form>
+                                    <form method="post" asp-page-handler="Decline" asp-route-invitationId="@inv.Id" class="flex-fill">
+                                        <button type="submit" class="ps-btn ps-btn-secondary ps-btn-sm w-100">
+                                            <i class="bi bi-x-lg"></i> @(Loc.IsArabic ? "رفض" : "Decline")
+                                        </button>
+                                    </form>
+                                }
+                                else if (inv.Status == "Accepted")
+                                {
+                                    <a href="/Games/Lobby?gameId=@inv.GameId" class="ps-btn ps-btn-outline-primary ps-btn-sm w-100 text-center">
+                                        <i class="bi bi-door-open"></i> @(Loc.IsArabic ? "الدخول للوبي" : "Open Lobby")
+                                    </a>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-5">
+                <i class="bi bi-envelope-open fs-1 text-muted"></i>
+                <h5 class="mt-2 text-muted">@(Loc.IsArabic ? "لا توجد دعوات مباريات مستلمة حالياً." : "No game invitations received.")</h5>
+            </div>
+        }
+    }
+
+    <!-- Sent Invitations -->
+    @if (Model.Tab == "sent")
+    {
+        @if (Model.SentInvitations?.Items.Any() == true)
+        {
+            <div class="row g-3">
+                @foreach (var inv in Model.SentInvitations.Items)
+                {
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card h-100 border-0 shadow-sm p-3" style="background: var(--ps-card-bg); border-radius: var(--ps-radius-lg);">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="badge bg-primary-subtle text-primary fw-bold">@inv.SportType</span>
+                                <span class="badge @(inv.Status == "Accepted" ? "bg-success" : inv.Status == "Pending" ? "bg-warning" : "bg-secondary")">
+                                    @inv.Status
+                                </span>
+                            </div>
+
+                            <h5 class="fw-bold mb-1" style="color: var(--ps-text);">@inv.GameTitle</h5>
+                            <p class="text-muted small mb-2">
+                                <i class="bi bi-person text-primary"></i> <strong>@(Loc.IsArabic ? "إلى:" : "To:")</strong> @inv.InviteeName
+                            </p>
+                            <p class="text-muted small mb-2">
+                                <i class="bi bi-calendar-event text-primary"></i> @inv.GameDate.ToString("yyyy-MM-dd") (@inv.StartTime - @inv.EndTime)
+                            </p>
+
+                            <div class="mt-auto d-flex justify-content-end gap-2">
+                                @if (inv.Status == "Pending")
+                                {
+                                    <form method="post" asp-page-handler="Cancel" asp-route-invitationId="@inv.Id">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="bi bi-trash"></i> @(Loc.IsArabic ? "إلغاء الدعوة" : "Cancel")
+                                        </button>
+                                    </form>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-5">
+                <i class="bi bi-send fs-1 text-muted"></i>
+                <h5 class="mt-2 text-muted">@(Loc.IsArabic ? "لم تقم بإرسال أي دعوات بعد." : "No invitations sent yet.")</h5>
+            </div>
+        }
+    }
+</div>

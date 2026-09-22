@@ -66,6 +66,18 @@ public class MatchmakingService : IMatchmakingService
             .Where(g => g.Participants.Count < g.MaxPlayers)
             .AsQueryable();
 
+        // Exclude games organized by blocked users
+        var blockedUserIds = await _db.PlayerConnections
+            .AsNoTracking()
+            .Where(c => c.Status == ConnectionStatus.Blocked && (c.RequesterId == userId || c.AddresseeId == userId))
+            .Select(c => c.RequesterId == userId ? c.AddresseeId : c.RequesterId)
+            .ToListAsync();
+
+        if (blockedUserIds.Count > 0)
+        {
+            gamesQuery = gamesQuery.Where(g => !blockedUserIds.Contains(g.CreatorId));
+        }
+
         // Optional query overrides
         if (!string.IsNullOrWhiteSpace(query?.Sport) && Enum.TryParse<SportType>(query.Sport, true, out var sportFilter))
         {
