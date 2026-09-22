@@ -162,6 +162,11 @@
                                     <i class="bi bi-shield-check text-primary"></i> @Loc["Nav.AdminPortal"]
                                 </a>
                             </li>
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="/Admin/Transactions">
+                                    <i class="bi bi-journal-text text-primary"></i> @Loc["Nav.FinancialLedger"]
+                                </a>
+                            </li>
                             <li><hr class="dropdown-divider my-1"></li>
                         }
                         @if (userRole == "Owner")
@@ -169,6 +174,11 @@
                             <li>
                                 <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="/owner">
                                     <i class="bi bi-speedometer2 text-primary"></i> @Loc["Nav.OwnerDashboard"]
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="/Owner/FinancialReport">
+                                    <i class="bi bi-graph-up-arrow text-primary"></i> @Loc["Nav.FinancialReport"]
                                 </a>
                             </li>
                             <li><hr class="dropdown-divider my-1"></li>

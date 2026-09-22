@@ -11,5 +11,9 @@ public enum NotificationType
     ReviewReminder,
     SystemAlert,
     VenueApproved,
-    VenueRejected
+    VenueRejected,
+    PaymentReceipt,
+    PaymentFailed,
+    PaymentRefunded,
+    PaymentReceived
 }

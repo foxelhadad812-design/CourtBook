@@ -1,0 +1,138 @@
+@page
+@model CourtBook.Web.Pages.Admin.TransactionsModel
+@{
+    ViewData["Title"] = "Transaction History";
+    var isArabic = System.Globalization.CultureInfo.CurrentCulture.Name.StartsWith("ar");
+    var dir = isArabic ? "rtl" : "ltr";
+}
+
+<div dir="@dir" class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold mb-0">
+            <i class="bi bi-journal-text me-2 text-primary"></i>
+            @(isArabic ? "سجل المعاملات المالية" : "Financial Transaction Ledger")
+        </h2>
+        <a href="/Admin" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>@(isArabic ? "لوحة التحكم" : "Admin Dashboard")
+        </a>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger">@Model.ErrorMessage</div>
+    }
+
+    @* Filters *@
+    <form method="get" class="card border-0 shadow-sm mb-4 p-3">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label small text-muted">@(isArabic ? "النوع" : "Entry Type")</label>
+                <select name="status" class="form-select">
+                    <option value="">@(isArabic ? "الكل" : "All Types")</option>
+                    <option value="Payment"  selected="@(Model.Status == "Payment")">Payment</option>
+                    <option value="Refund"   selected="@(Model.Status == "Refund")">Refund</option>
+                    <option value="CancellationFee" selected="@(Model.Status == "CancellationFee")">Cancellation Fee</option>
+                    <option value="PlatformCommission" selected="@(Model.Status == "PlatformCommission")">Platform Commission</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small text-muted">@(isArabic ? "من" : "From")</label>
+                <input type="date" name="from" class="form-control" value="@(Model.From?.ToString("yyyy-MM-dd") ?? "")" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small text-muted">@(isArabic ? "إلى" : "To")</label>
+                <input type="date" name="to" class="form-control" value="@(Model.To?.ToString("yyyy-MM-dd") ?? "")" />
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-funnel me-1"></i>@(isArabic ? "تصفية" : "Apply Filter")
+                </button>
+            </div>
+        </div>
+    </form>
+
+    @* Transactions Table *@
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent border-bottom d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                @(isArabic ? "المعاملات" : "Transactions")
+                <span class="badge bg-secondary ms-1">@Model.PagedTransactions.TotalCount</span>
+            </h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 small">
+                <thead class="table-light">
+                    <tr>
+                        <th>@(isArabic ? "التاريخ" : "Date")</th>
+                        <th>@(isArabic ? "الحجز" : "Booking")</th>
+                        <th>@(isArabic ? "اللاعب" : "Player")</th>
+                        <th>@(isArabic ? "الملعب" : "Venue")</th>
+                        <th>@(isArabic ? "النوع" : "Type")</th>
+                        <th class="text-end">@(isArabic ? "الإجمالي" : "Gross")</th>
+                        <th class="text-end">@(isArabic ? "العمولة" : "Commission")</th>
+                        <th class="text-end">@(isArabic ? "الصافي" : "Net")</th>
+                        <th>@(isArabic ? "مرجع" : "Ref")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var t in Model.PagedTransactions.Items)
+                    {
+                        var badge = t.EntryType switch
+                        {
+                            "Payment"   => "bg-success",
+                            "Refund"    => "bg-danger",
+                            _           => "bg-secondary"
+                        };
+                        <tr>
+                            <td>@t.CreatedAt.ToString("dd MMM yyyy HH:mm")</td>
+                            <td class="font-monospace">@t.BookingReference</td>
+                            <td>@t.PlayerName</td>
+                            <td>@t.VenueName</td>
+                            <td><span class="badge @badge">@t.EntryType</span></td>
+                            <td class="text-end">@t.GrossAmount.ToString("0.00")</td>
+                            <td class="text-end text-warning">@t.CommissionAmount.ToString("0.00")</td>
+                            <td class="text-end fw-semibold">@t.NetAmount.ToString("0.00")</td>
+                            <td class="font-monospace text-muted">
+                                @(t.ProviderReference?.Length > 12 ? t.ProviderReference[..12] + "…" : t.ProviderReference ?? "-")
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.PagedTransactions.Items.Any())
+                    {
+                        <tr>
+                            <td colspan="9" class="text-center text-muted py-4">
+                                @(isArabic ? "لا توجد معاملات" : "No transactions found.")
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @* Pagination *@
+        @if (Model.PagedTransactions.TotalPages > 1)
+        {
+            <div class="card-footer border-top d-flex justify-content-between align-items-center">
+                <small class="text-muted">
+                    @(isArabic ? "صفحة" : "Page") @Model.PagedTransactions.Page / @Model.PagedTransactions.TotalPages
+                </small>
+                <div class="btn-group">
+                    @if (Model.PagedTransactions.Page > 1)
+                    {
+                        <a href="?p=@(Model.PagedTransactions.Page - 1)&status=@Model.Status&from=@(Model.From?.ToString("yyyy-MM-dd"))&to=@(Model.To?.ToString("yyyy-MM-dd"))"
+                           class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                    }
+                    @if (Model.PagedTransactions.Page < Model.PagedTransactions.TotalPages)
+                    {
+                        <a href="?p=@(Model.PagedTransactions.Page + 1)&status=@Model.Status&from=@(Model.From?.ToString("yyyy-MM-dd"))&to=@(Model.To?.ToString("yyyy-MM-dd"))"
+                           class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</div>

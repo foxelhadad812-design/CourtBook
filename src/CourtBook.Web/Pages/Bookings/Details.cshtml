@@ -236,9 +236,22 @@
                         </span>
                     </div>
 
-                    <div class="p-2 rounded bg-light border text-muted small text-center">
+                    <div class="p-2 rounded bg-light border text-muted small text-center mb-3">
                         <i class="bi bi-info-circle me-1 text-primary"></i> @Loc["Book.Summary.PayAtVenue"]
                     </div>
+
+                    @if (b.PaymentStatus != "Completed" && !isCancelled)
+                    {
+                        <a href="/Payments/Pay?bookingId=@b.Id" class="btn btn-primary w-100 rounded-pill py-2 fw-semibold">
+                            <i class="bi bi-credit-card me-1"></i> @(Loc.IsArabic ? "الدفع الآن / إلكترونياً" : "Pay Now / Online")
+                        </a>
+                    }
+                    else if (b.PaymentStatus == "Completed")
+                    {
+                        <div class="alert alert-success py-2 text-center mb-0 small">
+                            <i class="bi bi-check-circle-fill me-1"></i> @(Loc.IsArabic ? "تم الدفع وتأكيد العملية بنجاح" : "Payment Completed Successfully")
+                        </div>
+                    }
                 </div>
 
                 <!-- Cancellation Policy Card -->

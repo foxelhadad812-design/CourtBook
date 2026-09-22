@@ -52,13 +52,14 @@ public class AuthMiddleware
             }
         }
 
-        // 3. General Protected Paths (Owner, Profile, Courts, Bookings, Venue Details)
+        // 3. General Protected Paths (Owner, Profile, Courts, Bookings, Payments, Venue Details)
         var isProtected = false;
         if (path.StartsWith("/dashboard") || 
             path.StartsWith("/owner") ||
             path.StartsWith("/profile") || 
             path.StartsWith("/courts") ||
             path.StartsWith("/venues/details") ||
+            path.StartsWith("/payments") ||
             (path.StartsWith("/bookings") && !path.StartsWith("/bookings/confirmation")))
         {
             isProtected = true;

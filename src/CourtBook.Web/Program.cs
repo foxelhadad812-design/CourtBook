@@ -117,6 +117,47 @@ app.MapPost("/api/notifications/read-all", async (ApiClient api) =>
     return Results.StatusCode((int)resp.StatusCode);
 });
 
+// Phase 7: Payment forwarding routes
+app.MapPost("/api/payments/initiate", async (HttpContext ctx, ApiClient api) =>
+{
+    using var reader = new System.IO.StreamReader(ctx.Request.Body);
+    var body = await reader.ReadToEndAsync();
+    var content = new StringContent(body, System.Text.Encoding.UTF8, "application/json");
+    var resp = await api.Client.PostAsync("/api/payments/initiate", content);
+    var json = await resp.Content.ReadAsStringAsync();
+    return Results.Content(json, "application/json", statusCode: (int)resp.StatusCode);
+});
+
+app.MapGet("/api/payments/verify", async (string orderId, ApiClient api) =>
+{
+    var resp = await api.Client.GetAsync($"/api/payments/verify?orderId={Uri.EscapeDataString(orderId)}");
+    var json = await resp.Content.ReadAsStringAsync();
+    return Results.Content(json, "application/json", statusCode: (int)resp.StatusCode);
+});
+
+app.MapGet("/api/payments/booking/{bookingId:guid}", async (Guid bookingId, ApiClient api) =>
+{
+    var resp = await api.Client.GetAsync($"/api/payments/booking/{bookingId}");
+    var json = await resp.Content.ReadAsStringAsync();
+    return Results.Content(json, "application/json", statusCode: (int)resp.StatusCode);
+});
+
+app.MapGet("/api/payments/owner/report", async (HttpContext ctx, ApiClient api) =>
+{
+    var query = ctx.Request.QueryString.Value ?? "";
+    var resp  = await api.Client.GetAsync($"/api/payments/owner/report{query}");
+    var json  = await resp.Content.ReadAsStringAsync();
+    return Results.Content(json, "application/json", statusCode: (int)resp.StatusCode);
+});
+
+app.MapGet("/api/payments/admin/transactions", async (HttpContext ctx, ApiClient api) =>
+{
+    var query = ctx.Request.QueryString.Value ?? "";
+    var resp  = await api.Client.GetAsync($"/api/payments/admin/transactions{query}");
+    var json  = await resp.Content.ReadAsStringAsync();
+    return Results.Content(json, "application/json", statusCode: (int)resp.StatusCode);
+});
+
 app.MapStaticAssets();
 app.MapRazorPages()
    .WithStaticAssets();

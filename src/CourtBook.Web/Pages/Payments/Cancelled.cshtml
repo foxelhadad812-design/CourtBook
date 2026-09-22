@@ -1,0 +1,32 @@
+@page
+@model CourtBook.Web.Pages.Payments.CancelledModel
+@{
+    ViewData["Title"] = "Payment Cancelled";
+    var isArabic = System.Globalization.CultureInfo.CurrentCulture.Name.StartsWith("ar");
+    var dir = isArabic ? "rtl" : "ltr";
+}
+
+<div dir="@dir" class="container py-5" style="max-width:560px;">
+    <div class="text-center">
+        <div class="text-secondary mb-3" style="font-size:5rem;">
+            <i class="bi bi-slash-circle"></i>
+        </div>
+        <h2 class="fw-bold mb-2">@(isArabic ? "تم إلغاء الدفع" : "Payment Cancelled")</h2>
+        <p class="text-muted">
+            @(isArabic
+                ? "تم إلغاء عملية الدفع. لا يزال بإمكانك إكمال الدفع لاحقاً."
+                : "You cancelled the payment. You can still complete payment later.")
+        </p>
+        <div class="d-grid gap-2 mt-4">
+            @if (Model.BookingId.HasValue)
+            {
+                <a href="/Payments/Pay?bookingId=@Model.BookingId" class="btn btn-outline-primary">
+                    @(isArabic ? "متابعة الدفع" : "Continue Payment")
+                </a>
+            }
+            <a href="/Bookings" class="btn btn-outline-secondary">
+                @(isArabic ? "حجوزاتي" : "My Bookings")
+            </a>
+        </div>
+    </div>
+</div>

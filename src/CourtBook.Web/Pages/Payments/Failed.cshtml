@@ -1,0 +1,36 @@
+@page
+@model CourtBook.Web.Pages.Payments.FailedModel
+@{
+    ViewData["Title"] = "Payment Failed";
+    var isArabic = System.Globalization.CultureInfo.CurrentCulture.Name.StartsWith("ar");
+    var dir = isArabic ? "rtl" : "ltr";
+}
+
+<div dir="@dir" class="container py-5" style="max-width:560px;">
+    <div class="text-center">
+        <div class="text-danger mb-3" style="font-size:5rem;">
+            <i class="bi bi-x-circle-fill"></i>
+        </div>
+        <h2 class="fw-bold mb-2">@(isArabic ? "فشل الدفع" : "Payment Failed")</h2>
+        <p class="text-muted">
+            @(isArabic
+                ? "لم تتم عملية الدفع. يرجى المحاولة مرة أخرى."
+                : "Your payment could not be processed. Please try again.")
+        </p>
+        @if (!string.IsNullOrEmpty(Model.Reason))
+        {
+            <div class="alert alert-danger small">@Model.Reason</div>
+        }
+        <div class="d-grid gap-2 mt-4">
+            @if (Model.BookingId.HasValue)
+            {
+                <a href="/Payments/Pay?bookingId=@Model.BookingId" class="btn btn-primary">
+                    <i class="bi bi-arrow-repeat me-2"></i>@(isArabic ? "إعادة المحاولة" : "Try Again")
+                </a>
+            }
+            <a href="/Bookings" class="btn btn-outline-secondary">
+                @(isArabic ? "حجوزاتي" : "My Bookings")
+            </a>
+        </div>
+    </div>
+</div>

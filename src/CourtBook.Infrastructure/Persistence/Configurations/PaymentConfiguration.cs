@@ -14,6 +14,14 @@ public class PaymentConfiguration : IEntityTypeConfiguration<Payment>
             .HasColumnType("decimal(10,2)")
             .IsRequired();
 
+        builder.Property(p => p.CommissionAmount)
+            .HasColumnType("decimal(10,2)")
+            .HasDefaultValue(0m);
+
+        builder.Property(p => p.OwnerNetAmount)
+            .HasColumnType("decimal(10,2)")
+            .HasDefaultValue(0m);
+
         builder.Property(p => p.Currency)
             .HasMaxLength(10)
             .HasDefaultValue("EGP");
@@ -25,15 +33,22 @@ public class PaymentConfiguration : IEntityTypeConfiguration<Payment>
 
         builder.Property(p => p.Status)
             .HasConversion<string>()
-            .HasMaxLength(20)
+            .HasMaxLength(30)
             .IsRequired();
 
         builder.Property(p => p.TransactionReference)
-            .HasMaxLength(100);
+            .HasMaxLength(200);
+
+        builder.Property(p => p.ProviderOrderId)
+            .HasMaxLength(200);
+
+        builder.Property(p => p.PaymentUrl)
+            .HasMaxLength(2000);
 
         builder.HasIndex(p => p.BookingId)
             .IsUnique();
 
         builder.HasIndex(p => p.Status);
+        builder.HasIndex(p => p.ProviderOrderId);
     }
 }

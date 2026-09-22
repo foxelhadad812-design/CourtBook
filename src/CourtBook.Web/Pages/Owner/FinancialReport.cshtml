@@ -1,0 +1,129 @@
+@page
+@model CourtBook.Web.Pages.Owner.FinancialReportModel
+@{
+    ViewData["Title"] = "Financial Report";
+    var isArabic = System.Globalization.CultureInfo.CurrentCulture.Name.StartsWith("ar");
+    var dir = isArabic ? "rtl" : "ltr";
+    var r = Model.Report;
+}
+
+<div dir="@dir" class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold mb-0">
+            <i class="bi bi-graph-up-arrow me-2 text-success"></i>
+            @(isArabic ? "التقرير المالي" : "Financial Report")
+        </h2>
+        <a href="/owner" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>@(isArabic ? "لوحة التحكم" : "Dashboard")
+        </a>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger">@Model.ErrorMessage</div>
+    }
+
+    @* Date Range Filter *@
+    <form method="get" class="card border-0 shadow-sm mb-4 p-3">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label small text-muted">@(isArabic ? "من" : "From")</label>
+                <input type="date" name="from" class="form-control"
+                       value="@(Model.From?.ToString("yyyy-MM-dd") ?? "")" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small text-muted">@(isArabic ? "إلى" : "To")</label>
+                <input type="date" name="to" class="form-control"
+                       value="@(Model.To?.ToString("yyyy-MM-dd") ?? "")" />
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-funnel me-1"></i>@(isArabic ? "تصفية" : "Filter")
+                </button>
+            </div>
+        </div>
+    </form>
+
+    @if (r is not null)
+    {
+        @* Summary Cards *@
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm text-center py-3">
+                    <div class="text-muted small mb-1">@(isArabic ? "الإجمالي" : "Gross Revenue")</div>
+                    <div class="fs-4 fw-bold text-primary">EGP @r.TotalGross.ToString("0.00")</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm text-center py-3">
+                    <div class="text-muted small mb-1">@(isArabic ? "عمولة المنصة" : "Platform Commission")</div>
+                    <div class="fs-4 fw-bold text-warning">EGP @r.TotalCommission.ToString("0.00")</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm text-center py-3">
+                    <div class="text-muted small mb-1">@(isArabic ? "صافي الربح" : "Net Revenue")</div>
+                    <div class="fs-4 fw-bold text-success">EGP @r.TotalNet.ToString("0.00")</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm text-center py-3">
+                    <div class="text-muted small mb-1">@(isArabic ? "المبالغ المستردة" : "Total Refunds")</div>
+                    <div class="fs-4 fw-bold text-danger">EGP @r.TotalRefunds.ToString("0.00")</div>
+                </div>
+            </div>
+        </div>
+
+        @* Transactions Table *@
+        @if (r.Entries.Count > 0)
+        {
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent border-bottom">
+                    <h5 class="mb-0">@(isArabic ? "المعاملات" : "Transactions") <span class="badge bg-secondary">@r.TotalTransactions</span></h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 small">
+                        <thead class="table-light">
+                            <tr>
+                                <th>@(isArabic ? "التاريخ" : "Date")</th>
+                                <th>@(isArabic ? "الحجز" : "Booking Ref")</th>
+                                <th>@(isArabic ? "اللاعب" : "Player")</th>
+                                <th>@(isArabic ? "النوع" : "Type")</th>
+                                <th class="text-end">@(isArabic ? "الإجمالي" : "Gross")</th>
+                                <th class="text-end">@(isArabic ? "العمولة" : "Commission")</th>
+                                <th class="text-end">@(isArabic ? "الصافي" : "Net")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var entry in r.Entries)
+                            {
+                                var typeClass = entry.EntryType switch
+                                {
+                                    "Payment"  => "text-success",
+                                    "Refund"   => "text-danger",
+                                    _          => "text-muted"
+                                };
+                                <tr>
+                                    <td>@entry.CreatedAt.ToString("dd MMM yyyy HH:mm")</td>
+                                    <td class="font-monospace">@entry.BookingReference</td>
+                                    <td>@entry.PlayerName</td>
+                                    <td><span class="badge bg-light @typeClass border">@entry.EntryType</span></td>
+                                    <td class="text-end">@entry.GrossAmount.ToString("0.00")</td>
+                                    <td class="text-end text-warning">@entry.CommissionAmount.ToString("0.00")</td>
+                                    <td class="text-end fw-semibold">@entry.NetAmount.ToString("0.00")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="text-center text-muted py-5">
+                <i class="bi bi-inbox fs-1 mb-2 d-block"></i>
+                @(isArabic ? "لا توجد معاملات في هذه الفترة." : "No transactions found for this period.")
+            </div>
+        }
+    }
+</div>

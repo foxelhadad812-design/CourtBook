@@ -100,6 +100,8 @@ public class TextLocalizer : ITextLocalizer
         ["Nav.GetStarted"] = "Get Started",
         ["Nav.Notifications"] = "Notifications",
         ["Nav.AdminPortal"] = "Admin Portal",
+        ["Nav.FinancialLedger"] = "Financial Ledger",
+        ["Nav.FinancialReport"] = "Financial Report",
         ["Theme.Toggle"] = "Toggle theme",
         ["Lang.Switch"] = "العربية",
 
@@ -488,6 +490,8 @@ public class TextLocalizer : ITextLocalizer
         ["Nav.GetStarted"] = "ابدأ الآن",
         ["Nav.Notifications"] = "الإشعارات",
         ["Nav.AdminPortal"] = "لوحة تحكم الإدارة",
+        ["Nav.FinancialLedger"] = "سجل المعاملات المالية",
+        ["Nav.FinancialReport"] = "التقرير المالي",
         ["Theme.Toggle"] = "تبديل المظهر (ليلي / نهاري)",
         ["Lang.Switch"] = "English",
 

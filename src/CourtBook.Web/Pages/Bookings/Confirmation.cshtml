@@ -107,7 +107,13 @@
 
             <!-- Action Buttons -->
             <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center">
-                <a href="/Bookings" class="ps-btn ps-btn-primary px-4 py-3 fw-bold">
+                @if (Model.PaymentStatus != "Completed" && !string.IsNullOrEmpty(Model.BookingId))
+                {
+                    <a href="/Payments/Pay?bookingId=@Model.BookingId" class="ps-btn ps-btn-primary px-4 py-3 fw-bold">
+                        <i class="bi bi-credit-card me-1"></i> @(Loc.IsArabic ? "اختر طريقة الدفع / ادفع الآن" : "Choose Payment Method / Pay Now")
+                    </a>
+                }
+                <a href="/Bookings" class="ps-btn ps-btn-outline px-4 py-3 fw-bold">
                     <i class="bi bi-journal-text me-1"></i> @Loc["Confirm.Btn.MyBookings"]
                 </a>
                 <a href="/venues" class="ps-btn ps-btn-outline px-4 py-3">

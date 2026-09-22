@@ -57,6 +57,13 @@ builder.Services.AddScoped<IOwnerService,        OwnerService>();
 builder.Services.AddScoped<IAdminVenueService,   AdminVenueService>();
 builder.Services.AddScoped<ITermsService,        TermsService>();
 
+// ── Phase 7: Payment Gateway ───────────────────────────────────────────────────
+builder.Services.AddHttpClient<IPaymentGatewayService, PaymobGatewayService>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
+builder.Services.AddScoped<IPaymentService,      PaymentService>();
+
 // ── FluentValidation ──────────────────────────────────────────────────────────
 // Registers all validators from the Application assembly automatically.
 builder.Services.AddValidatorsFromAssemblyContaining<LoginRequestValidator>();

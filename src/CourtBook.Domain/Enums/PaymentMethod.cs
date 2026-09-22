@@ -5,5 +5,6 @@ public enum PaymentMethod
     PayAtFacility,
     CreditCard,
     DebitCard,
-    DigitalWallet
+    DigitalWallet,
+    Fawry
 }

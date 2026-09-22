@@ -36,6 +36,10 @@ public class AppDbContext : DbContext
     public DbSet<TermsDocument> TermsDocuments => Set<TermsDocument>();
     public DbSet<TermsAcceptance> TermsAcceptances => Set<TermsAcceptance>();
 
+    // Phase 7: Payment infrastructure
+    public DbSet<IdempotencyLog> IdempotencyLogs => Set<IdempotencyLog>();
+    public DbSet<TransactionLedger> TransactionLedger => Set<TransactionLedger>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // Automatically applies all IEntityTypeConfiguration<T> classes in this assembly
