@@ -96,6 +96,7 @@ public class OwnerFinancialReportDto
     public decimal TotalCommission { get; set; }
     public decimal TotalNet { get; set; }
     public decimal TotalRefunds { get; set; }
+    public decimal TotalCancellationFees { get; set; }
     public int TotalTransactions { get; set; }
     public List<TransactionLedgerDto> Entries { get; set; } = new();
 }

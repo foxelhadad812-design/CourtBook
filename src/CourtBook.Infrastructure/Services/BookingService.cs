@@ -14,11 +14,16 @@ public class BookingService : IBookingService
 {
     private readonly AppDbContext _db;
     private readonly INotificationService? _notificationService;
+    private readonly IPaymentService? _paymentService;
 
-    public BookingService(AppDbContext db, INotificationService? notificationService = null)
+    public BookingService(
+        AppDbContext db,
+        INotificationService? notificationService = null,
+        IPaymentService? paymentService = null)
     {
         _db = db;
         _notificationService = notificationService;
+        _paymentService = paymentService;
     }
 
     public async Task<BookingResponse> CreateAsync(Guid userId, CreateBookingRequest request)
@@ -379,6 +384,7 @@ public class BookingService : IBookingService
             .Include(b => b.Court)
                 .ThenInclude(c => c.Venue)
                     .ThenInclude(v => v.CancellationPolicy)
+            .Include(b => b.Payment)
             .FirstOrDefaultAsync(b => b.Id == id);
 
         if (booking is null)
@@ -421,7 +427,43 @@ public class BookingService : IBookingService
         booking.CancellationReason = reason;
         booking.CancellationFee = fee;
 
-        await _db.SaveChangesAsync();
+        // Financial state handling: Automatic refund or hold cancellation
+        if (booking.Payment != null)
+        {
+            if (booking.Payment.Status == PaymentStatus.Completed)
+            {
+                // Save booking first so CancellationFee and Cancelled status are committed for the refund engine
+                await _db.SaveChangesAsync();
+
+                if (_paymentService != null)
+                {
+                    var refundResult = await _paymentService.ProcessRefundAsync(booking.Id, reason);
+                    if (refundResult.Success)
+                    {
+                        refund = refundResult.RefundAmount;
+                    }
+                }
+            }
+            else if (booking.Payment.Status == PaymentStatus.Processing || booking.Payment.Status == PaymentStatus.Pending)
+            {
+                // Uncaptured online hold or unpaid pay-at-facility payment: cancel payment immediately without gateway call
+                booking.Payment.Status = PaymentStatus.Cancelled;
+                booking.PaymentStatus = PaymentStatus.Cancelled;
+                await _db.SaveChangesAsync();
+                refund = 0m;
+            }
+            else
+            {
+                // Already in a non-captured or refunded terminal state (Failed, Refunded, PartiallyRefunded, Cancelled)
+                booking.PaymentStatus = booking.Payment.Status;
+                await _db.SaveChangesAsync();
+                refund = 0m;
+            }
+        }
+        else
+        {
+            await _db.SaveChangesAsync();
+        }
 
         if (_notificationService is not null)
         {

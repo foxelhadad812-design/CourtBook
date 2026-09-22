@@ -746,17 +746,28 @@ public class PaymentService : IPaymentService
             .Where(e => e.EntryType == LedgerEntryType.Payment)
             .SumAsync(e => (decimal?)e.GrossAmount) ?? 0m;
 
-        var totalCommission = await baseQuery
-            .Where(e => e.EntryType == LedgerEntryType.Payment)
-            .SumAsync(e => (decimal?)e.CommissionAmount) ?? 0m;
-
-        var totalNet = await baseQuery
-            .Where(e => e.EntryType == LedgerEntryType.Payment)
-            .SumAsync(e => (decimal?)e.NetAmount) ?? 0m;
-
         var totalRefunds = Math.Abs(await baseQuery
             .Where(e => e.EntryType == LedgerEntryType.Refund)
             .SumAsync(e => (decimal?)e.GrossAmount) ?? 0m);
+
+        var totalCancellationFees = await baseQuery
+            .Where(e => e.EntryType == LedgerEntryType.CancellationFee)
+            .SumAsync(e => (decimal?)e.GrossAmount) ?? 0m;
+
+        // Platform commission: Payment commission (+) plus Refund commission reversal (-)
+        var totalCommission = await baseQuery
+            .Where(e => e.EntryType == LedgerEntryType.Payment || e.EntryType == LedgerEntryType.Refund)
+            .SumAsync(e => (decimal?)e.CommissionAmount) ?? 0m;
+
+        // Owner realized net: Payment net (+) plus Refund net reversal (-)
+        // DOUBLE-COUNTING PREVENTION:
+        // When a refund occurs, the unrefunded amount remains captured in Payment Net.
+        // Payment Net + Refund Net already captures the exact retained owner earnings.
+        // CancellationFee entries provide audit records and are reported in TotalCancellationFees,
+        // but are NOT added again to TotalNet to prevent double-counting.
+        var totalNet = await baseQuery
+            .Where(e => e.EntryType == LedgerEntryType.Payment || e.EntryType == LedgerEntryType.Refund)
+            .SumAsync(e => (decimal?)e.NetAmount) ?? 0m;
 
         var totalTransactions = await baseQuery.CountAsync();
 
@@ -774,15 +785,16 @@ public class PaymentService : IPaymentService
 
         return new OwnerFinancialReportDto
         {
-            OwnerId           = ownerId,
-            From              = from,
-            To                = to,
-            TotalGross        = totalGross,
-            TotalCommission   = totalCommission,
-            TotalNet          = totalNet,
-            TotalRefunds      = totalRefunds,
-            TotalTransactions = totalTransactions,
-            Entries           = entries.Select(MapToLedgerDto).ToList()
+            OwnerId               = ownerId,
+            From                  = from,
+            To                    = to,
+            TotalGross            = totalGross,
+            TotalCommission       = totalCommission,
+            TotalNet              = totalNet,
+            TotalRefunds          = totalRefunds,
+            TotalCancellationFees = totalCancellationFees,
+            TotalTransactions     = totalTransactions,
+            Entries               = entries.Select(MapToLedgerDto).ToList()
         };
     }
 

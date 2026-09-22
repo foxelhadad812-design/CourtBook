@@ -54,46 +54,17 @@ public class OwnerService : IOwnerService
         var bookingsThisWeek = await ownerBookingsQuery
             .CountAsync(b => b.StartTime >= weekStart);
 
-        // 3. Revenue Calculations via direct database aggregation
-        var totalRevenueConfirmed = await ownerBookingsQuery
-            .Where(b => b.Status == BookingStatus.Confirmed || b.Status == BookingStatus.Completed)
-            .SumAsync(b => (decimal?)b.TotalPrice) ?? 0m;
+        // 3. Revenue Calculations via direct database aggregation (realized/collected revenue)
+        var totalRevenue = await CalculateRealizedRevenueAsync(ownerBookingsQuery);
 
-        var totalRevenueCancelled = await ownerBookingsQuery
-            .Where(b => b.Status == BookingStatus.Cancelled)
-            .SumAsync(b => (decimal?)b.CancellationFee) ?? 0m;
+        var revenueThisMonth = await CalculateRealizedRevenueAsync(
+            ownerBookingsQuery.Where(b => b.StartTime >= monthStart));
 
-        var totalRevenue = totalRevenueConfirmed + totalRevenueCancelled;
+        var revenueThisWeek = await CalculateRealizedRevenueAsync(
+            ownerBookingsQuery.Where(b => b.StartTime >= weekStart));
 
-        var revenueThisMonthConfirmed = await ownerBookingsQuery
-            .Where(b => (b.Status == BookingStatus.Confirmed || b.Status == BookingStatus.Completed) && b.StartTime >= monthStart)
-            .SumAsync(b => (decimal?)b.TotalPrice) ?? 0m;
-
-        var revenueThisMonthCancelled = await ownerBookingsQuery
-            .Where(b => b.Status == BookingStatus.Cancelled && b.StartTime >= monthStart)
-            .SumAsync(b => (decimal?)b.CancellationFee) ?? 0m;
-
-        var revenueThisMonth = revenueThisMonthConfirmed + revenueThisMonthCancelled;
-
-        var revenueThisWeekConfirmed = await ownerBookingsQuery
-            .Where(b => (b.Status == BookingStatus.Confirmed || b.Status == BookingStatus.Completed) && b.StartTime >= weekStart)
-            .SumAsync(b => (decimal?)b.TotalPrice) ?? 0m;
-
-        var revenueThisWeekCancelled = await ownerBookingsQuery
-            .Where(b => b.Status == BookingStatus.Cancelled && b.StartTime >= weekStart)
-            .SumAsync(b => (decimal?)b.CancellationFee) ?? 0m;
-
-        var revenueThisWeek = revenueThisWeekConfirmed + revenueThisWeekCancelled;
-
-        var revenueTodayConfirmed = await ownerBookingsQuery
-            .Where(b => (b.Status == BookingStatus.Confirmed || b.Status == BookingStatus.Completed) && b.StartTime >= todayStart && b.StartTime < todayEnd)
-            .SumAsync(b => (decimal?)b.TotalPrice) ?? 0m;
-
-        var revenueTodayCancelled = await ownerBookingsQuery
-            .Where(b => b.Status == BookingStatus.Cancelled && b.StartTime >= todayStart && b.StartTime < todayEnd)
-            .SumAsync(b => (decimal?)b.CancellationFee) ?? 0m;
-
-        var revenueToday = revenueTodayConfirmed + revenueTodayCancelled;
+        var revenueToday = await CalculateRealizedRevenueAsync(
+            ownerBookingsQuery.Where(b => b.StartTime >= todayStart && b.StartTime < todayEnd));
 
         // 4. Most Booked Court
         var topCourt = await _db.Bookings
@@ -1124,5 +1095,39 @@ public class OwnerService : IOwnerService
                 CloseTime = s.CloseTime.ToString("HH:mm")
             }).ToList() ?? []
         };
+    }
+
+    private static async Task<decimal> CalculateRealizedRevenueAsync(IQueryable<Booking> baseQuery)
+    {
+        // 1. Confirmed / Completed bookings where payment is realized
+        var eligibleConfirmed = baseQuery
+            .Where(b => (b.Status == BookingStatus.Confirmed || b.Status == BookingStatus.Completed)
+                     && b.PaymentStatus != PaymentStatus.Refunded
+                     && b.PaymentStatus != PaymentStatus.Failed
+                     && b.PaymentStatus != PaymentStatus.Cancelled
+                     && b.PaymentStatus != PaymentStatus.Processing
+                     && !(b.Payment != null && (b.Payment.Status == PaymentStatus.Processing || b.Payment.Status == PaymentStatus.Failed || b.Payment.Status == PaymentStatus.Cancelled))
+                     && !(b.Payment != null && b.Payment.Method == PaymentMethod.PayAtFacility && b.PaymentStatus == PaymentStatus.Pending));
+
+        // Full price for non-partially refunded
+        var confirmedFull = await eligibleConfirmed
+            .Where(b => b.PaymentStatus != PaymentStatus.PartiallyRefunded)
+            .SumAsync(b => (decimal?)b.TotalPrice) ?? 0m;
+
+        // Retained cancellation fee for partially refunded
+        var confirmedPartial = await eligibleConfirmed
+            .Where(b => b.PaymentStatus == PaymentStatus.PartiallyRefunded)
+            .SumAsync(b => (decimal?)b.CancellationFee) ?? 0m;
+
+        // 2. Cancelled bookings where cancellation fee was actually retained/collected
+        var cancelledWithRetainedFee = await baseQuery
+            .Where(b => b.Status == BookingStatus.Cancelled
+                     && b.CancellationFee > 0m
+                     && b.PaymentStatus != PaymentStatus.Refunded
+                     && !(b.Payment != null && b.Payment.Method == PaymentMethod.PayAtFacility && b.PaymentStatus == PaymentStatus.Pending)
+                     && !(b.Payment != null && (b.Payment.Status == PaymentStatus.Failed || b.Payment.Status == PaymentStatus.Processing || b.Payment.Status == PaymentStatus.Cancelled)))
+            .SumAsync(b => (decimal?)b.CancellationFee) ?? 0m;
+
+        return confirmedFull + confirmedPartial + cancelledWithRetainedFee;
     }
 }
