@@ -45,6 +45,10 @@ public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
         builder.Property(r => r.CreatedByIp)
             .HasMaxLength(64);
 
+        builder.Property(r => r.ConcurrencyStamp)
+            .IsConcurrencyToken()
+            .IsRequired();
+
         // Relationships
         builder.HasOne(r => r.User)
             .WithMany(u => u.RefreshTokens)

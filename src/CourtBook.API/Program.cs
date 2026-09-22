@@ -104,14 +104,17 @@ builder.Services.AddCors(options =>
 // Built-in .NET 7+ middleware — no extra package needed.
 builder.Services.AddRateLimiter(options =>
 {
-    // Strict limit on auth endpoints to slow down brute-force attacks
-    options.AddFixedWindowLimiter("auth", o =>
-    {
-        o.PermitLimit        = 5;
-        o.Window             = TimeSpan.FromMinutes(1);
-        o.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        o.QueueLimit         = 0;
-    });
+    // Strict limit on auth endpoints to slow down brute-force attacks (partitioned by remote IP)
+    options.AddPolicy("auth", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit          = 10,
+                Window               = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit           = 0
+            }));
 
     // General API limiter
     options.AddFixedWindowLimiter("api", o =>

@@ -18,7 +18,7 @@ public interface IAuthService
     Task<AuthResponse?> RefreshTokenAsync(RefreshTokenRequest request, string? ipAddress = null);
 
     /// <summary>Revokes a single refresh token (e.g. client logout).</summary>
-    Task<bool> RevokeTokenAsync(string rawRefreshToken, string? ipAddress = null, string? reason = null);
+    Task<bool> RevokeTokenAsync(string rawRefreshToken, string? ipAddress = null, string? reason = null, Guid? authenticatedUserId = null);
 
     /// <summary>Revokes all active refresh tokens for a user (e.g. logout from all devices).</summary>
     Task<int> RevokeAllUserTokensAsync(Guid userId, string? ipAddress = null, string? reason = null);

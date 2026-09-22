@@ -211,9 +211,24 @@ public class AuthService : IAuthService
         if (token is null)
             return null;
 
-        // REUSE DETECTION: If an already-revoked refresh token is presented, trigger family revocation!
+        // REUSE & CONCURRENCY DETECTION:
         if (token.IsRevoked)
         {
+            // If the token was rotated legitimately within the last 5 seconds,
+            // treat this as a concurrent network race/retry rather than a malicious replay.
+            // Reject the duplicate rotation without revoking the valid family.
+            var isRecentRotation = token.ReasonRevoked == "Rotated"
+                                && token.RevokedAt.HasValue
+                                && (DateTime.UtcNow - token.RevokedAt.Value).TotalSeconds <= 5;
+
+            if (isRecentRotation)
+            {
+                throw new SecurityTokenException("Concurrent token rotation detected. Refresh token has already been rotated.");
+            }
+
+            // REUSE ATTACK DETECTED:
+            // Token was revoked outside the concurrent window (or manually revoked).
+            // Revoke all active tokens in this family immediately!
             var compromisedFamilyTokens = await _db.RefreshTokens
                 .Where(r => r.FamilyId == token.FamilyId && r.RevokedAt == null)
                 .ToListAsync();
@@ -222,6 +237,7 @@ public class AuthService : IAuthService
             {
                 famToken.RevokedAt = DateTime.UtcNow;
                 famToken.ReasonRevoked = "Revoked due to detected token reuse attack";
+                famToken.ConcurrencyStamp = Guid.NewGuid();
             }
 
             await _db.SaveChangesAsync();
@@ -244,6 +260,7 @@ public class AuthService : IAuthService
         // Legitimate rotation: mark current token as rotated
         token.RevokedAt = DateTime.UtcNow;
         token.ReasonRevoked = "Rotated";
+        token.ConcurrencyStamp = Guid.NewGuid();
 
         var rawNewRefreshToken = GenerateSecureRefreshToken();
         var newHash = HashToken(rawNewRefreshToken);
@@ -261,13 +278,30 @@ public class AuthService : IAuthService
             DeviceName = request.DeviceName ?? token.DeviceName,
             Platform = request.Platform ?? token.Platform,
             AppVersion = request.AppVersion ?? token.AppVersion,
-            CreatedByIp = ipAddress
+            CreatedByIp = ipAddress,
+            ConcurrencyStamp = Guid.NewGuid()
         };
 
         token.ReplacedByTokenId = newToken.Id;
 
         _db.RefreshTokens.Add(newToken);
-        await _db.SaveChangesAsync();
+
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // Concurrent rotation race condition detected!
+            // Another simultaneous request has already rotated or modified this token.
+            _db.Entry(token).State = EntityState.Detached;
+            var freshToken = await _db.RefreshTokens.AsNoTracking().FirstOrDefaultAsync(r => r.TokenHash == tokenHash);
+            if (freshToken != null && freshToken.IsRevoked)
+            {
+                throw new SecurityTokenException("Concurrent token rotation detected. Refresh token has already been rotated.");
+            }
+            throw;
+        }
 
         var (accessToken, accessExpiresAt) = _tokenService.GenerateAccessToken(token.User);
 
@@ -289,7 +323,7 @@ public class AuthService : IAuthService
     /// <summary>
     /// Revokes a single refresh token (e.g. client logout).
     /// </summary>
-    public async Task<bool> RevokeTokenAsync(string rawRefreshToken, string? ipAddress = null, string? reason = null)
+    public async Task<bool> RevokeTokenAsync(string rawRefreshToken, string? ipAddress = null, string? reason = null, Guid? authenticatedUserId = null)
     {
         if (string.IsNullOrWhiteSpace(rawRefreshToken))
             return false;
@@ -302,8 +336,13 @@ public class AuthService : IAuthService
         if (token is null || token.IsRevoked)
             return false;
 
+        // Strict tenant isolation: if user is authenticated, prevent revoking another user's session
+        if (authenticatedUserId.HasValue && authenticatedUserId.Value != Guid.Empty && token.UserId != authenticatedUserId.Value)
+            return false;
+
         token.RevokedAt = DateTime.UtcNow;
         token.ReasonRevoked = reason ?? "Revoked by user logout";
+        token.ConcurrencyStamp = Guid.NewGuid();
 
         await _db.SaveChangesAsync();
         return true;
@@ -325,6 +364,7 @@ public class AuthService : IAuthService
         {
             t.RevokedAt = DateTime.UtcNow;
             t.ReasonRevoked = reason ?? "Logged out from all devices";
+            t.ConcurrencyStamp = Guid.NewGuid();
         }
 
         await _db.SaveChangesAsync();
@@ -380,6 +420,7 @@ public class AuthService : IAuthService
         {
             t.RevokedAt = DateTime.UtcNow;
             t.ReasonRevoked = "Session revoked by user";
+            t.ConcurrencyStamp = Guid.NewGuid();
         }
 
         await _db.SaveChangesAsync();

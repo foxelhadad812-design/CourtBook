@@ -15,6 +15,11 @@ public class LoginRequestValidator : AbstractValidator<LoginRequest>
         RuleFor(x => x.Password)
             .NotEmpty().WithMessage("Password is required.")
             .MinimumLength(6).WithMessage("Password must be at least 6 characters.");
+
+        RuleFor(x => x.DeviceId).MaximumLength(128);
+        RuleFor(x => x.DeviceName).MaximumLength(128);
+        RuleFor(x => x.Platform).MaximumLength(64);
+        RuleFor(x => x.AppVersion).MaximumLength(64);
     }
 }
 
@@ -43,6 +48,11 @@ public class RegisterRequestValidator : AbstractValidator<RegisterRequest>
         RuleFor(x => x.Phone)
             .NotEmpty().WithMessage("Phone number is required.")
             .Matches(@"^(\+?\d{7,15})$").WithMessage("Please enter a valid phone number.");
+
+        RuleFor(x => x.DeviceId).MaximumLength(128);
+        RuleFor(x => x.DeviceName).MaximumLength(128);
+        RuleFor(x => x.Platform).MaximumLength(64);
+        RuleFor(x => x.AppVersion).MaximumLength(64);
 
         When(x => x.DateOfBirth.HasValue, () =>
         {

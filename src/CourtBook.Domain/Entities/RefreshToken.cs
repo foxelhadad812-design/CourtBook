@@ -20,6 +20,7 @@ public class RefreshToken
     public string? Platform { get; set; }
     public string? AppVersion { get; set; }
     public string? CreatedByIp { get; set; }
+    public Guid ConcurrencyStamp { get; set; } = Guid.NewGuid();
 
     public bool IsExpired => DateTime.UtcNow >= ExpiresAt;
     public bool IsRevoked => RevokedAt != null;

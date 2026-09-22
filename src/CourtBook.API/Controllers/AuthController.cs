@@ -10,6 +10,7 @@ namespace CourtBook.API.Controllers;
 
 [ApiController]
 [Route("api/auth")]
+[EnableRateLimiting("auth")]
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
@@ -21,7 +22,6 @@ public class AuthController : ControllerBase
 
     /// <summary>Registers a new Client or Owner account and returns an access token + refresh token session.</summary>
     [HttpPost("register")]
-    [EnableRateLimiting("auth")]
     [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
@@ -48,7 +48,6 @@ public class AuthController : ControllerBase
 
     /// <summary>Authenticates a user and returns an access token + refresh token session on success.</summary>
     [HttpPost("login")]
-    [EnableRateLimiting("auth")]
     [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -71,7 +70,6 @@ public class AuthController : ControllerBase
 
     /// <summary>Rotates a single-use refresh token and returns a new access + refresh token pair.</summary>
     [HttpPost("refresh")]
-    [EnableRateLimiting("auth")]
     [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -110,7 +108,8 @@ public class AuthController : ControllerBase
             return BadRequest("Refresh token is required.");
 
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
-        await _authService.RevokeTokenAsync(request.RefreshToken, ip, "User logged out");
+        var authenticatedUserId = User.GetUserId();
+        await _authService.RevokeTokenAsync(request.RefreshToken, ip, "User logged out", authenticatedUserId);
 
         return Ok(new { message = "Successfully logged out." });
     }

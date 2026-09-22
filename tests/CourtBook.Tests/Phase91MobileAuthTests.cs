@@ -236,6 +236,12 @@ public class Phase91MobileAuthTests
         var token2Before = await db.RefreshTokens.FirstAsync(r => r.TokenHash == token2Hash);
         Assert.True(token2Before.IsActive);
 
+        // Simulate elapsed time beyond the 5s concurrent grace window for Token 1
+        var token1Hash = AuthService.HashToken(token1Raw);
+        var entity1 = await db.RefreshTokens.FirstAsync(r => r.TokenHash == token1Hash);
+        entity1.RevokedAt = DateTime.UtcNow.AddSeconds(-10);
+        await db.SaveChangesAsync();
+
         // Act: Attacker attempts to reuse Token 1 (which was already rotated)
         var reuseEx = await Assert.ThrowsAsync<SecurityTokenException>(async () =>
         {
@@ -508,4 +514,231 @@ public class Phase91MobileAuthTests
         var logoutAllOk = Assert.IsType<OkObjectResult>(logoutAllAction);
         Assert.NotNull(logoutAllOk.Value);
     }
+
+    [Fact]
+    public async Task ConcurrentRefresh_TwoSimultaneousRequests_OnlyOneSucceeds_NoTokenFork()
+    {
+        // Arrange
+        var dbName = Guid.NewGuid().ToString();
+        using var dbSetup = TestDbContextFactory.Create(dbName);
+        var tokenService = new TestTokenService();
+        var authServiceSetup = new AuthService(dbSetup, tokenService);
+
+        var reg = await authServiceSetup.RegisterAsync(new RegisterRequest
+        {
+            Name = "Concurrency User",
+            Email = "concurrency@test.com",
+            Password = "Password123!",
+            Phone = "+201011223344",
+            AcceptTerms = true
+        });
+
+        var tokenRaw = reg.RefreshToken;
+
+        // Two distinct DbContexts pointing to the exact same store
+        using var dbContext1 = TestDbContextFactory.Create(dbName);
+        using var dbContext2 = TestDbContextFactory.Create(dbName);
+        var service1 = new AuthService(dbContext1, tokenService);
+        var service2 = new AuthService(dbContext2, tokenService);
+
+        // Act: Run both rotations concurrently
+        var task1 = service1.RefreshTokenAsync(new RefreshTokenRequest { RefreshToken = tokenRaw });
+        var task2 = service2.RefreshTokenAsync(new RefreshTokenRequest { RefreshToken = tokenRaw });
+
+        AuthResponse? resp1 = null;
+        AuthResponse? resp2 = null;
+        Exception? ex1 = null;
+        Exception? ex2 = null;
+
+        try { resp1 = await task1; } catch (Exception ex) { ex1 = ex; }
+        try { resp2 = await task2; } catch (Exception ex) { ex2 = ex; }
+
+        var successCount = (resp1 != null ? 1 : 0) + (resp2 != null ? 1 : 0);
+        Assert.Equal(1, successCount);
+
+        var successResult = resp1 ?? resp2;
+        var failedException = ex1 ?? ex2;
+
+        // Assert: Exactly one succeeded and issued a new token
+        Assert.NotNull(successResult);
+        Assert.NotEmpty(successResult.RefreshToken);
+        Assert.NotNull(failedException);
+        Assert.IsType<SecurityTokenException>(failedException);
+        Assert.Contains("Concurrent token rotation detected", failedException.Message);
+
+        // Verify in DB: exactly ONE active token exists in the family
+        using var dbVerify = TestDbContextFactory.Create(dbName);
+        var activeTokens = await dbVerify.RefreshTokens
+            .Where(r => r.UserId == reg.UserId && r.RevokedAt == null)
+            .ToListAsync();
+
+        Assert.Single(activeTokens);
+        Assert.Equal(AuthService.HashToken(successResult.RefreshToken), activeTokens[0].TokenHash);
+    }
+
+    [Fact]
+    public async Task SessionAuthorization_StrictTenantIsolation_UserACannotAccessOrRevokeUserBSessions()
+    {
+        // Arrange
+        using var db = TestDbContextFactory.Create(Guid.NewGuid().ToString());
+        var tokenService = new TestTokenService();
+        var authService = new AuthService(db, tokenService);
+
+        // User A
+        var userAReg = await authService.RegisterAsync(new RegisterRequest
+        {
+            Name = "User Alpha",
+            Email = "alpha@test.com",
+            Password = "Password123!",
+            Phone = "+201011111111",
+            AcceptTerms = true,
+            DeviceId = "alpha_phone"
+        });
+
+        // User B
+        var userBReg = await authService.RegisterAsync(new RegisterRequest
+        {
+            Name = "User Beta",
+            Email = "beta@test.com",
+            Password = "Password123!",
+            Phone = "+201022222222",
+            AcceptTerms = true,
+            DeviceId = "beta_phone"
+        });
+
+        var userBSessions = await authService.GetUserSessionsAsync(userBReg.UserId);
+        Assert.Single(userBSessions);
+        var userBSessionId = userBSessions[0].SessionId;
+
+        // Act 1: User A lists sessions -> must NEVER contain User B's session
+        var userASessions = await authService.GetUserSessionsAsync(userAReg.UserId);
+        Assert.Single(userASessions);
+        Assert.Equal("alpha_phone", userASessions[0].DeviceId);
+        Assert.DoesNotContain(userASessions, s => s.SessionId == userBSessionId);
+
+        // Act 2: User A attempts to revoke User B's session directly via RevokeSessionAsync
+        var revokeAttempt = await authService.RevokeSessionAsync(userAReg.UserId, userBSessionId);
+        Assert.False(revokeAttempt); // Must fail (IDOR blocked)
+
+        // Verify User B session remains active
+        var userBStillActive = await db.RefreshTokens.FirstAsync(r => r.Id == userBSessionId);
+        Assert.True(userBStillActive.IsActive);
+
+        // Act 3: User A attempts to revoke User B's refresh token on Logout when authenticated as User A
+        var crossLogoutAttempt = await authService.RevokeTokenAsync(userBReg.RefreshToken, "127.0.0.1", "Logout", authenticatedUserId: userAReg.UserId);
+        Assert.False(crossLogoutAttempt); // Must fail (tenant isolation enforced)
+
+        // Verify User B's token is still active
+        var userBTokenAfter = await db.RefreshTokens.FirstAsync(r => r.Id == userBSessionId);
+        Assert.True(userBTokenAfter.IsActive);
+
+        // Act 4: User A calls LogoutAll -> User A's session revoked, User B completely untouched
+        var aCount = await authService.RevokeAllUserTokensAsync(userAReg.UserId);
+        Assert.Equal(1, aCount);
+
+        var aActive = await db.RefreshTokens.CountAsync(r => r.UserId == userAReg.UserId && r.RevokedAt == null);
+        Assert.Equal(0, aActive);
+
+        var bActive = await db.RefreshTokens.CountAsync(r => r.UserId == userBReg.UserId && r.RevokedAt == null);
+        Assert.Equal(1, bActive); // User B remains unaffected
+    }
+
+    [Fact]
+    public void DeviceMetadata_Validators_EnforceLengthLimitsOnAllAuthRequests()
+    {
+        var loginValidator = new CourtBook.Application.Validators.LoginRequestValidator();
+        var registerValidator = new CourtBook.Application.Validators.RegisterRequestValidator();
+
+        var oversizedDeviceId = new string('A', 129);
+        var oversizedPlatform = new string('B', 65);
+
+        var badLogin = new LoginRequest
+        {
+            Email = "valid@test.com",
+            Password = "Password123!",
+            DeviceId = oversizedDeviceId,
+            Platform = oversizedPlatform
+        };
+
+        var loginResult = loginValidator.Validate(badLogin);
+        Assert.False(loginResult.IsValid);
+        Assert.Contains(loginResult.Errors, e => e.PropertyName == "DeviceId");
+        Assert.Contains(loginResult.Errors, e => e.PropertyName == "Platform");
+
+        var badRegister = new RegisterRequest
+        {
+            Name = "Valid Name",
+            Email = "valid@test.com",
+            Password = "Password123!",
+            Phone = "+201012345678",
+            AcceptTerms = true,
+            DeviceId = oversizedDeviceId,
+            Platform = oversizedPlatform
+        };
+
+        var registerResult = registerValidator.Validate(badRegister);
+        Assert.False(registerResult.IsValid);
+        Assert.Contains(registerResult.Errors, e => e.PropertyName == "DeviceId");
+        Assert.Contains(registerResult.Errors, e => e.PropertyName == "Platform");
+    }
+
+    [Fact]
+    public async Task TokenFamily_ThreeGenerations_RotationAndReplayChain()
+    {
+        // Arrange
+        using var db = TestDbContextFactory.Create(Guid.NewGuid().ToString());
+        var tokenService = new TestTokenService();
+        var authService = new AuthService(db, tokenService);
+
+        // Generation 1: Register (Token A)
+        var reg = await authService.RegisterAsync(new RegisterRequest
+        {
+            Name = "Chain User",
+            Email = "chain@test.com",
+            Password = "Password123!",
+            Phone = "+201088776655",
+            AcceptTerms = true
+        });
+        var tokenA = reg.RefreshToken;
+
+        // Generation 2: Rotate A -> B
+        var rot1 = await authService.RefreshTokenAsync(new RefreshTokenRequest { RefreshToken = tokenA });
+        Assert.NotNull(rot1);
+        var tokenB = rot1.RefreshToken;
+
+        // Generation 3: Rotate B -> C
+        var rot2 = await authService.RefreshTokenAsync(new RefreshTokenRequest { RefreshToken = tokenB });
+        Assert.NotNull(rot2);
+        var tokenC = rot2.RefreshToken;
+
+        // Verify C is active
+        var hashC = AuthService.HashToken(tokenC);
+        var entityC = await db.RefreshTokens.FirstAsync(r => r.TokenHash == hashC);
+        Assert.True(entityC.IsActive);
+
+        // Simulate elapsed time beyond the 5s concurrent grace window for Token A
+        var hashA = AuthService.HashToken(tokenA);
+        var entityA = await db.RefreshTokens.FirstAsync(r => r.TokenHash == hashA);
+        entityA.RevokedAt = DateTime.UtcNow.AddSeconds(-10);
+        await db.SaveChangesAsync();
+
+        // Replay of Token A (Generation 1, revoked two generations ago)
+        var replayEx = await Assert.ThrowsAsync<SecurityTokenException>(async () =>
+        {
+            await authService.RefreshTokenAsync(new RefreshTokenRequest { RefreshToken = tokenA });
+        });
+        Assert.Contains("reuse detected", replayEx.Message, StringComparison.OrdinalIgnoreCase);
+
+        // Assert: Token C (Generation 3) is now revoked as part of compromised family
+        var entityCAfter = await db.RefreshTokens.FirstAsync(r => r.TokenHash == hashC);
+        Assert.True(entityCAfter.IsRevoked);
+        Assert.Equal("Revoked due to detected token reuse attack", entityCAfter.ReasonRevoked);
+
+        // Attempting to refresh with C now fails
+        await Assert.ThrowsAsync<SecurityTokenException>(async () =>
+        {
+            await authService.RefreshTokenAsync(new RefreshTokenRequest { RefreshToken = tokenC });
+        });
+    }
 }
+
