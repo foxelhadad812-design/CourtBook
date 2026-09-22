@@ -16,6 +16,7 @@ public class IndexModel : PageModel
     }
 
     public OwnerDashboardSummaryDto? Dashboard { get; set; }
+    public OwnerBalanceDto? Balance { get; set; }
     public PagedResult<OwnerBookingDto> PagedBookings { get; set; } = PagedResult<OwnerBookingDto>.Empty();
 
     [BindProperty(SupportsGet = true)]
@@ -55,6 +56,13 @@ public class IndexModel : PageModel
             else
             {
                 ErrorMessage = "Could not load dashboard statistics.";
+            }
+
+            // 1b. Fetch Wallet Balance
+            var balResp = await _api.Client.GetAsync("/api/owner/balance");
+            if (balResp.IsSuccessStatusCode)
+            {
+                Balance = await balResp.Content.ReadFromJsonAsync<OwnerBalanceDto>();
             }
 
             // 2. Fetch Paged Bookings with filters

@@ -15,6 +15,9 @@ public class IndexModel : PageModel
     }
 
     public AdminDashboardDto? Dashboard { get; set; }
+    public SettlementSummaryDto? SettlementSummary { get; set; }
+    public AdminPayoutSummaryDto? PayoutSummary { get; set; }
+    public RecoverySummaryDto? RecoverySummary { get; set; }
     public string? ErrorMessage { get; set; }
 
     public async Task<IActionResult> OnGetAsync()
@@ -40,6 +43,23 @@ public class IndexModel : PageModel
             else
             {
                 ErrorMessage = "Could not load admin statistics.";
+            }
+
+            // Load financial subsystem summaries
+            try
+            {
+                var sResp = await _api.Client.GetAsync("/api/admin/settlements/summary");
+                if (sResp.IsSuccessStatusCode) SettlementSummary = await sResp.Content.ReadFromJsonAsync<SettlementSummaryDto>();
+
+                var pResp = await _api.Client.GetAsync("/api/admin/payouts/summary");
+                if (pResp.IsSuccessStatusCode) PayoutSummary = await pResp.Content.ReadFromJsonAsync<AdminPayoutSummaryDto>();
+
+                var rResp = await _api.Client.GetAsync("/api/admin/financial/recovery-obligations/summary");
+                if (rResp.IsSuccessStatusCode) RecoverySummary = await rResp.Content.ReadFromJsonAsync<RecoverySummaryDto>();
+            }
+            catch
+            {
+                // Non-fatal for dashboard load
             }
         }
         catch (Exception)

@@ -1,0 +1,401 @@
+@page
+@model CourtBook.Web.Pages.Admin.PayoutsModel
+@{
+    ViewData["Title"] = "Payout Requests & Disbursement Console";
+    var isArabic = System.Globalization.CultureInfo.CurrentCulture.Name.StartsWith("ar");
+    var dir = isArabic ? "rtl" : "ltr";
+}
+
+<div dir="@dir" class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="/Admin" class="text-decoration-none">@(isArabic ? "لوحة الإدارة" : "Admin Console")</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">@(isArabic ? "طلبات السحب والصرف" : "Owner Payouts")</li>
+                </ol>
+            </nav>
+            <h2 class="fw-bold mb-0">
+                <i class="bi bi-wallet2 me-2 text-primary"></i>
+                @(isArabic ? "مركز مراجعة وصرف مستحقات الملاك" : "Owner Payouts & Disbursement Console")
+            </h2>
+            <div class="text-muted small">
+                @(isArabic ? "المراجعة الإدارية المزدوجة، منع المصادقة الذاتية، وتسجيل أرقام التحويل البنكي وتأكيد الصرف" : "Administrative review, dual-custody anti-self-dealing enforcement, and manual external disbursement tracking")
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="/Admin/Settlements" class="btn btn-outline-primary">
+                <i class="bi bi-clock-history me-1"></i>@(isArabic ? "محرك التسويات" : "Settlement Engine")
+            </a>
+            <a href="/Admin" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>@(isArabic ? "لوحة الإدارة" : "Back to Admin")
+            </a>
+        </div>
+    </div>
+
+    <!-- Feedback Alerts -->
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>@Model.SuccessMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>@Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- KPI Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-xl-4">
+            <div class="card border-0 shadow-sm h-100 bg-white border-start border-warning border-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="text-muted small text-uppercase fw-semibold">@(isArabic ? "بانتظار المراجعة" : "Pending Review")</span>
+                        <span class="badge bg-warning text-dark">@(Model.Summary?.PendingReviewCount ?? 0) @(isArabic ? "طلبات" : "requests")</span>
+                    </div>
+                    <h3 class="fw-bold text-dark mt-2 mb-0">
+                        EGP @((Model.Summary?.TotalPendingReviewAmount ?? 0m).ToString("N2"))
+                    </h3>
+                    <small class="text-muted">@(isArabic ? "أموال محجوزة قيد التدقيق" : "Reserved in-flight funds")</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-4">
+            <div class="card border-0 shadow-sm h-100 bg-white border-start border-info border-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="text-muted small text-uppercase fw-semibold">@(isArabic ? "معتمدة بانتظار التحويل" : "Approved (Ready to Pay)")</span>
+                        <span class="badge bg-info text-dark">@(Model.Summary?.ApprovedCount ?? 0) @(isArabic ? "طلبات" : "ready")</span>
+                    </div>
+                    <h3 class="fw-bold text-dark mt-2 mb-0">
+                        EGP @((Model.Summary?.TotalApprovedAmount ?? 0m).ToString("N2"))
+                    </h3>
+                    <small class="text-muted">@(isArabic ? "جاهزة للتحويل البنكي أو إنستاباي" : "Approved for bank/InstaPay wire")</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-4">
+            <div class="card border-0 shadow-sm h-100 bg-white border-start border-success border-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="text-muted small text-uppercase fw-semibold">@(isArabic ? "تم تحويلها وصرفها" : "Total Disbursed")</span>
+                        <span class="badge bg-success">@(Model.Summary?.PaidCount ?? 0) @(isArabic ? "منفذة" : "paid")</span>
+                    </div>
+                    <h3 class="fw-bold text-dark mt-2 mb-0">
+                        EGP @((Model.Summary?.TotalPaidAmount ?? 0m).ToString("N2"))
+                    </h3>
+                    <small class="text-muted">@(isArabic ? "إجمالي المبالغ المصروفة فعلياً" : "Cumulative lifetime paid out")</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body py-2">
+            <ul class="nav nav-pills small">
+                <li class="nav-item">
+                    <a class="nav-link @(Model.Status == "all" ? "active" : "")" asp-page="/Admin/Payouts" asp-route-status="all">
+                        @(isArabic ? "الكل" : "All Requests")
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link @(Model.Status == "Submitted" ? "active" : "")" asp-page="/Admin/Payouts" asp-route-status="Submitted">
+                        <i class="bi bi-hourglass-split me-1"></i>@(isArabic ? "بانتظار المراجعة" : "Submitted")
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link @(Model.Status == "Approved" ? "active" : "")" asp-page="/Admin/Payouts" asp-route-status="Approved">
+                        <i class="bi bi-check2-circle me-1"></i>@(isArabic ? "معتمدة للصرف" : "Approved")
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link @(Model.Status == "Paid" ? "active" : "")" asp-page="/Admin/Payouts" asp-route-status="Paid">
+                        <i class="bi bi-check-all me-1"></i>@(isArabic ? "مصروفة بالكامل" : "Paid")
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link @(Model.Status == "Rejected" ? "active" : "")" asp-page="/Admin/Payouts" asp-route-status="Rejected">
+                        <i class="bi bi-x-circle me-1"></i>@(isArabic ? "مرفوضة" : "Rejected")
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link @(Model.Status == "Cancelled" ? "active" : "")" asp-page="/Admin/Payouts" asp-route-status="Cancelled">
+                        <i class="bi bi-slash-circle me-1"></i>@(isArabic ? "ملغاة" : "Cancelled")
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Payout Requests Table -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold mb-0">
+                <i class="bi bi-table me-2 text-primary"></i>
+                @(isArabic ? "جدول طلبات السحب" : "Payout Requests Queue")
+                <span class="badge bg-secondary ms-1">@Model.PagedPayouts.TotalCount</span>
+            </h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light small">
+                    <tr>
+                        <th>@(isArabic ? "المرجع" : "Reference")</th>
+                        <th>@(isArabic ? "مالك الملعب" : "Venue Owner")</th>
+                        <th>@(isArabic ? "الوجهة وطريقة التحويل" : "Destination")</th>
+                        <th class="text-end">@(isArabic ? "المبلغ" : "Amount")</th>
+                        <th class="text-end">@(isArabic ? "الصافي" : "Net")</th>
+                        <th>@(isArabic ? "الحالة" : "Status")</th>
+                        <th>@(isArabic ? "تاريخ الطلب" : "Submitted")</th>
+                        <th class="text-center" style="min-width: 220px;">@(isArabic ? "الإجراءات الإدارية" : "Admin Actions")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in Model.PagedPayouts.Items)
+                    {
+                        var isSelfOwned = Model.CurrentAdminId != Guid.Empty && p.OwnerId == Model.CurrentAdminId;
+                        var badgeClass = p.Status switch
+                        {
+                            "Submitted" => "bg-warning text-dark",
+                            "Approved" => "bg-info text-dark",
+                            "Paid" => "bg-success",
+                            "Rejected" => "bg-danger",
+                            "Cancelled" => "bg-secondary",
+                            _ => "bg-light text-dark"
+                        };
+
+                        <tr>
+                            <td class="font-monospace fw-bold small text-primary">@p.PayoutReference</td>
+                            <td>
+                                <div class="fw-semibold">@p.OwnerName</div>
+                                @if (isSelfOwned)
+                                {
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle small">
+                                        <i class="bi bi-person-exclamation me-1"></i>@(isArabic ? "طلبك الشخصي" : "Your Account")
+                                    </span>
+                                }
+                            </td>
+                            <td class="small">
+                                <span class="badge bg-light text-dark border me-1">@p.PayoutMethodType</span>
+                                <span class="font-monospace text-muted">@p.DestinationSummary</span>
+                                @if (!string.IsNullOrEmpty(p.ExternalTransactionReference))
+                                {
+                                    <div class="mt-1 font-monospace small text-success">
+                                        <i class="bi bi-hash"></i>@p.ExternalTransactionReference
+                                    </div>
+                                }
+                            </td>
+                            <td class="text-end font-monospace small">EGP @p.Amount.ToString("N2")</td>
+                            <td class="text-end font-monospace small fw-bold text-dark">EGP @p.NetAmount.ToString("N2")</td>
+                            <td><span class="badge @badgeClass">@p.Status</span></td>
+                            <td class="small text-muted">@p.SubmittedAt.ToString("dd MMM yyyy HH:mm")</td>
+                            <td class="text-center">
+                                @if (p.Status == "Submitted")
+                                {
+                                    <div class="d-flex justify-content-center gap-1">
+                                        @if (isSelfOwned)
+                                        {
+                                            <button type="button" class="btn btn-sm btn-outline-secondary disabled" title="Anti-self-dealing rule prohibits approving your own payout">
+                                                <i class="bi bi-shield-slash me-1"></i>@(isArabic ? "منع ذاتي" : "Self-Approval Blocked")
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <form method="post" asp-page-handler="Approve" asp-route-id="@p.Id" asp-route-ownerId="@p.OwnerId" class="d-inline" onsubmit="return confirm('Are you sure you want to approve this payout request?');">
+                                                <button type="submit" class="btn btn-sm btn-outline-success">
+                                                    <i class="bi bi-check-lg me-1"></i>@(isArabic ? "موافقة" : "Approve")
+                                                </button>
+                                            </form>
+                                        }
+
+                                        <button type="button" class="btn btn-sm btn-outline-danger"
+                                                onclick="openRejectModal('@p.Id', '@p.PayoutReference', '@p.Amount.ToString("N2")')">
+                                            <i class="bi bi-x-lg me-1"></i>@(isArabic ? "رفض" : "Reject")
+                                        </button>
+                                    </div>
+                                }
+                                else if (p.Status == "Approved")
+                                {
+                                    <button type="button" class="btn btn-sm btn-primary"
+                                            onclick="openMarkPaidModal('@p.Id', '@p.PayoutReference', '@p.NetAmount.ToString("N2")', '@p.PayoutMethodType', '@p.DestinationSummary')">
+                                        <i class="bi bi-cash-stack me-1"></i>@(isArabic ? "تأكيد التحويل" : "Record Disbursement")
+                                    </button>
+                                }
+                                else if (p.Status == "Paid")
+                                {
+                                    <span class="text-success small fw-semibold">
+                                        <i class="bi bi-check-all me-1"></i>@(isArabic ? "تم الصرف" : "Disbursed")
+                                    </span>
+                                }
+                                else if (p.Status == "Rejected")
+                                {
+                                    <span class="text-danger small" title="@p.RejectionReason">
+                                        <i class="bi bi-info-circle me-1"></i>@(p.RejectionReason ?? "Rejected")
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">-</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.PagedPayouts.Items.Any())
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-5">
+                                <i class="bi bi-wallet2 fs-1 d-block mb-2"></i>
+                                @(isArabic ? "لا توجد طلبات سحب في هذه الفئة حالياً" : "No payout requests match the selected status.")
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @if (Model.PagedPayouts.TotalPages > 1)
+        {
+            <div class="card-footer bg-white border-top d-flex justify-content-between align-items-center py-2">
+                <span class="small text-muted">
+                    @(isArabic ? $"الصفحة {Model.P} من {Model.PagedPayouts.TotalPages}" : $"Page {Model.P} of {Model.PagedPayouts.TotalPages}")
+                </span>
+                <nav>
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item @(Model.PagedPayouts.HasPreviousPage ? "" : "disabled")">
+                            <a class="page-link" asp-page="/Admin/Payouts" asp-route-p="@(Model.P - 1)" asp-route-status="@Model.Status">
+                                @(isArabic ? "السابق" : "Previous")
+                            </a>
+                        </li>
+                        <li class="page-item @(Model.PagedPayouts.HasNextPage ? "" : "disabled")">
+                            <a class="page-link" asp-page="/Admin/Payouts" asp-route-p="@(Model.P + 1)" asp-route-status="@Model.Status">
+                                @(isArabic ? "التالي" : "Next")
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Reject Modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-labelledby="rejectModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <form method="post" asp-page-handler="Reject" id="rejectForm" class="modal-content">
+            <input type="hidden" name="id" id="rejectPayoutId" />
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title fw-bold" id="rejectModalLabel">
+                    <i class="bi bi-x-circle me-2"></i>@(isArabic ? "رفض طلب سحب المستحقات" : "Reject Payout Request")
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted">
+                    @(isArabic
+                        ? "سيؤدي الرفض إلى إعادة المبلغ المحجوز فوراً إلى الرصيد المتاح للمالك، مع توثيق سبب الرفض في سجل التدقيق المالي."
+                        : "Rejecting this payout request will release the in-flight reservation immediately back to the owner's Available Balance, and log the reason.")
+                </p>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">@(isArabic ? "مرجع الطلب" : "Payout Reference"):</label>
+                    <div id="rejectPayoutRef" class="font-monospace fw-bold text-dark"></div>
+                </div>
+                <div class="mb-3">
+                    <label for="rejectReason" class="form-label fw-semibold">
+                        @(isArabic ? "سبب الرفض (إلزامي)" : "Rejection Reason (Required)")
+                    </label>
+                    <textarea id="rejectReason" name="Reason" class="form-control" rows="3" required placeholder="e.g. Account name mismatch with official KYC records, invalid IBAN details..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">@(isArabic ? "إلغاء" : "Cancel")</button>
+                <button type="submit" class="btn btn-danger fw-semibold">
+                    <i class="bi bi-x-circle me-1"></i>@(isArabic ? "تأكيد الرفض وإعادة الرصيد" : "Confirm Rejection")
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Mark Paid Modal -->
+<div class="modal fade" id="markPaidModal" tabindex="-1" aria-labelledby="markPaidModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <form method="post" asp-page-handler="MarkPaid" id="markPaidForm" class="modal-content">
+            <input type="hidden" name="id" id="paidPayoutId" />
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title fw-bold" id="markPaidModalLabel">
+                    <i class="bi bi-cash-stack me-2"></i>@(isArabic ? "تأكيد صرف وتحويل المستحقات" : "Confirm Payout Disbursement")
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-light border mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="text-muted small">@(isArabic ? "مرجع السحب" : "Payout Ref"):</span>
+                        <span id="paidPayoutRef" class="font-monospace fw-bold"></span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="text-muted small">@(isArabic ? "صافي التحويل" : "Net Transfer"):</span>
+                        <span id="paidPayoutAmount" class="font-monospace fw-bold text-success"></span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted small">@(isArabic ? "وجهة التحويل" : "Destination"):</span>
+                        <span id="paidPayoutDest" class="small text-truncate" style="max-width: 250px;"></span>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="extTxRef" class="form-label fw-semibold">
+                        @(isArabic ? "الرقم المرجعي للتحويل الخارجي (إلزامي)" : "External Transaction Reference (Mandatory)")
+                    </label>
+                    <input type="text" id="extTxRef" name="ExternalTransactionReference" class="form-control font-monospace" required placeholder="e.g. NBE-WIRE-9823412 or IPN-REF-238491823" />
+                    <div class="form-text">
+                        @(isArabic ? "رقم مرجع الإيصال البنكي أو إشعار التحويل عبر إنستاباي لضمان المطابقة المحاسبية." : "The official bank wire transaction ID or InstaPay IPN reference for external audit reconciliation.")
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="disburseNote" class="form-label fw-semibold">
+                        @(isArabic ? "ملاحظات إضافية (اختياري)" : "Disbursement Notes (Optional)")
+                    </label>
+                    <input type="text" id="disburseNote" name="DisbursementNote" class="form-control" placeholder="e.g. Transferred via corporate online banking portal" />
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">@(isArabic ? "إلغاء" : "Cancel")</button>
+                <button type="submit" class="btn btn-success fw-semibold">
+                    <i class="bi bi-check-all me-1"></i>@(isArabic ? "تأكيد التحويل وإغلاق الطلب" : "Finalize Disbursement")
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openRejectModal(payoutId, payoutRef, amount) {
+        document.getElementById('rejectPayoutId').value = payoutId;
+        document.getElementById('rejectPayoutRef').textContent = payoutRef + ' (EGP ' + amount + ')';
+        document.getElementById('rejectReason').value = '';
+        var modal = new bootstrap.Modal(document.getElementById('rejectModal'));
+        modal.show();
+    }
+
+    function openMarkPaidModal(payoutId, payoutRef, netAmount, methodType, destSummary) {
+        document.getElementById('paidPayoutId').value = payoutId;
+        document.getElementById('paidPayoutRef').textContent = payoutRef;
+        document.getElementById('paidPayoutAmount').textContent = 'EGP ' + netAmount;
+        document.getElementById('paidPayoutDest').textContent = methodType + ' - ' + destSummary;
+        document.getElementById('extTxRef').value = '';
+        document.getElementById('disburseNote').value = '';
+        var modal = new bootstrap.Modal(document.getElementById('markPaidModal'));
+        modal.show();
+    }
+</script>

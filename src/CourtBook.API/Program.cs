@@ -3,6 +3,7 @@ using System.Threading.RateLimiting;
 using Asp.Versioning;
 using CourtBook.Application.Interfaces;
 using CourtBook.Application.Validators;
+using CourtBook.API.Health;
 using CourtBook.API.Hubs;
 using CourtBook.API.Middleware;
 using CourtBook.API.Services;
@@ -81,6 +82,7 @@ builder.Services.AddSignalR();
 builder.Services.AddSingleton<IRealTimeNotificationSender, SignalRNotificationSender>();
 builder.Services.AddSingleton<IGameLobbySender, SignalRGameLobbySender>();
 builder.Services.AddHostedService<PaymentHoldWorker>();
+builder.Services.AddHostedService<SettlementWorker>();
 
 // ── FluentValidation ──────────────────────────────────────────────────────────
 // Registers all validators from the Application assembly automatically.
@@ -239,7 +241,8 @@ builder.Services.AddApiVersioning(options =>
 
 // ── Health Checks ─────────────────────────────────────────────────────────────
 builder.Services.AddHealthChecks()
-    .AddDbContextCheck<AppDbContext>("database");
+    .AddDbContextCheck<AppDbContext>("database")
+    .AddCheck<SettlementHealthCheck>("settlement");
 
 // ── Controllers & OpenAPI ─────────────────────────────────────────────────────
 builder.Services.AddControllers()

@@ -2,6 +2,7 @@ using BCrypt.Net;
 using CourtBook.Domain.Entities;
 using CourtBook.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -14,9 +15,10 @@ public static class SeedData
         using var scope = services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<AppDbContext>>();
+        var configuration = scope.ServiceProvider.GetService<IConfiguration>();
 
         // 1. System prerequisites: always seeded (even in Production)
-        await EnsureSystemPrerequisitesAsync(db, logger, isDevelopment);
+        await EnsureSystemPrerequisitesAsync(db, logger, isDevelopment, configuration);
 
         // 2. Demo data: only seeded in Development
         if (isDevelopment)
@@ -25,13 +27,14 @@ public static class SeedData
         }
     }
 
-    public static async Task EnsureSystemPrerequisitesAsync(AppDbContext db, ILogger logger, bool isDevelopment = true)
+    public static async Task EnsureSystemPrerequisitesAsync(
+        AppDbContext db, ILogger logger, bool isDevelopment = true, IConfiguration? configuration = null)
     {
         await db.Database.MigrateAsync();
         await EnsureTermsDocumentsAsync(db, logger);
         await EnsureBaseAmenitiesAsync(db, logger);
         await EnsureAdminAccountAsync(db, logger, isDevelopment);
-        await EnsureHistoricalOwnerBalancesBackfilledAsync(db, logger);
+        await EnsureHistoricalOwnerBalancesBackfilledAsync(db, logger, configuration);
     }
 
     public static async Task EnsureDemoDataAsync(AppDbContext db, ILogger logger)
@@ -1449,8 +1452,17 @@ Last Updated: September 2026
         }
     }
 
-    public static async Task EnsureHistoricalOwnerBalancesBackfilledAsync(AppDbContext db, ILogger logger)
+    public static async Task EnsureHistoricalOwnerBalancesBackfilledAsync(
+        AppDbContext db, ILogger logger, IConfiguration? configuration = null)
     {
+        var commissionRate = 0.05m;
+        if (configuration != null &&
+            decimal.TryParse(configuration["PaymentGateway:CommissionRate"], out var parsedRate) &&
+            parsedRate >= 0m)
+        {
+            commissionRate = parsedRate;
+        }
+
         var owners = await db.Users
             .Where(u => u.Role == Role.Owner)
             .ToListAsync();
@@ -1483,7 +1495,7 @@ Last Updated: September 2026
                     if (b.Payment!.Status == PaymentStatus.PartiallyRefunded)
                     {
                         var gross = b.CancellationFee;
-                        var comm = Math.Round(gross * 0.05m, 2);
+                        var comm = Math.Round(gross * commissionRate, 2);
                         net = gross - comm;
                     }
                     else

@@ -6,6 +6,7 @@ using CourtBook.Domain.Entities;
 using CourtBook.Domain.Enums;
 using CourtBook.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace CourtBook.Infrastructure.Services;
@@ -14,11 +15,26 @@ public class SettlementService : ISettlementService
 {
     private readonly AppDbContext _db;
     private readonly ILogger<SettlementService> _logger;
+    private readonly decimal _commissionRate;
 
-    public SettlementService(AppDbContext db, ILogger<SettlementService> logger)
+    public SettlementService(
+        AppDbContext db,
+        ILogger<SettlementService> logger,
+        IConfiguration? configuration = null)
     {
         _db = db;
         _logger = logger;
+
+        if (configuration != null &&
+            decimal.TryParse(configuration["PaymentGateway:CommissionRate"], out var rate) &&
+            rate >= 0m)
+        {
+            _commissionRate = rate;
+        }
+        else
+        {
+            _commissionRate = 0.05m;
+        }
     }
 
     public async Task<SettlementBatchDto> ExecuteSettlementBatchAsync(
@@ -125,7 +141,7 @@ public class SettlementService : ISettlementService
                         if (payment.Status == PaymentStatus.PartiallyRefunded)
                         {
                             realizedGross = booking.CancellationFee;
-                            realizedComm = Math.Round(realizedGross * 0.05m, 2);
+                            realizedComm = Math.Round(realizedGross * _commissionRate, 2);
                             realizedNet = realizedGross - realizedComm;
                         }
                         else

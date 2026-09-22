@@ -1,0 +1,526 @@
+@page "/Owner/Payouts"
+@model CourtBook.Web.Pages.Owner.PayoutsModel
+@inject CourtBook.Web.Services.ITextLocalizer Loc
+@{
+    ViewData["Title"] = Loc.IsArabic ? "المحفظة وسحب الأرباح" : "Wallet & Payouts";
+    var b = Model.Balance;
+    var isAr = Loc.IsArabic;
+    var dir = isAr ? "rtl" : "ltr";
+}
+
+<div dir="@dir" class="container py-4 py-md-5">
+    @if (Model.IsForbidden)
+    {
+        <div class="card border-0 shadow-sm rounded-4 p-5 text-center my-4" style="border-radius: var(--ps-radius-xl);">
+            <div class="card-body py-4">
+                <i class="bi bi-shield-lock display-3 text-warning mb-3"></i>
+                <h3 class="fw-bold text-dark mb-2">@(isAr ? "صلاحيات مالك المنشأة مطلوبة" : "Facility Owner Access Required")</h3>
+                <p class="text-muted mx-auto mb-4" style="max-width: 480px;">
+                    @(isAr ? "هذه الصفحة مخصصة لمديري المنشآت الرياضية المسجلة لإدارة المحفظة وحسابات التحويل البنكي." : "This page is restricted to sports facility owners for managing wallet balances and Egyptian payout methods.")
+                </p>
+                <a href="/Owner" class="ps-btn ps-btn-primary rounded-pill px-4">
+                    @(isAr ? "العودة للوحة التحكم" : "Back to Dashboard")
+                </a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- Header -->
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4 pb-3 border-bottom">
+            <div>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-1 small">
+                        <li class="breadcrumb-item"><a href="/Owner" class="text-decoration-none">@(isAr ? "لوحة التحكم" : "Owner Portal")</a></li>
+                        <li class="breadcrumb-item active" aria-current="page">@(isAr ? "المحفظة وسحب الأرباح" : "Wallet & Payouts")</li>
+                    </ol>
+                </nav>
+                <h1 class="h3 fw-bold mb-1 text-dark">
+                    <i class="bi bi-wallet2 text-success me-2"></i>
+                    @(isAr ? "إدارة المحفظة والتحويلات المالية" : "Owner Wallet & Payout Operations")
+                </h1>
+                <p class="text-muted small mb-0">
+                    @(isAr ? "متابعة رصيد الحجوزات المتاح، دورة المقاصة اليومية، وإدارة حسابات البنك وإنستاباي والمحافظ الإلكترونية." : "Track cleared booking revenue, 24-hour settlement window, and Egyptian destination accounts.")
+                </p>
+            </div>
+            <div class="d-flex gap-2">
+                @if ((b?.AvailableBalance ?? 0m) >= 100m && (b?.OutstandingDeficit ?? 0m) == 0m && Model.PayoutMethods.Any())
+                {
+                    <button type="button" class="ps-btn ps-btn-primary rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#requestPayoutModal">
+                        <i class="bi bi-cash-stack me-1"></i> @(isAr ? "طلب سحب أرباح" : "Withdraw Funds")
+                    </button>
+                }
+                <button type="button" class="btn btn-outline-secondary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#addMethodModal">
+                    <i class="bi bi-plus-circle me-1"></i> @(isAr ? "إضافة حساب تحويل" : "Add Payout Method")
+                </button>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+        {
+            <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm d-flex align-items-center mb-4" role="alert">
+                <i class="bi bi-check-circle-fill text-success fs-5 me-2"></i>
+                <div>@Model.SuccessMessage</div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm d-flex align-items-center mb-4" role="alert">
+                <i class="bi bi-exclamation-triangle-fill text-danger fs-5 me-2"></i>
+                <div>@Model.ErrorMessage</div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        <!-- Deficit Alert Banner if any -->
+        @if ((b?.OutstandingDeficit ?? 0m) > 0m)
+        {
+            <div class="card border-0 shadow-sm mb-4" style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.12) 0%, rgba(239, 68, 68, 0.04) 100%); border-left: 4px solid #ef4444 !important; border-radius: var(--ps-radius-lg);">
+                <div class="card-body p-3 p-md-4 d-flex flex-wrap justify-content-between align-items-center gap-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 44px; height: 44px; background: rgba(239, 68, 68, 0.2); color: #dc2626; font-size: 1.3rem;">
+                            <i class="bi bi-shield-exclamation"></i>
+                        </div>
+                        <div>
+                            <h5 class="fw-bold mb-1 text-danger">
+                                @(isAr ? $"عجز مالي مستحق: EGP {b!.OutstandingDeficit:0.00}" : $"Outstanding Recovery Deficit: EGP {b!.OutstandingDeficit:0.00}")
+                            </h5>
+                            <p class="text-muted mb-0 small">
+                                @(isAr ? "نتج هذا العجز عن استرداد حجز مسوّى مسبقاً. سيتم استقطاع هذا المبلغ تلقائياً وفق أسبقية FIFO من مبالغ المقاصة القادمة قبل إيداعها في الرصيد المتاح." : "This deficit resulted from a post-settlement refund. Future settlement sweeps will automatically recover this balance via FIFO before new funds become available for withdrawal.")
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- 5 Balance KPI Cards -->
+        <div class="row g-3 mb-4">
+            <!-- Available Balance -->
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="card border-0 shadow-sm rounded-4 p-3 h-100 border-start border-4 border-start-success" style="border-radius: var(--ps-radius-xl); background: var(--ps-card-bg);">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="text-muted small fw-semibold">@(isAr ? "الرصيد المتاح للسحب" : "Available Balance")</span>
+                        <span class="badge bg-success-subtle text-success p-2 rounded-circle"><i class="bi bi-wallet-fill"></i></span>
+                    </div>
+                    <div class="fw-extrabold fs-3 text-success">
+                        EGP @((b?.AvailableBalance ?? 0m).ToString("0.00"))
+                    </div>
+                    <div class="text-muted small mt-1">
+                        @(isAr ? "جاهز للتحويل الفوري (الحد الأدنى 100 ج.م)" : "Spendable & withdrawable (Min EGP 100)")
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pending Balance -->
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="card border-0 shadow-sm rounded-4 p-3 h-100" style="border-radius: var(--ps-radius-xl); background: var(--ps-card-bg);">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="text-muted small fw-semibold">@(isAr ? "رصيد معلق (قيد المقاصة)" : "Pending Balance")</span>
+                        <span class="badge bg-info-subtle text-info p-2 rounded-circle"><i class="bi bi-hourglass-split"></i></span>
+                    </div>
+                    <div class="fw-bold fs-3 text-info">
+                        EGP @((b?.PendingBalance ?? 0m).ToString("0.00"))
+                    </div>
+                    <div class="text-muted small mt-1">
+                        @(isAr ? "حجوزات بانتظار نافذة المقاصة (24 ساعة)" : "Escrowed until 24h clearing buffer elapses")
+                    </div>
+                </div>
+            </div>
+
+            <!-- In-Flight Balance -->
+            <div class="col-12 col-md-6 col-xl-2">
+                <div class="card border-0 shadow-sm rounded-4 p-3 h-100" style="border-radius: var(--ps-radius-xl); background: var(--ps-card-bg);">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="text-muted small fw-semibold">@(isAr ? "قيد المراجعة" : "In-Flight")</span>
+                        <span class="badge bg-warning-subtle text-warning p-2 rounded-circle"><i class="bi bi-arrow-repeat"></i></span>
+                    </div>
+                    <div class="fw-bold fs-3 text-warning">
+                        EGP @((b?.InFlightBalance ?? 0m).ToString("0.00"))
+                    </div>
+                    <div class="text-muted small mt-1">
+                        @(isAr ? "محجوز لطلبات سحب جارية" : "Reserved for active payouts")
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total Paid Out -->
+            <div class="col-12 col-md-6 col-xl-2">
+                <div class="card border-0 shadow-sm rounded-4 p-3 h-100" style="border-radius: var(--ps-radius-xl); background: var(--ps-card-bg);">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="text-muted small fw-semibold">@(isAr ? "إجمالي المسحوبات" : "Total Paid Out")</span>
+                        <span class="badge bg-light text-dark border p-2 rounded-circle"><i class="bi bi-check2-all"></i></span>
+                    </div>
+                    <div class="fw-bold fs-3 text-dark">
+                        EGP @((b?.TotalPaidOut ?? 0m).ToString("0.00"))
+                    </div>
+                    <div class="text-muted small mt-1">
+                        @(isAr ? "مبالغ محولة لحسابك تاريخياً" : "Lifetime disbursed funds")
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total Refunded -->
+            <div class="col-12 col-md-6 col-xl-2">
+                <div class="card border-0 shadow-sm rounded-4 p-3 h-100" style="border-radius: var(--ps-radius-xl); background: var(--ps-card-bg);">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="text-muted small fw-semibold">@(isAr ? "صافي المستردات" : "Total Refunded")</span>
+                        <span class="badge bg-secondary-subtle text-secondary p-2 rounded-circle"><i class="bi bi-arrow-counterclockwise"></i></span>
+                    </div>
+                    <div class="fw-bold fs-3 text-secondary">
+                        EGP @((b?.TotalRefunded ?? 0m).ToString("0.00"))
+                    </div>
+                    <div class="text-muted small mt-1">
+                        @(isAr ? "صافي حصة المالك المستردة" : "Lifetime owner-net refunds")
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payout Destinations & History Grid -->
+        <div class="row g-4 mb-4">
+            <!-- Payout Methods Section (4 cols on lg) -->
+            <div class="col-lg-4">
+                <div class="card border-0 shadow-sm h-100" style="border-radius: var(--ps-radius-lg); background: var(--ps-card-bg);">
+                    <div class="card-header bg-transparent border-0 pt-4 px-4 pb-2 d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="fw-bold mb-0 text-dark">@(isAr ? "حسابات التحويل" : "Payout Methods")</h5>
+                            <small class="text-muted">@(isAr ? "حساباتك المعتمدة لاستلام الأرباح" : "Registered Egyptian destinations")</small>
+                        </div>
+                        <button type="button" class="btn btn-outline-primary btn-sm rounded-pill" data-bs-toggle="modal" data-bs-target="#addMethodModal">
+                            <i class="bi bi-plus-lg"></i>
+                        </button>
+                    </div>
+                    <div class="card-body px-4 pb-4">
+                        @if (Model.PayoutMethods.Any())
+                        {
+                            <div class="d-flex flex-column gap-3">
+                                @foreach (var m in Model.PayoutMethods)
+                                {
+                                    <div class="p-3 rounded-3 border @(m.IsDefault ? "border-primary bg-primary-subtle bg-opacity-10" : "border-light-subtle bg-body-tertiary")">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <div class="d-flex align-items-center gap-2">
+                                                @switch (m.Type)
+                                                {
+                                                    case "BankTransfer":
+                                                        <i class="bi bi-bank fs-4 text-primary"></i>
+                                                        <div>
+                                                            <div class="fw-bold small text-dark">@(m.BankName ?? "Egyptian Bank")</div>
+                                                            <div class="small text-muted">@m.MaskedIban</div>
+                                                        </div>
+                                                        break;
+                                                    case "InstaPay":
+                                                        <i class="bi bi-lightning-charge-fill fs-4 text-warning"></i>
+                                                        <div>
+                                                            <div class="fw-bold small text-dark">InstaPay</div>
+                                                            <div class="small text-muted">@m.MaskedInstaPayAddress</div>
+                                                        </div>
+                                                        break;
+                                                    case "MobileWallet":
+                                                        <i class="bi bi-phone-fill fs-4 text-success"></i>
+                                                        <div>
+                                                            <div class="fw-bold small text-dark">Mobile Wallet</div>
+                                                            <div class="small text-muted">@m.MaskedMobileWalletNumber</div>
+                                                        </div>
+                                                        break;
+                                                }
+                                            </div>
+                                            @if (m.IsDefault)
+                                            {
+                                                <span class="badge bg-primary rounded-pill small">@(isAr ? "افتراضي" : "Default")</span>
+                                            }
+                                        </div>
+                                        <div class="small text-muted mb-2">
+                                            <i class="bi bi-person me-1"></i>@m.AccountHolderName
+                                        </div>
+                                        <div class="d-flex justify-content-end gap-2">
+                                            @if (!m.IsDefault)
+                                            {
+                                                <form method="post" asp-page-handler="SetDefaultMethod">
+                                                    <input type="hidden" name="methodId" value="@m.Id" />
+                                                    <button type="submit" class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size: 11px;">
+                                                        @(isAr ? "تعيين كافتراضي" : "Set Default")
+                                                    </button>
+                                                </form>
+                                            }
+                                            <form method="post" asp-page-handler="DeleteMethod" onsubmit="return confirm('@(isAr ? "هل أنت متأكد من حذف حساب التحويل هذا؟" : "Are you sure you want to deactivate this payout destination?")');">
+                                                <input type="hidden" name="methodId" value="@m.Id" />
+                                                <button type="submit" class="btn btn-outline-danger btn-sm py-0 px-2" style="font-size: 11px;">
+                                                    @(isAr ? "حذف" : "Delete")
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center py-4 text-muted">
+                                <i class="bi bi-credit-card-2-front fs-2 d-block mb-2"></i>
+                                <p class="small mb-3">@(isAr ? "لم تسجل أي حساب بنكي أو محفظة لتحويل الأرباح بعد." : "No payout methods registered yet. Add a bank, InstaPay, or wallet destination to withdraw your funds.")</p>
+                                <button type="button" class="btn btn-primary btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#addMethodModal">
+                                    @(isAr ? "إضافة حساب الآن" : "Add Method Now")
+                                </button>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payout History Table (8 cols on lg) -->
+            <div class="col-lg-8">
+                <div class="card border-0 shadow-sm h-100" style="border-radius: var(--ps-radius-lg); background: var(--ps-card-bg);">
+                    <div class="card-header bg-transparent border-0 pt-4 px-4 pb-2 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <div>
+                            <h5 class="fw-bold mb-0 text-dark">@(isAr ? "سجل طلبات السحب" : "Withdrawal History")</h5>
+                            <small class="text-muted">@(isAr ? "متابعة مسار طلبات سحب الأرباح والتحويلات المعتمدة" : "Audit trail of all requested and disbursed payouts")</small>
+                        </div>
+                        <!-- Status Filter -->
+                        <div class="d-flex gap-1">
+                            <a href="/Owner/Payouts?status=all" class="btn btn-sm rounded-pill px-3 @(Model.Status == "all" ? "btn-dark" : "btn-outline-secondary")">@(isAr ? "الكل" : "All")</a>
+                            <a href="/Owner/Payouts?status=Submitted" class="btn btn-sm rounded-pill px-3 @(Model.Status == "Submitted" ? "btn-warning" : "btn-outline-secondary")">@(isAr ? "قيد المراجعة" : "Submitted")</a>
+                            <a href="/Owner/Payouts?status=Approved" class="btn btn-sm rounded-pill px-3 @(Model.Status == "Approved" ? "btn-primary" : "btn-outline-secondary")">@(isAr ? "معتمد" : "Approved")</a>
+                            <a href="/Owner/Payouts?status=Paid" class="btn btn-sm rounded-pill px-3 @(Model.Status == "Paid" ? "btn-success" : "btn-outline-secondary")">@(isAr ? "تم التحويل" : "Paid")</a>
+                        </div>
+                    </div>
+                    <div class="card-body px-4 pb-4">
+                        @if (Model.PagedPayouts.Items.Any())
+                        {
+                            <div class="table-responsive">
+                                <table class="table align-middle table-hover mb-0">
+                                    <thead>
+                                        <tr class="text-muted small border-bottom">
+                                            <th>@(isAr ? "المرجع" : "Reference")</th>
+                                            <th>@(isAr ? "التاريخ" : "Date")</th>
+                                            <th>@(isAr ? "طريقة التحويل" : "Destination")</th>
+                                            <th>@(isAr ? "المبلغ" : "Amount")</th>
+                                            <th>@(isAr ? "الحالة" : "Status")</th>
+                                            <th class="text-end">@(isAr ? "إجراء" : "Action")</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var p in Model.PagedPayouts.Items)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <div class="fw-semibold text-dark">@p.PayoutReference</div>
+                                                    @if (!string.IsNullOrEmpty(p.ExternalTransactionReference))
+                                                    {
+                                                        <small class="text-success d-block" style="font-size: 11px;">
+                                                            <i class="bi bi-check-all me-1"></i>Ref: @p.ExternalTransactionReference
+                                                        </small>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    <div class="small">@p.SubmittedAt.ToString("yyyy-MM-dd")</div>
+                                                    <small class="text-muted" style="font-size: 11px;">@p.SubmittedAt.ToString("HH:mm") UTC</small>
+                                                </td>
+                                                <td>
+                                                    <div class="small fw-semibold">@p.PayoutMethodType</div>
+                                                    <small class="text-muted">@p.DestinationSummary</small>
+                                                </td>
+                                                <td>
+                                                    <div class="fw-bold text-dark">EGP @p.Amount.ToString("0.00")</div>
+                                                </td>
+                                                <td>
+                                                    @switch (p.Status)
+                                                    {
+                                                        case "Submitted":
+                                                            <span class="badge bg-warning text-dark"><i class="bi bi-clock me-1"></i>@(isAr ? "قيد المراجعة" : "Submitted")</span>
+                                                            break;
+                                                        case "Approved":
+                                                            <span class="badge bg-primary"><i class="bi bi-check2 me-1"></i>@(isAr ? "معتمد للصرف" : "Approved")</span>
+                                                            break;
+                                                        case "Paid":
+                                                            <span class="badge bg-success"><i class="bi bi-check-circle-fill me-1"></i>@(isAr ? "تم التحويل بنجاح" : "Paid")</span>
+                                                            break;
+                                                        case "Rejected":
+                                                            <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>@(isAr ? "مرفوض" : "Rejected")</span>
+                                                            @if (!string.IsNullOrEmpty(p.RejectionReason))
+                                                            {
+                                                                <small class="text-danger d-block mt-1" style="font-size: 11px;">@p.RejectionReason</small>
+                                                            }
+                                                            break;
+                                                        case "Cancelled":
+                                                            <span class="badge bg-secondary"><i class="bi bi-dash-circle me-1"></i>@(isAr ? "ملغي" : "Cancelled")</span>
+                                                            break;
+                                                    }
+                                                </td>
+                                                <td class="text-end">
+                                                    @if (p.Status == "Submitted")
+                                                    {
+                                                        <form method="post" asp-page-handler="CancelPayout" onsubmit="return confirm('@(isAr ? "هل أنت متأكد من إلغاء طلب السحب هذا؟ ستتم إعادة المبلغ لرصيدك المتاح فوراً." : "Are you sure you want to cancel this payout request? Funds will immediately return to your available balance.")');">
+                                                            <input type="hidden" name="payoutId" value="@p.Id" />
+                                                            <button type="submit" class="btn btn-outline-danger btn-sm py-0 px-2 rounded-pill" style="font-size: 11px;">
+                                                                @(isAr ? "إلغاء الطلب" : "Cancel")
+                                                            </button>
+                                                        </form>
+                                                    }
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center py-5 text-muted">
+                                <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                                @(isAr ? "لا توجد طلبات سحب مسجلة حالياً." : "No withdrawal requests found.")
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Modal: Request Payout -->
+<div class="modal fade" id="requestPayoutModal" tabindex="-1" aria-labelledby="requestPayoutModalLabel" aria-hidden="true" dir="@dir">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius: var(--ps-radius-xl);">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="requestPayoutModalLabel">
+                    <i class="bi bi-cash-coin text-success me-2"></i>
+                    @(isAr ? "طلب سحب أرباح" : "Withdraw Available Funds")
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" asp-page-handler="RequestPayout">
+                <div class="modal-body py-4">
+                    <div class="alert alert-info py-2 px-3 small d-flex justify-content-between align-items-center mb-3">
+                        <span>@(isAr ? "الرصيد المتاح الحالي:" : "Current Available Balance:")</span>
+                        <strong class="fs-6">EGP @((b?.AvailableBalance ?? 0m).ToString("0.00"))</strong>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">@(isAr ? "حساب التحويل" : "Destination Account")</label>
+                        <select name="PayoutMethodId" class="form-select" required>
+                            @foreach (var m in Model.PayoutMethods)
+                            {
+                                <option value="@m.Id" selected="@m.IsDefault">
+                                    @m.Type - @(m.MaskedIban ?? m.MaskedInstaPayAddress ?? m.MaskedMobileWalletNumber) (@m.AccountHolderName) @(m.IsDefault ? (isAr ? "[افتراضي]" : "[Default]") : "")
+                                </option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">@(isAr ? "المبلغ المطلوب سحبه (ج.م)" : "Withdrawal Amount (EGP)")</label>
+                        <div class="input-group">
+                            <span class="input-group-text fw-bold">EGP</span>
+                            <input type="number" step="0.01" min="100" max="@(b?.AvailableBalance ?? 0m)" name="Amount" class="form-control fw-bold" placeholder="100.00" required />
+                        </div>
+                        <small class="text-muted d-block mt-1">@(isAr ? "الحد الأدنى للسحب هو 100.00 ج.م ولا توجد أي رسوم إضافية." : "Minimum withdrawal is EGP 100.00 with zero platform withdrawal fees.")</small>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">@(isAr ? "إلغاء" : "Close")</button>
+                    <button type="submit" class="ps-btn ps-btn-primary rounded-pill px-4">@(isAr ? "تأكيد طلب السحب" : "Confirm Withdrawal")</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Add Payout Method -->
+<div class="modal fade" id="addMethodModal" tabindex="-1" aria-labelledby="addMethodModalLabel" aria-hidden="true" dir="@dir">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius: var(--ps-radius-xl);">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="addMethodModalLabel">
+                    <i class="bi bi-plus-circle text-primary me-2"></i>
+                    @(isAr ? "إضافة حساب تحويل جديد" : "Add Payout Method")
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" asp-page-handler="AddMethod">
+                <div class="modal-body py-4">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">@(isAr ? "نوع طريقة التحويل" : "Destination Type")</label>
+                        <select id="payoutTypeSelect" name="Type" class="form-select" onchange="updatePayoutFields()" required>
+                            <option value="InstaPay" selected>InstaPay (إنستاباي)</option>
+                            <option value="BankTransfer">Bank Transfer (تحويل بنكي IBAN)</option>
+                            <option value="MobileWallet">Mobile Wallet (محفظة هاتف إلكترونية)</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">@(isAr ? "اسم صاحب الحساب الثلاثي" : "Account Holder Full Name")</label>
+                        <input type="text" name="AccountHolderName" class="form-control" placeholder="Ahmed Mohamed Hassan" required />
+                    </div>
+
+                    <!-- Bank Transfer Fields -->
+                    <div id="bankFields" class="d-none">
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">@(isAr ? "اسم البنك" : "Bank Name")</label>
+                            <input type="text" name="BankName" class="form-control" placeholder="National Bank of Egypt (NBE)" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">@(isAr ? "رقم الآيبان المصري (29 خانة يبدأ بـ EG)" : "Egyptian IBAN (29 characters starting with EG)")</label>
+                            <input type="text" name="Iban" class="form-control text-uppercase" placeholder="EG000000000000000000000000000" maxlength="29" />
+                            <small class="text-muted" style="font-size: 11px;">@(isAr ? "مثال: EG followed by 27 digits" : "Format: EG followed by 27 digits")</small>
+                        </div>
+                    </div>
+
+                    <!-- InstaPay Fields -->
+                    <div id="instapayFields">
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">@(isAr ? "عنوان الدفع اللحظي إنستاباي IPA" : "InstaPay Address (IPA)")</label>
+                            <input type="text" name="InstaPayAddress" class="form-control" placeholder="username@instapay" />
+                            <small class="text-muted" style="font-size: 11px;">@(isAr ? "مثال: name@instapay" : "Format: must end with @instapay")</small>
+                        </div>
+                    </div>
+
+                    <!-- Mobile Wallet Fields -->
+                    <div id="walletFields" class="d-none">
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">@(isAr ? "رقم الهاتف المرتبط بالمحفظة (11 رقم)" : "Mobile Wallet Number (11 digits)")</label>
+                            <input type="text" name="MobileWalletNumber" class="form-control" placeholder="01012345678" maxlength="11" />
+                            <small class="text-muted" style="font-size: 11px;">@(isAr ? "فودافون كاش، أورنج كاش، اتصالات كاش، وي باي" : "Vodafone Cash, Orange Cash, Etisalat Cash, WE Pay")</small>
+                        </div>
+                    </div>
+
+                    <div class="form-check mt-3">
+                        <input class="form-check-input" type="checkbox" name="IsDefault" value="true" id="isDefaultCheck">
+                        <label class="form-check-label small" for="isDefaultCheck">
+                            @(isAr ? "تعيين كطريقة تحويل افتراضية" : "Set as default payout destination")
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">@(isAr ? "إلغاء" : "Close")</button>
+                    <button type="submit" class="ps-btn ps-btn-primary rounded-pill px-4">@(isAr ? "حفظ الحساب" : "Save Method")</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function updatePayoutFields() {
+            var type = document.getElementById('payoutTypeSelect').value;
+            var bankFields = document.getElementById('bankFields');
+            var instapayFields = document.getElementById('instapayFields');
+            var walletFields = document.getElementById('walletFields');
+
+            bankFields.classList.add('d-none');
+            instapayFields.classList.add('d-none');
+            walletFields.classList.add('d-none');
+
+            if (type === 'BankTransfer') {
+                bankFields.classList.remove('d-none');
+            } else if (type === 'InstaPay') {
+                instapayFields.classList.remove('d-none');
+            } else if (type === 'MobileWallet') {
+                walletFields.classList.remove('d-none');
+            }
+        }
+    </script>
+}

@@ -1,0 +1,303 @@
+@page
+@model CourtBook.Web.Pages.Admin.SettlementsModel
+@{
+    ViewData["Title"] = "Settlement Engine Operations";
+    var isArabic = System.Globalization.CultureInfo.CurrentCulture.Name.StartsWith("ar");
+    var dir = isArabic ? "rtl" : "ltr";
+}
+
+<div dir="@dir" class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="/Admin" class="text-decoration-none">@(isArabic ? "لوحة الإدارة" : "Admin Console")</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">@(isArabic ? "محرك التسويات المالية" : "Settlement Engine")</li>
+                </ol>
+            </nav>
+            <h2 class="fw-bold mb-0">
+                <i class="bi bi-clock-history me-2 text-primary"></i>
+                @(isArabic ? "إدارة وتدقيق التسويات الدورية" : "Settlement Engine Operations")
+            </h2>
+            <div class="text-muted small">
+                @(isArabic ? "تسوية الحجوزات المكتملة وتحويل رصيد الملاك من معلق إلى متاح" : "Automated periodic batch settlement clearing completed bookings to owner balances")
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#triggerSweepModal">
+                <i class="bi bi-play-circle me-1"></i>@(isArabic ? "تشغيل تسوية يدوية" : "Trigger Manual Sweep")
+            </button>
+            <a href="/Admin" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>@(isArabic ? "لوحة الإدارة" : "Back to Admin")
+            </a>
+        </div>
+    </div>
+
+    <!-- Feedback Alerts -->
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>@Model.SuccessMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>@Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Summary KPI Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm h-100 bg-white border-start border-primary border-4">
+                <div class="card-body">
+                    <span class="text-muted small text-uppercase fw-semibold">@(isArabic ? "إجمالي الحجم المسوى" : "Total Settled Volume")</span>
+                    <h3 class="fw-bold text-dark mt-2 mb-0">
+                        EGP @((Model.Summary?.TotalSettledAmount ?? 0m).ToString("N2"))
+                    </h3>
+                    <small class="text-muted">@(isArabic ? "صافي مستحقات الملاك" : "Cumulative net owner credits")</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm h-100 bg-white border-start border-info border-4">
+                <div class="card-body">
+                    <span class="text-muted small text-uppercase fw-semibold">@(isArabic ? "عدد دفعات التسوية" : "Executed Batches")</span>
+                    <h3 class="fw-bold text-dark mt-2 mb-0">
+                        @(Model.Summary?.TotalSettledBatches ?? 0)
+                    </h3>
+                    <small class="text-muted">@(isArabic ? "دفعات ناجحة" : "Successfully completed runs")</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm h-100 bg-white border-start border-success border-4">
+                <div class="card-body">
+                    <span class="text-muted small text-uppercase fw-semibold">@(isArabic ? "حجوزات تمت تسويتها" : "Settled Bookings")</span>
+                    <h3 class="fw-bold text-dark mt-2 mb-0">
+                        @(Model.Summary?.TotalSettledItems ?? 0)
+                    </h3>
+                    <small class="text-muted">@(isArabic ? "حجز مكتمل تم قفله" : "Total booking positions closed")</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm h-100 bg-white border-start border-secondary border-4">
+                <div class="card-body">
+                    <span class="text-muted small text-uppercase fw-semibold">@(isArabic ? "آخر تشغيل للتسوية" : "Last Sweep Executed")</span>
+                    <h5 class="fw-bold text-dark mt-2 mb-0">
+                        @(Model.Summary?.LastSettlementDate.HasValue == true
+                            ? Model.Summary.LastSettlementDate.Value.ToString("dd MMM yyyy HH:mm") + " UTC"
+                            : (isArabic ? "لم يتم بعد" : "None Yet"))
+                    </h5>
+                    <small class="text-muted">@(isArabic ? "محرك الخلفية نشط" : "Background worker active")</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Inspected Batch Drawer/Panel (if batch selected) -->
+    @if (Model.InspectedBatch is not null)
+    {
+        var b = Model.InspectedBatch;
+        <div class="card border-primary shadow-sm mb-4">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-box-seam fs-5"></i>
+                    <h5 class="mb-0 fw-bold">@(isArabic ? "تفاصيل دفعة التسوية:" : "Batch Inspection:") @b.BatchReference</h5>
+                </div>
+                <a asp-page="/Admin/Settlements" asp-route-p="@Model.P" class="btn btn-sm btn-light">
+                    <i class="bi bi-x-lg me-1"></i>@(isArabic ? "إغلاق" : "Close Inspector")
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-3">
+                        <small class="text-muted d-block">@(isArabic ? "تاريخ التنفيذ" : "Executed At")</small>
+                        <span class="fw-semibold">@b.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss") UTC</span>
+                    </div>
+                    <div class="col-md-3">
+                        <small class="text-muted d-block">@(isArabic ? "فترة التغطية" : "Period Window")</small>
+                        <span class="fw-semibold">@b.PeriodStart.ToString("MM/dd") - @b.PeriodEnd.ToString("MM/dd HH:mm")</span>
+                    </div>
+                    <div class="col-md-2">
+                        <small class="text-muted d-block">@(isArabic ? "الحجم الإجمالي" : "Gross Volume")</small>
+                        <span class="fw-semibold">EGP @b.TotalGross.ToString("N2")</span>
+                    </div>
+                    <div class="col-md-2">
+                        <small class="text-muted d-block">@(isArabic ? "عمولة المنصة" : "Platform Fee")</small>
+                        <span class="fw-semibold text-warning">EGP @b.TotalCommission.ToString("N2")</span>
+                    </div>
+                    <div class="col-md-2">
+                        <small class="text-muted d-block">@(isArabic ? "صافي الملاك" : "Net Owner Payout")</small>
+                        <span class="fw-bold text-success">EGP @b.TotalNet.ToString("N2")</span>
+                    </div>
+                </div>
+
+                <h6 class="fw-bold mb-2">@(isArabic ? "عناصر الدفعة المسواة" : "Settled Items in Batch") (@b.Items.Count)</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped table-hover align-middle mb-0">
+                        <thead class="table-light small">
+                            <tr>
+                                <th>@(isArabic ? "مرجع الحجز" : "Booking Ref")</th>
+                                <th>@(isArabic ? "مالك الملعب" : "Venue Owner")</th>
+                                <th class="text-end">@(isArabic ? "المبلغ الإجمالي" : "Gross Amount")</th>
+                                <th class="text-end">@(isArabic ? "عمولة المنصة" : "Commission")</th>
+                                <th class="text-end">@(isArabic ? "صافي المالك" : "Net Settled")</th>
+                                <th>@(isArabic ? "وقت التسوية" : "Settled At")</th>
+                            </tr>
+                        </thead>
+                        <tbody class="small">
+                            @foreach (var item in b.Items)
+                            {
+                                <tr>
+                                    <td class="font-monospace fw-semibold">@item.BookingReference</td>
+                                    <td>@item.OwnerName</td>
+                                    <td class="text-end font-monospace">EGP @item.GrossAmount.ToString("N2")</td>
+                                    <td class="text-end font-monospace text-warning">EGP @item.CommissionAmount.ToString("N2")</td>
+                                    <td class="text-end font-monospace fw-bold text-success">EGP @item.NetAmount.ToString("N2")</td>
+                                    <td>@item.SettledAt.ToString("yyyy-MM-dd HH:mm")</td>
+                                </tr>
+                            }
+                            @if (!b.Items.Any())
+                            {
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted py-3">@(isArabic ? "لا توجد عناصر مسواة في هذه الدفعة" : "No items in this settlement batch.")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Settlement Batches Master Table -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold mb-0">
+                <i class="bi bi-receipt-cutoff me-2 text-primary"></i>
+                @(isArabic ? "سجل دفعات التسوية" : "Settlement Batches Ledger")
+                <span class="badge bg-secondary ms-1">@Model.PagedBatches.TotalCount</span>
+            </h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light small">
+                    <tr>
+                        <th>@(isArabic ? "مرجع الدفعة" : "Batch Reference")</th>
+                        <th>@(isArabic ? "تاريخ التنفيذ" : "Executed At")</th>
+                        <th>@(isArabic ? "نافذة الحجوزات" : "Booking Window")</th>
+                        <th class="text-center">@(isArabic ? "عدد الحجوزات" : "Items")</th>
+                        <th class="text-end">@(isArabic ? "الإجمالي" : "Gross")</th>
+                        <th class="text-end">@(isArabic ? "العمولة" : "Commission")</th>
+                        <th class="text-end">@(isArabic ? "الصافي" : "Net")</th>
+                        <th>@(isArabic ? "الحالة" : "Status")</th>
+                        <th class="text-center">@(isArabic ? "الإجراءات" : "Action")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var batch in Model.PagedBatches.Items)
+                    {
+                        var isCurrent = Model.InspectBatchId == batch.Id;
+                        <tr class="@(isCurrent ? "table-primary" : "")">
+                            <td class="font-monospace fw-bold text-primary">@batch.BatchReference</td>
+                            <td class="small">@batch.CreatedAt.ToString("dd MMM yyyy HH:mm")</td>
+                            <td class="small text-muted">@batch.PeriodStart.ToString("MM/dd") - @batch.PeriodEnd.ToString("MM/dd HH:mm")</td>
+                            <td class="text-center"><span class="badge bg-light text-dark border">@batch.ItemCount</span></td>
+                            <td class="text-end font-monospace small">EGP @batch.TotalGross.ToString("N2")</td>
+                            <td class="text-end font-monospace small text-warning">EGP @batch.TotalCommission.ToString("N2")</td>
+                            <td class="text-end font-monospace small fw-bold text-success">EGP @batch.TotalNet.ToString("N2")</td>
+                            <td><span class="badge bg-success">@batch.Status</span></td>
+                            <td class="text-center">
+                                <a asp-page="/Admin/Settlements" asp-route-p="@Model.P" asp-route-inspectBatchId="@batch.Id" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye me-1"></i>@(isArabic ? "فحص" : "Inspect")
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.PagedBatches.Items.Any())
+                    {
+                        <tr>
+                            <td colspan="9" class="text-center text-muted py-5">
+                                <i class="bi bi-clock-history fs-1 d-block mb-2"></i>
+                                @(isArabic ? "لا توجد دفعات تسوية منشأة حتى الآن" : "No settlement batches executed yet. Click 'Trigger Manual Sweep' above to run the first settlement.")
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @if (Model.PagedBatches.TotalPages > 1)
+        {
+            <div class="card-footer bg-white border-top d-flex justify-content-between align-items-center py-2">
+                <span class="small text-muted">
+                    @(isArabic ? $"الصفحة {Model.P} من {Model.PagedBatches.TotalPages}" : $"Page {Model.P} of {Model.PagedBatches.TotalPages}")
+                </span>
+                <nav>
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item @(Model.PagedBatches.HasPreviousPage ? "" : "disabled")">
+                            <a class="page-link" asp-page="/Admin/Settlements" asp-route-p="@(Model.P - 1)" asp-route-inspectBatchId="@Model.InspectBatchId">
+                                @(isArabic ? "السابق" : "Previous")
+                            </a>
+                        </li>
+                        <li class="page-item @(Model.PagedBatches.HasNextPage ? "" : "disabled")">
+                            <a class="page-link" asp-page="/Admin/Settlements" asp-route-p="@(Model.P + 1)" asp-route-inspectBatchId="@Model.InspectBatchId">
+                                @(isArabic ? "التالي" : "Next")
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Trigger Sweep Modal -->
+<div class="modal fade" id="triggerSweepModal" tabindex="-1" aria-labelledby="triggerSweepModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <form method="post" asp-page-handler="Trigger" class="modal-content">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title fw-bold" id="triggerSweepModalLabel">
+                    <i class="bi bi-play-circle text-primary me-2"></i>
+                    @(isArabic ? "تأكيد تشغيل دورة التسوية اليدوية" : "Execute Settlement Sweep")
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted">
+                    @(isArabic
+                        ? "سيقوم محرك التسويات بفحص كافة الحجوزات المكتملة التي تجاوزت حاجز الأمان الزمني، وحساب عمولة المنصة وصافي المستحق لكل مالك، وتحديث رصيد الملاك من معلق إلى متاح، وتسوية أي التزامات استرداد عجز سابقة بنظام FIFO."
+                        : "The settlement engine will sweep all completed bookings past the clearing buffer, deduct platform commissions, credit net balances to venue owners' Available Balance, and apply FIFO recovery towards any outstanding deficits.")
+                </p>
+                <div class="mb-3">
+                    <label for="bufferHours" class="form-label fw-semibold">
+                        @(isArabic ? "فترة الأمان (ساعات)" : "Clearing Buffer (Hours)")
+                    </label>
+                    <input type="number" id="bufferHours" name="bufferHours" class="form-control" value="24" min="0" max="168" required />
+                    <div class="form-text">
+                        @(isArabic ? "الافتراضي هو 24 ساعة بعد اكتمال موعد الحجز لمنع أي نزاعات أو استردادات فورية." : "Default is 24 hours after booking completion time to prevent disputes or immediate cancellations.")
+                    </div>
+                </div>
+                <div class="alert alert-warning py-2 mb-0 small">
+                    <i class="bi bi-info-circle me-1"></i>
+                    @(isArabic ? "العملية محمية بقفل توزيع لمنع التكرار المزدوج." : "Protected by SQL Server distributed application lock against concurrent execution.")
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">@(isArabic ? "إلغاء" : "Cancel")</button>
+                <button type="submit" class="btn btn-primary fw-semibold">
+                    <i class="bi bi-lightning-charge me-1"></i>@(isArabic ? "بدء دورة التسوية الآن" : "Execute Sweep Now")
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

@@ -100,6 +100,53 @@
                 </div>
             }
 
+            <!-- OWNER WALLET & PAYOUT QUICK BANNER -->
+            @if (Model.Balance != null)
+            {
+                var bal = Model.Balance;
+                <div class="card border-0 mb-4 shadow-sm" style="border-radius: var(--ps-radius-xl); background: var(--ps-card-bg); border-left: 4px solid var(--ps-primary) !important;">
+                    <div class="card-body p-3 p-md-4 d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background: rgba(16, 185, 129, 0.15); color: #10b981; font-size: 1.4rem;">
+                                <i class="bi bi-wallet2"></i>
+                            </div>
+                            <div>
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <span class="text-muted small fw-semibold">@(Loc.IsArabic ? "محفظة المالك المعتمدة" : "Owner Financial Wallet")</span>
+                                    @if (bal.OutstandingDeficit > 0m)
+                                    {
+                                        <span class="badge bg-danger rounded-pill small">@(Loc.IsArabic ? $"عجز مستحق: EGP {bal.OutstandingDeficit:0.00}" : $"Deficit: EGP {bal.OutstandingDeficit:0.00}")</span>
+                                    }
+                                </div>
+                                <div class="d-flex flex-wrap align-items-baseline gap-3">
+                                    <div class="h4 fw-extrabold text-success mb-0">
+                                        EGP @bal.AvailableBalance.ToString("0.00")
+                                        <small class="text-muted fw-normal" style="font-size: 12px;">@(Loc.IsArabic ? "متاح للسحب" : "Available")</small>
+                                    </div>
+                                    <div class="small text-muted">
+                                        <i class="bi bi-hourglass-split me-1 text-info"></i>@(Loc.IsArabic ? "معلق (نافذة 24 ساعة):" : "Pending (24h clearing):") <strong class="text-dark">EGP @bal.PendingBalance.ToString("0.00")</strong>
+                                    </div>
+                                    @if (bal.InFlightBalance > 0m)
+                                    {
+                                        <div class="small text-muted">
+                                            <i class="bi bi-clock-history me-1 text-warning"></i>@(Loc.IsArabic ? "قيد المراجعة:" : "In-Flight:") <strong class="text-dark">EGP @bal.InFlightBalance.ToString("0.00")</strong>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <a href="/Owner/Payouts" class="ps-btn ps-btn-primary ps-btn-sm rounded-pill px-3 shadow-sm">
+                                <i class="bi bi-cash-coin me-1"></i> @(Loc.IsArabic ? "إدارة المحفظة وسحب الأرباح" : "Wallet & Payouts")
+                            </a>
+                            <a href="/Owner/FinancialReport" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                                <i class="bi bi-graph-up-arrow me-1"></i> @Loc["Nav.FinancialReport"]
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            }
+
             <!-- TOP METRICS: 6 CARDS -->
             <div class="row g-3 mb-4">
                 <!-- Total Venues -->

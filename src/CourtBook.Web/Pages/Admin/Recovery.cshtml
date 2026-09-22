@@ -1,0 +1,371 @@
+@page
+@model CourtBook.Web.Pages.Admin.RecoveryModel
+@{
+    ViewData["Title"] = "Debt & Deficit Recovery Management";
+    var isArabic = System.Globalization.CultureInfo.CurrentCulture.Name.StartsWith("ar");
+    var dir = isArabic ? "rtl" : "ltr";
+}
+
+<div dir="@dir" class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="/Admin" class="text-decoration-none">@(isArabic ? "لوحة الإدارة" : "Admin Console")</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">@(isArabic ? "التزامات الاسترداد والعجز" : "Recovery Obligations")</li>
+                </ol>
+            </nav>
+            <h2 class="fw-bold mb-0">
+                <i class="bi bi-shield-exclamation me-2 text-danger"></i>
+                @(isArabic ? "إدارة وتتبع التزامات عجز استرداد الملاك" : "Debt & Deficit Recovery Management")
+            </h2>
+            <div class="text-muted small">
+                @(isArabic ? "مراقبة العجز المالي الناتج عن استردادات ما بعد الصرف، واستيفاء الديون بنظام FIFO أو التسوية اليدوية" : "Monitor post-payout refund deficits, track FIFO automated recovery, and manage manual debt settlements or write-offs")
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="/Admin/Settlements" class="btn btn-outline-primary">
+                <i class="bi bi-clock-history me-1"></i>@(isArabic ? "محرك التسويات" : "Settlement Engine")
+            </a>
+            <a href="/Admin/Payouts" class="btn btn-outline-primary">
+                <i class="bi bi-wallet2 me-1"></i>@(isArabic ? "طلبات الصرف" : "Payouts")
+            </a>
+            <a href="/Admin" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>@(isArabic ? "لوحة الإدارة" : "Back to Admin")
+            </a>
+        </div>
+    </div>
+
+    <!-- Feedback Alerts -->
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>@Model.SuccessMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>@Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Summary KPI Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm h-100 bg-white border-start border-danger border-4">
+                <div class="card-body">
+                    <span class="text-muted small text-uppercase fw-semibold">@(isArabic ? "إجمالي العجز القائم" : "Total Active Deficit")</span>
+                    <h3 class="fw-bold text-danger mt-2 mb-0">
+                        EGP @((Model.Summary?.TotalActiveDeficit ?? 0m).ToString("N2"))
+                    </h3>
+                    <small class="text-muted">@(isArabic ? "مستحقات واجبة التحصيل" : "Unrecovered owner obligations")</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm h-100 bg-white border-start border-warning border-4">
+                <div class="card-body">
+                    <span class="text-muted small text-uppercase fw-semibold">@(isArabic ? "التزامات نشطة" : "Active Obligations")</span>
+                    <h3 class="fw-bold text-dark mt-2 mb-0">
+                        @(Model.Summary?.ActiveObligationsCount ?? 0)
+                    </h3>
+                    <small class="text-muted">@(isArabic ? "حالات عجز معلقة" : "Pending FIFO debt items")</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm h-100 bg-white border-start border-success border-4">
+                <div class="card-body">
+                    <span class="text-muted small text-uppercase fw-semibold">@(isArabic ? "إجمالي ما تم استرداده" : "Total Recovered")</span>
+                    <h3 class="fw-bold text-success mt-2 mb-0">
+                        EGP @((Model.Summary?.TotalRecoveredAmount ?? 0m).ToString("N2"))
+                    </h3>
+                    <small class="text-muted">@(isArabic ? "عبر التسويات والتسديد اليدوي" : "Via settlements & manual cash")</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm h-100 bg-white border-start border-secondary border-4">
+                <div class="card-body">
+                    <span class="text-muted small text-uppercase fw-semibold">@(isArabic ? "ديون مشطوبة" : "Written Off")</span>
+                    <h3 class="fw-bold text-secondary mt-2 mb-0">
+                        EGP @((Model.Summary?.TotalWrittenOffAmount ?? 0m).ToString("N2"))
+                    </h3>
+                    <small class="text-muted">@(isArabic ? "إعفاءات بقرار إداري" : "Authorized deficit write-offs")</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Filter -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body py-2">
+            <ul class="nav nav-pills small">
+                <li class="nav-item">
+                    <a class="nav-link @(Model.Status == "all" ? "active" : "")" asp-page="/Admin/Recovery" asp-route-status="all">
+                        @(isArabic ? "كافة الالتزامات" : "All Obligations")
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link @(Model.Status == "Active" ? "active" : "")" asp-page="/Admin/Recovery" asp-route-status="Active">
+                        <i class="bi bi-exclamation-circle me-1"></i>@(isArabic ? "نشطة (قيد المطالبة)" : "Active")
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link @(Model.Status == "Recovered" ? "active" : "")" asp-page="/Admin/Recovery" asp-route-status="Recovered">
+                        <i class="bi bi-check-circle me-1"></i>@(isArabic ? "مستردة بالكامل" : "Recovered")
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link @(Model.Status == "WrittenOff" ? "active" : "")" asp-page="/Admin/Recovery" asp-route-status="WrittenOff">
+                        <i class="bi bi-slash-circle me-1"></i>@(isArabic ? "مشطوبة" : "Written Off")
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Recovery Obligations Table -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold mb-0">
+                <i class="bi bi-list-check me-2 text-primary"></i>
+                @(isArabic ? "سجل التزامات العجز المالي" : "Recovery Obligations Ledger")
+                <span class="badge bg-secondary ms-1">@Model.PagedObligations.TotalCount</span>
+            </h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light small">
+                    <tr>
+                        <th>@(isArabic ? "المرجع" : "Reference")</th>
+                        <th>@(isArabic ? "مالك الملعب" : "Venue Owner")</th>
+                        <th>@(isArabic ? "الحجز المتسبب" : "Triggering Booking")</th>
+                        <th class="text-end">@(isArabic ? "العجز الأصلي" : "Original Deficit")</th>
+                        <th class="text-end">@(isArabic ? "العجز المتبقي" : "Remaining Deficit")</th>
+                        <th>@(isArabic ? "الحالة" : "Status")</th>
+                        <th>@(isArabic ? "تاريخ الإنشاء" : "Created At")</th>
+                        <th class="text-center" style="min-width: 180px;">@(isArabic ? "الإجراءات" : "Actions")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var o in Model.PagedObligations.Items)
+                    {
+                        var badgeClass = o.Status switch
+                        {
+                            "Active" => "bg-danger",
+                            "Recovered" => "bg-success",
+                            "WrittenOff" => "bg-secondary",
+                            _ => "bg-light text-dark"
+                        };
+
+                        <tr>
+                            <td class="font-monospace fw-bold small text-primary">@o.ObligationReference</td>
+                            <td class="fw-semibold">@o.OwnerName</td>
+                            <td class="small">
+                                <span class="font-monospace">@o.BookingReference</span>
+                                @if (!string.IsNullOrEmpty(o.Reason))
+                                {
+                                    <div class="text-muted extra-small">@o.Reason</div>
+                                }
+                            </td>
+                            <td class="text-end font-monospace small">EGP @o.TotalDeficitAmount.ToString("N2")</td>
+                            <td class="text-end font-monospace small fw-bold @(o.RemainingDeficitAmount > 0 ? "text-danger" : "text-muted")">
+                                EGP @o.RemainingDeficitAmount.ToString("N2")
+                            </td>
+                            <td><span class="badge @badgeClass">@o.Status</span></td>
+                            <td class="small text-muted">@o.CreatedAt.ToString("dd MMM yyyy HH:mm")</td>
+                            <td class="text-center">
+                                @if (o.Status == "Active")
+                                {
+                                    <div class="d-flex justify-content-center gap-1">
+                                        <button type="button" class="btn btn-sm btn-outline-success"
+                                                onclick="openSettleModal('@o.Id', '@o.ObligationReference', '@o.RemainingDeficitAmount.ToString("0.00")')">
+                                            <i class="bi bi-cash me-1"></i>@(isArabic ? "تسديد يدوي" : "Settle")
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary"
+                                                onclick="openWriteOffModal('@o.Id', '@o.ObligationReference', '@o.RemainingDeficitAmount.ToString("0.00")')">
+                                            <i class="bi bi-trash me-1"></i>@(isArabic ? "شطب" : "Write Off")
+                                        </button>
+                                    </div>
+                                }
+                                else if (o.Status == "Recovered")
+                                {
+                                    <span class="text-success small fw-semibold">
+                                        <i class="bi bi-check-circle me-1"></i>@(isArabic ? "مسترد بالكامل" : "Fully Recovered")
+                                    </span>
+                                }
+                                else if (o.Status == "WrittenOff")
+                                {
+                                    <span class="text-secondary small">
+                                        <i class="bi bi-slash-circle me-1"></i>@(isArabic ? "مشطوب" : "Written Off")
+                                    </span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.PagedObligations.Items.Any())
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-5">
+                                <i class="bi bi-shield-check fs-1 text-success d-block mb-2"></i>
+                                @(isArabic ? "لا توجد أي التزامات عجز قائمة في هذه الفئة." : "No recovery obligations found matching the current filter.")
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @if (Model.PagedObligations.TotalPages > 1)
+        {
+            <div class="card-footer bg-white border-top d-flex justify-content-between align-items-center py-2">
+                <span class="small text-muted">
+                    @(isArabic ? $"الصفحة {Model.P} من {Model.PagedObligations.TotalPages}" : $"Page {Model.P} of {Model.PagedObligations.TotalPages}")
+                </span>
+                <nav>
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item @(Model.PagedObligations.HasPreviousPage ? "" : "disabled")">
+                            <a class="page-link" asp-page="/Admin/Recovery" asp-route-p="@(Model.P - 1)" asp-route-status="@Model.Status">
+                                @(isArabic ? "السابق" : "Previous")
+                            </a>
+                        </li>
+                        <li class="page-item @(Model.PagedObligations.HasNextPage ? "" : "disabled")">
+                            <a class="page-link" asp-page="/Admin/Recovery" asp-route-p="@(Model.P + 1)" asp-route-status="@Model.Status">
+                                @(isArabic ? "التالي" : "Next")
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Manual Settle Modal -->
+<div class="modal fade" id="settleModal" tabindex="-1" aria-labelledby="settleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <form method="post" asp-page-handler="SettleManually" class="modal-content">
+            <input type="hidden" name="id" id="settleObligationId" />
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title fw-bold" id="settleModalLabel">
+                    <i class="bi bi-cash-coin me-2"></i>@(isArabic ? "تسديد عجز الاسترداد يدوياً" : "Manual Obligation Settlement")
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-light border mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="text-muted small">@(isArabic ? "مرجع الالتزام" : "Obligation Ref"):</span>
+                        <span id="settleObligationRef" class="font-monospace fw-bold"></span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted small">@(isArabic ? "العجز القائم" : "Current Deficit"):</span>
+                        <span id="settleCurrentDeficit" class="font-monospace fw-bold text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="settleAmount" class="form-label fw-semibold">
+                        @(isArabic ? "المبلغ المسترد (جنيه)" : "Settlement Amount (EGP)")
+                    </label>
+                    <input type="number" id="settleAmount" name="Amount" class="form-control" step="0.01" min="0.01" required />
+                </div>
+
+                <div class="mb-3">
+                    <label for="settleRef" class="form-label fw-semibold">
+                        @(isArabic ? "الرقم المرجعي للإيداع / الإيصال" : "External Reference / Receipt #")
+                    </label>
+                    <input type="text" id="settleRef" name="ExternalReference" class="form-control font-monospace" required placeholder="e.g. CASH-REC-829182 or BANK-DEP-99213" />
+                </div>
+
+                <div class="mb-3">
+                    <label for="settleNotes" class="form-label fw-semibold">
+                        @(isArabic ? "ملاحظات إضافية" : "Administrative Notes (Optional)")
+                    </label>
+                    <input type="text" id="settleNotes" name="Notes" class="form-control" placeholder="e.g. Paid in cash at management office" />
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">@(isArabic ? "إلغاء" : "Cancel")</button>
+                <button type="submit" class="btn btn-success fw-semibold">
+                    <i class="bi bi-check-lg me-1"></i>@(isArabic ? "تسجيل التسديد" : "Confirm Settlement")
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Write Off Modal -->
+<div class="modal fade" id="writeOffModal" tabindex="-1" aria-labelledby="writeOffModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <form method="post" asp-page-handler="WriteOff" class="modal-content">
+            <input type="hidden" name="id" id="writeOffObligationId" />
+            <div class="modal-header bg-secondary text-white">
+                <h5 class="modal-title fw-bold" id="writeOffModalLabel">
+                    <i class="bi bi-slash-circle me-2"></i>@(isArabic ? "شطب عجز الاسترداد" : "Write Off Debt Obligation")
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-danger fw-semibold">
+                    @(isArabic
+                        ? "تحذير: سيؤدي شطب الالتزام إلى إعفاء المالك وتخفيض رصيد العجز المالي المعلق من سجله. يجب توثيق المبرر الإداري."
+                        : "Warning: Writing off this obligation relieves the owner from debt and decreases OutstandingDeficit. An audit justification is mandatory.")
+                </p>
+                <div class="alert alert-light border mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="text-muted small">@(isArabic ? "مرجع الالتزام" : "Obligation Ref"):</span>
+                        <span id="writeOffObligationRef" class="font-monospace fw-bold"></span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted small">@(isArabic ? "المبلغ المشطوب" : "Amount to Write Off"):</span>
+                        <span id="writeOffCurrentDeficit" class="font-monospace fw-bold text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="writeOffReason" class="form-label fw-semibold">
+                        @(isArabic ? "سبب الشطب (إلزامي)" : "Write-Off Justification (Mandatory)")
+                    </label>
+                    <textarea id="writeOffReason" name="Reason" class="form-control" rows="3" required placeholder="e.g. Administrative waiver approved by board, dispute resolved in platform favor..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">@(isArabic ? "إلغاء" : "Cancel")</button>
+                <button type="submit" class="btn btn-danger fw-semibold">
+                    <i class="bi bi-trash me-1"></i>@(isArabic ? "تأكيد شطب العجز" : "Confirm Write-Off")
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openSettleModal(obligationId, obligationRef, deficit) {
+        document.getElementById('settleObligationId').value = obligationId;
+        document.getElementById('settleObligationRef').textContent = obligationRef;
+        document.getElementById('settleCurrentDeficit').textContent = 'EGP ' + deficit;
+        document.getElementById('settleAmount').value = deficit;
+        document.getElementById('settleRef').value = '';
+        document.getElementById('settleNotes').value = '';
+        var modal = new bootstrap.Modal(document.getElementById('settleModal'));
+        modal.show();
+    }
+
+    function openWriteOffModal(obligationId, obligationRef, deficit) {
+        document.getElementById('writeOffObligationId').value = obligationId;
+        document.getElementById('writeOffObligationRef').textContent = obligationRef;
+        document.getElementById('writeOffCurrentDeficit').textContent = 'EGP ' + deficit;
+        document.getElementById('writeOffReason').value = '';
+        var modal = new bootstrap.Modal(document.getElementById('writeOffModal'));
+        modal.show();
+    }
+</script>

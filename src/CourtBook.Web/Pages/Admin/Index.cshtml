@@ -147,6 +147,82 @@
                 <div class="h3 fw-bold mb-0" style="color: var(--ps-text);">@(d?.TotalOwners ?? 0)</div>
                 <div class="text-muted small mt-1">@(Loc.IsArabic ? "مديرو المنشآت" : "Partners")</div>
             </div>
+    </div>
+
+    <!-- Marketplace Financial Operations Overview -->
+    <div class="card border-0 shadow-sm mb-4" style="border-radius: var(--ps-radius-lg); background: var(--ps-card-bg);">
+        <div class="card-body p-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+                <div>
+                    <h5 class="fw-bold mb-0" style="color: var(--ps-text);">
+                        <i class="bi bi-bank2 text-primary me-2"></i>
+                        @(Loc.IsArabic ? "العمليات والتسويات المالية للمنصة" : "Marketplace Financial Operations")
+                    </h5>
+                    <small class="text-muted">
+                        @(Loc.IsArabic ? "إدارة دورات تسوية الحجوزات، مراجعة وصرف طلبات السحب، واستيفاء عجز الاستردادات" : "Manage automated settlement sweeps, approve and disburse owner payouts, and track debt obligations")
+                    </small>
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="/Admin/Settlements" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-clock-history me-1"></i>@(Loc.IsArabic ? "محرك التسويات" : "Settlements")
+                    </a>
+                    <a href="/Admin/Payouts" class="btn btn-sm btn-outline-success position-relative">
+                        <i class="bi bi-wallet2 me-1"></i>@(Loc.IsArabic ? "طلبات الصرف" : "Payouts")
+                        @if ((Model.PayoutSummary?.PendingReviewCount ?? 0) > 0)
+                        {
+                            <span class="badge bg-warning text-dark ms-1">@Model.PayoutSummary!.PendingReviewCount</span>
+                        }
+                    </a>
+                    <a href="/Admin/Recovery" class="btn btn-sm btn-outline-danger">
+                        <i class="bi bi-shield-exclamation me-1"></i>@(Loc.IsArabic ? "التزامات العجز" : "Recovery")
+                    </a>
+                    <a href="/Admin/Transactions" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-journal-text me-1"></i>@(Loc.IsArabic ? "دفتر الأستاذ" : "Ledger")
+                    </a>
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-sm-6 col-lg-3">
+                    <div class="p-3 rounded-3 bg-light border">
+                        <div class="text-muted small fw-semibold">@(Loc.IsArabic ? "طلبات سحب بانتظار المراجعة" : "Pending Payout Requests")</div>
+                        <div class="h4 fw-bold mb-0 text-warning mt-1">
+                            @(Model.PayoutSummary?.PendingReviewCount ?? 0)
+                        </div>
+                        <small class="text-muted">EGP @((Model.PayoutSummary?.TotalPendingReviewAmount ?? 0m).ToString("N2"))</small>
+                    </div>
+                </div>
+
+                <div class="col-sm-6 col-lg-3">
+                    <div class="p-3 rounded-3 bg-light border">
+                        <div class="text-muted small fw-semibold">@(Loc.IsArabic ? "إجمالي الحجم المسوى" : "Total Settled Volume")</div>
+                        <div class="h4 fw-bold mb-0 text-primary mt-1">
+                            EGP @((Model.SettlementSummary?.TotalSettledAmount ?? 0m).ToString("N2"))
+                        </div>
+                        <small class="text-muted">@(Model.SettlementSummary?.TotalSettledBatches ?? 0) @(Loc.IsArabic ? "دفعات ناجحة" : "batches")</small>
+                    </div>
+                </div>
+
+                <div class="col-sm-6 col-lg-3">
+                    <div class="p-3 rounded-3 bg-light border">
+                        <div class="text-muted small fw-semibold">@(Loc.IsArabic ? "عجز استرداد قائم" : "Active Deficit Obligations")</div>
+                        <div class="h4 fw-bold mb-0 text-danger mt-1">
+                            EGP @((Model.RecoverySummary?.TotalActiveDeficit ?? 0m).ToString("N2"))
+                        </div>
+                        <small class="text-muted">@(Model.RecoverySummary?.ActiveObligationsCount ?? 0) @(Loc.IsArabic ? "حالات عجز معلقة" : "active cases")</small>
+                    </div>
+                </div>
+
+                <div class="col-sm-6 col-lg-3">
+                    <div class="p-3 rounded-3 bg-light border">
+                        <div class="text-muted small fw-semibold">@(Loc.IsArabic ? "إجمالي المنصرف للملاك" : "Total Paid Out")</div>
+                        <div class="h4 fw-bold mb-0 text-success mt-1">
+                            EGP @((Model.PayoutSummary?.TotalPaidAmount ?? 0m).ToString("N2"))
+                        </div>
+                        <small class="text-muted">@(Model.PayoutSummary?.PaidCount ?? 0) @(Loc.IsArabic ? "عمليات صرف منفذة" : "disbursements")</small>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
