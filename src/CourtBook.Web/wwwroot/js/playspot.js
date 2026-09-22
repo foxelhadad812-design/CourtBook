@@ -15,6 +15,50 @@
   'use strict';
 
   /* ─────────────────────────────────────────────────────
+     THEME SWITCHER MODULE
+     ───────────────────────────────────────────────────── */
+  PlaySpot.Theme = {
+    init() {
+      const toggleBtn = document.getElementById('ps-theme-toggle');
+      if (!toggleBtn) return;
+
+      const currentTheme = this.getCurrentTheme();
+      this.updateIcon(currentTheme);
+
+      toggleBtn.addEventListener('click', () => {
+        const theme = this.getCurrentTheme();
+        const nextTheme = theme === 'dark' ? 'light' : 'dark';
+        this.setTheme(nextTheme);
+      });
+    },
+
+    getCurrentTheme() {
+      return document.documentElement.getAttribute('data-bs-theme') ||
+             localStorage.getItem('playspot-theme') ||
+             (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    },
+
+    setTheme(theme) {
+      document.documentElement.setAttribute('data-bs-theme', theme);
+      localStorage.setItem('playspot-theme', theme);
+      this.updateIcon(theme);
+    },
+
+    updateIcon(theme) {
+      const toggleBtn = document.getElementById('ps-theme-toggle');
+      if (!toggleBtn) return;
+      const icon = toggleBtn.querySelector('i');
+      if (icon) {
+        if (theme === 'dark') {
+          icon.className = 'bi bi-sun-fill text-warning';
+        } else {
+          icon.className = 'bi bi-moon-stars-fill text-primary';
+        }
+      }
+    }
+  };
+
+  /* ─────────────────────────────────────────────────────
      LOADING BAR
      ───────────────────────────────────────────────────── */
   PlaySpot.LoadingBar = {
@@ -731,13 +775,34 @@
           this.handleIncomingNotification(notification);
         });
 
+        let _lastReconnectToast = 0;
+        const RECONNECT_TOAST_THROTTLE_MS = 15000;
+
         this._connection.onreconnecting((error) => {
           console.log('PlaySpot SignalR reconnecting...', error);
+          const now = Date.now();
+          if (now - _lastReconnectToast > RECONNECT_TOAST_THROTTLE_MS) {
+            _lastReconnectToast = now;
+            if (PlaySpot.Toast) {
+              const isAr = document.documentElement.getAttribute('dir') === 'rtl';
+              PlaySpot.Toast.warning(
+                isAr ? 'جاري إعادة الاتصال بالخدمة الحية...' : 'Reconnecting live updates service...',
+                { title: '⚡ SignalR', duration: 4000 }
+              );
+            }
+          }
         });
 
         this._connection.onreconnected((connectionId) => {
           console.log('PlaySpot SignalR reconnected. ConnectionId:', connectionId);
           this.updateUnreadCount();
+          if (PlaySpot.Toast) {
+            const isAr = document.documentElement.getAttribute('dir') === 'rtl';
+            PlaySpot.Toast.success(
+              isAr ? 'تم إعادة الاتصال بنجاح' : 'Live updates restored successfully',
+              { title: '⚡ SignalR', duration: 3000 }
+            );
+          }
         });
 
         this._connection.onclose((error) => {

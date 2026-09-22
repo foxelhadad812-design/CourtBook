@@ -194,6 +194,33 @@ if (builder.Environment.IsProduction() || builder.Environment.IsStaging())
             $"CRITICAL SECURITY ERROR: {builder.Environment.EnvironmentName} environment cannot use a known development or placeholder JWT secret key! " +
             "Please configure a secure random 256-bit secret key via environment variable JwtSettings__Key.");
     }
+
+    if (builder.Environment.IsProduction())
+    {
+        var paymobSection = builder.Configuration.GetSection("PaymentGateway:Paymob");
+        var apiKey = paymobSection["ApiKey"];
+        var integrationId = paymobSection["IntegrationId"];
+        var iframeId = paymobSection["IframeId"];
+        var hmacSecret = paymobSection["HmacSecret"];
+
+        var invalidPlaceholders = new[]
+        {
+            "OVERRIDE_VIA_ENV_VAR_PaymentGateway__Paymob__ApiKey",
+            "OVERRIDE_VIA_ENV_VAR_PaymentGateway__Paymob__IntegrationId",
+            "OVERRIDE_VIA_ENV_VAR_PaymentGateway__Paymob__IframeId",
+            "OVERRIDE_VIA_ENV_VAR_PaymentGateway__Paymob__HmacSecret"
+        };
+
+        if (string.IsNullOrWhiteSpace(apiKey) || invalidPlaceholders.Any(p => string.Equals(p, apiKey, StringComparison.OrdinalIgnoreCase)) ||
+            string.IsNullOrWhiteSpace(integrationId) || invalidPlaceholders.Any(p => string.Equals(p, integrationId, StringComparison.OrdinalIgnoreCase)) ||
+            string.IsNullOrWhiteSpace(iframeId) || invalidPlaceholders.Any(p => string.Equals(p, iframeId, StringComparison.OrdinalIgnoreCase)) ||
+            string.IsNullOrWhiteSpace(hmacSecret) || invalidPlaceholders.Any(p => string.Equals(p, hmacSecret, StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new InvalidOperationException(
+                "CRITICAL SECURITY ERROR: Production environment cannot use missing, empty, or default placeholder Paymob gateway credentials! " +
+                "Please configure valid live Paymob credentials via environment variables (PaymentGateway__Paymob__ApiKey, IntegrationId, IframeId, HmacSecret).");
+        }
+    }
 }
 
 var key = Encoding.UTF8.GetBytes(rawKey);

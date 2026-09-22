@@ -1,3 +1,4 @@
+#if DEBUG
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -25,3 +26,4 @@ public class TestController : ControllerBase
     public IActionResult AdminOnly()
         => Ok($"✅ Hello, Admin! Authenticated as: {User.Identity?.Name}");
 }
+#endif

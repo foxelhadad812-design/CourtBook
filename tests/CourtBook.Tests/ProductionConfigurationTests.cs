@@ -125,4 +125,44 @@ public class ProductionConfigurationTests
         var isConfigured = !string.IsNullOrWhiteSpace(connectionString);
         Assert.Equal(expectedConfigured, isConfigured);
     }
+
+    [Theory]
+    [InlineData("", "12345", "67890", "secret", true)]
+    [InlineData("OVERRIDE_VIA_ENV_VAR_PaymentGateway__Paymob__ApiKey", "12345", "67890", "secret", true)]
+    [InlineData("valid_api_key", "", "67890", "secret", true)]
+    [InlineData("valid_api_key", "12345", "OVERRIDE_VIA_ENV_VAR_PaymentGateway__Paymob__IframeId", "secret", true)]
+    [InlineData("valid_api_key", "12345", "67890", "valid_hmac_secret", false)]
+    public void PaymobValidation_RejectsInvalidOrPlaceholderCredentialsInProduction(
+        string apiKey, string integrationId, string iframeId, string hmacSecret, bool shouldThrow)
+    {
+        var invalidPlaceholders = new[]
+        {
+            "OVERRIDE_VIA_ENV_VAR_PaymentGateway__Paymob__ApiKey",
+            "OVERRIDE_VIA_ENV_VAR_PaymentGateway__Paymob__IntegrationId",
+            "OVERRIDE_VIA_ENV_VAR_PaymentGateway__Paymob__IframeId",
+            "OVERRIDE_VIA_ENV_VAR_PaymentGateway__Paymob__HmacSecret"
+        };
+
+        var ex = Record.Exception(() =>
+        {
+            if (string.IsNullOrWhiteSpace(apiKey) || invalidPlaceholders.Any(p => string.Equals(p, apiKey, StringComparison.OrdinalIgnoreCase)) ||
+                string.IsNullOrWhiteSpace(integrationId) || invalidPlaceholders.Any(p => string.Equals(p, integrationId, StringComparison.OrdinalIgnoreCase)) ||
+                string.IsNullOrWhiteSpace(iframeId) || invalidPlaceholders.Any(p => string.Equals(p, iframeId, StringComparison.OrdinalIgnoreCase)) ||
+                string.IsNullOrWhiteSpace(hmacSecret) || invalidPlaceholders.Any(p => string.Equals(p, hmacSecret, StringComparison.OrdinalIgnoreCase)))
+            {
+                throw new InvalidOperationException(
+                    "CRITICAL SECURITY ERROR: Production environment cannot use missing, empty, or default placeholder Paymob gateway credentials!");
+            }
+        });
+
+        if (shouldThrow)
+        {
+            Assert.NotNull(ex);
+            Assert.IsType<InvalidOperationException>(ex);
+        }
+        else
+        {
+            Assert.Null(ex);
+        }
+    }
 }
