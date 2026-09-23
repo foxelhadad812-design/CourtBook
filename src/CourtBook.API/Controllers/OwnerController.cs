@@ -384,4 +384,40 @@ public class OwnerController : ControllerBase
             return StatusCode(403, new { error = ex.Message });
         }
     }
+
+    // ── Phase 12: Manual Booking & Quick Check-in Endpoints ──────────────────
+
+    [HttpPost("manual-booking")]
+    public async Task<IActionResult> CreateManualBooking([FromBody] CreateManualBookingRequest request)
+    {
+        try
+        {
+            var booking = await _ownerService.CreateManualBookingAsync(User.GetUserId(), request);
+            return CreatedAtAction("GetOwnerBookingById", new { id = booking.Id }, booking);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { error = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { error = ex.Message });
+        }
+    }
+
+    [HttpPost("check-in")]
+    public async Task<IActionResult> QuickCheckIn([FromBody] QuickCheckInRequest request)
+    {
+        var result = await _ownerService.QuickCheckInAsync(User.GetUserId(), request);
+        if (!result.Success)
+        {
+            return BadRequest(result);
+        }
+        return Ok(result);
+    }
 }
+

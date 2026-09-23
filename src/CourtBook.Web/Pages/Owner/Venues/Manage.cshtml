@@ -1,5 +1,6 @@
 @page "/Owner/Venues/Manage"
 @model CourtBook.Web.Pages.Owner.Venues.ManageModel
+@using CourtBook.Application.DTOs
 @{
     ViewData["Title"] = Model.Venue != null ? $"{Loc["Owner.Venues.ManageBtn"]} — {Model.Venue.Name}" : Loc["Venues.Empty.Title"];
 }
@@ -152,6 +153,11 @@
                 <li class="nav-item">
                     <a class="nav-link rounded-pill px-3 py-2 fw-semibold @(Model.ActiveTab == "courts" ? "active bg-primary text-white" : "text-muted")" href="?id=@Model.Id&activeTab=courts">
                         <i class="bi bi-grid-3x3 me-1"></i> @Loc.T("Owner.Manage.Tab.Courts", Model.Venue.Courts.Count)
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link rounded-pill px-3 py-2 fw-semibold @(Model.ActiveTab == "addons" ? "active bg-primary text-white" : "text-muted")" href="?id=@Model.Id&activeTab=addons">
+                        <i class="bi bi-box-seam me-1"></i> @(Loc.IsArabic ? "المستلزمات والتأجير" : "Add-ons & Equipment")
                     </a>
                 </li>
                 <li class="nav-item">
@@ -437,6 +443,147 @@
                                                 </div>
                                             </form>
                                         </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            }
+
+            <!-- TAB 2B: ADD-ONS & EQUIPMENT -->
+            @if (Model.ActiveTab == "addons")
+            {
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h5 class="text-dark fw-bold mb-0">@(Loc.IsArabic ? "تأجير المستلزمات والخدمات الإضافية" : "Rental Equipment & Add-ons")</h5>
+                        <p class="text-muted small mb-0">@(Loc.IsArabic ? "أضف معدات وتجهيزات قابلة للتأجير للّاعبين أثناء الحجز (مثل مضارب إضافية، كرات، سترات تدريب)" : "Offer rentable equipment and services to players during checkout (e.g. extra rackets, balls, bibs)")</p>
+                    </div>
+                    @if (Model.Venue.Courts.Any())
+                    {
+                        <button type="button" class="ps-btn ps-btn-primary rounded-pill px-3 py-2 small fw-semibold" data-bs-toggle="collapse" data-bs-target="#addAddonCollapse">
+                            <i class="bi bi-plus-lg me-1"></i> @(Loc.IsArabic ? "إضافة مستلزم / خدمة" : "Add Equipment / Add-on")
+                        </button>
+                    }
+                </div>
+
+                @if (!Model.Venue.Courts.Any())
+                {
+                    <div class="alert alert-warning border-0 shadow-sm rounded-4 p-4 text-center">
+                        <i class="bi bi-exclamation-circle fs-3 me-2"></i>
+                        @(Loc.IsArabic ? "يرجى إضافة ملاعب أولاً قبل تسجيل المستلزمات والتأجير." : "Please add courts first before configuring rental add-ons.")
+                    </div>
+                }
+                else
+                {
+                    <!-- Add Addon Form Collapse -->
+                    <div class="collapse mb-4" id="addAddonCollapse">
+                        <div class="card border-0 p-4 shadow-sm" style="border-radius: var(--ps-radius-xl);">
+                            <h6 class="text-success fw-bold mb-3"><i class="bi bi-plus-circle me-2"></i>@(Loc.IsArabic ? "إضافة خدمة أو مستلزم جديد للملعب" : "Add New Court Equipment / Add-on")</h6>
+                            <form method="post" asp-page-handler="CreateAddon" asp-route-id="@Model.Id">
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label text-dark small fw-semibold mb-1">@(Loc.IsArabic ? "الملعب التابع له *" : "Target Court *")</label>
+                                        <select asp-for="NewAddonInput.CourtId" class="form-select bg-light border-0 shadow-none py-2 rounded-3" required>
+                                            <option value="">@(Loc.IsArabic ? "-- اختر الملعب --" : "-- Select Court --")</option>
+                                            @foreach (var c in Model.Venue.Courts)
+                                            {
+                                                <option value="@c.Id">@c.Name (@Loc.Sport(c.SportType))</option>
+                                            }
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label text-dark small fw-semibold mb-1">@(Loc.IsArabic ? "اسم المستلزم (English) *" : "Item Name (English) *")</label>
+                                        <input type="text" asp-for="NewAddonInput.Name" class="form-control bg-light border-0 shadow-none py-2 rounded-3" placeholder="Extra Padel Racket" required />
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label text-dark small fw-semibold mb-1">@(Loc.IsArabic ? "اسم المستلزم (بالعربي)" : "Item Name (Arabic)")</label>
+                                        <input type="text" asp-for="NewAddonInput.NameAr" class="form-control bg-light border-0 shadow-none py-2 rounded-3" placeholder="مضرب بادل إضافي" />
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label text-dark small fw-semibold mb-1">@(Loc.IsArabic ? "سعر التأجير (ج.م) *" : "Rental Price (EGP) *")</label>
+                                        <input type="number" step="5" min="0" asp-for="NewAddonInput.Price" class="form-control bg-light border-0 shadow-none py-2 rounded-3" placeholder="50" required />
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label text-dark small fw-semibold mb-1">@(Loc.IsArabic ? "الوحدة *" : "Pricing Unit *")</label>
+                                        <select asp-for="NewAddonInput.Unit" class="form-select bg-light border-0 shadow-none py-2 rounded-3" required>
+                                            <option value="Item">@(Loc.IsArabic ? "للقطعة / الماتش" : "Per Item / Match")</option>
+                                            <option value="Hour">@(Loc.IsArabic ? "بالساعة" : "Per Hour")</option>
+                                            <option value="Person">@(Loc.IsArabic ? "لكل لاعب" : "Per Player")</option>
+                                            <option value="Set">@(Loc.IsArabic ? "طقم كامل" : "Full Set")</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4 d-flex align-items-center">
+                                        <div class="form-check form-switch mt-3">
+                                            <input class="form-check-input" type="checkbox" asp-for="NewAddonInput.IsAvailable" checked id="newAddonAvailable" />
+                                            <label class="form-check-label text-dark small" for="newAddonAvailable">@(Loc.IsArabic ? "متاح للطلب المباشر" : "Available for booking")</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-end gap-2 mt-3 pt-2 border-top">
+                                    <button type="button" class="btn btn-light rounded-pill px-3 btn-sm" data-bs-toggle="collapse" data-bs-target="#addAddonCollapse">@Loc["Action.Cancel"]</button>
+                                    <button type="submit" class="btn btn-success rounded-pill px-4 btn-sm fw-semibold">
+                                        <i class="bi bi-check-lg me-1"></i> @(Loc.IsArabic ? "حفظ المستلزم" : "Save Add-on")
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Existing Add-ons grouped by court -->
+                    <div class="row g-4">
+                        @foreach (var court in Model.Venue.Courts)
+                        {
+                            var addons = Model.CourtAddons.TryGetValue(court.Id, out var list) ? list : new List<CourtAddonDto>();
+                            <div class="col-12 col-lg-6">
+                                <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden" style="border-radius: var(--ps-radius-xl);">
+                                    <div class="card-header bg-light border-bottom d-flex justify-content-between align-items-center py-3 px-4">
+                                        <div class="fw-bold text-dark">
+                                            <i class="bi bi-grid-3x3 text-primary me-2"></i>@court.Name
+                                            <span class="badge bg-primary-subtle text-primary ms-1 small">@Loc.Sport(court.SportType)</span>
+                                        </div>
+                                        <span class="badge bg-secondary-subtle text-muted rounded-pill">@addons.Count @(Loc.IsArabic ? "مستلزمات" : "Items")</span>
+                                    </div>
+                                    <div class="card-body p-4">
+                                        @if (!addons.Any())
+                                        {
+                                            <p class="text-muted small mb-0 text-center py-3">@(Loc.IsArabic ? "لا توجد مستلزمات أو خدمات إضافية مسجلة لهذا الملعب." : "No rental add-ons registered for this court.")</p>
+                                        }
+                                        else
+                                        {
+                                            <div class="list-group list-group-flush">
+                                                @foreach (var addon in addons)
+                                                {
+                                                    <div class="list-group-item px-0 py-3 d-flex justify-content-between align-items-center">
+                                                        <div>
+                                                            <div class="fw-semibold text-dark">
+                                                                @(Loc.IsArabic && !string.IsNullOrEmpty(addon.NameAr) ? addon.NameAr : addon.Name)
+                                                                @if (!string.IsNullOrEmpty(addon.NameAr) && Loc.IsArabic)
+                                                                {
+                                                                    <small class="text-muted ms-1">(@addon.Name)</small>
+                                                                }
+                                                            </div>
+                                                            <div class="text-muted small">
+                                                                <span class="text-primary fw-bold">@Loc.FormatCurrency(addon.Price)</span> / @addon.Unit
+                                                                @if (addon.IsAvailable)
+                                                                {
+                                                                    <span class="badge bg-success-subtle text-success ms-2 font-size-11">@(Loc.IsArabic ? "متاح" : "Available")</span>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="badge bg-danger-subtle text-danger ms-2 font-size-11">@(Loc.IsArabic ? "غير متاح" : "Unavailable")</span>
+                                                                }
+                                                            </div>
+                                                        </div>
+                                                        <form method="post" asp-page-handler="DeleteAddon" asp-route-id="@Model.Id" asp-route-courtId="@court.Id" asp-route-addonId="@addon.Id" onsubmit="return confirm('@(Loc.IsArabic ? "هل أنت متأكد من حذف هذا المستلزم؟" : "Are you sure you want to remove this add-on?")');">
+                                                            <button type="submit" class="btn btn-outline-danger btn-sm rounded-circle" style="width: 32px; height: 32px; padding: 0;" title="@(Loc.IsArabic ? "حذف المستلزم" : "Delete")">
+                                                                <i class="bi bi-trash"></i>
+                                                            </button>
+                                                        </form>
+                                                    </div>
+                                                }
+                                            </div>
+                                        }
                                     </div>
                                 </div>
                             </div>

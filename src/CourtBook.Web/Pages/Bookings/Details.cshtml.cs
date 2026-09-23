@@ -22,6 +22,37 @@ public class DetailsModel : PageModel
     [TempData]
     public string? SuccessMessage { get; set; }
 
+    public string GetWhatsAppShareUrl(bool isArabic)
+    {
+        if (Booking == null) return "#";
+        var dateStr = Booking.StartTime.ToString("yyyy-MM-dd");
+        var timeStr = $"{Booking.StartTime:hh:mm tt} - {Booking.EndTime:hh:mm tt}";
+        string text;
+        if (isArabic)
+        {
+            text = $"🎾 *تفاصيل حجز ملعب - PlaySpot Egypt*\n\n" +
+                   $"📍 *المنشأة:* {Booking.VenueName} ({Booking.VenueCity})\n" +
+                   $"🏟️ *الملعب:* {Booking.CourtName} ({Booking.SportType})\n" +
+                   $"📅 *التاريخ:* {dateStr}\n" +
+                   $"⏰ *الوقت:* {timeStr}\n" +
+                   $"🏷️ *كود الحجز:* `{Booking.BookingReference}`\n" +
+                   (!string.IsNullOrEmpty(Booking.GoogleMapsUrl) ? $"🗺️ *الموقع على الخريطة:* {Booking.GoogleMapsUrl}\n" : "") +
+                   $"\nجاهزون للماتش! ⚽🔥";
+        }
+        else
+        {
+            text = $"🎾 *Match Reservation - PlaySpot Egypt*\n\n" +
+                   $"📍 *Venue:* {Booking.VenueName} ({Booking.VenueCity})\n" +
+                   $"🏟️ *Court:* {Booking.CourtName} ({Booking.SportType})\n" +
+                   $"📅 *Date:* {dateStr}\n" +
+                   $"⏰ *Time:* {timeStr}\n" +
+                   $"🏷️ *Booking Ref:* `{Booking.BookingReference}`\n" +
+                   (!string.IsNullOrEmpty(Booking.GoogleMapsUrl) ? $"🗺️ *Location:* {Booking.GoogleMapsUrl}\n" : "") +
+                   $"\nReady for the game! ⚽🔥";
+        }
+        return $"https://wa.me/?text={Uri.EscapeDataString(text)}";
+    }
+
     public async Task<IActionResult> OnGetAsync(Guid? id)
     {
         if (!id.HasValue || id.Value == Guid.Empty)

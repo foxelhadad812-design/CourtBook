@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace CourtBook.Application.DTOs;
 
 public class CreateVenueRequest
@@ -79,6 +81,7 @@ public class VenueImageDto
 
 public class OperatingHourDto
 {
+    [JsonConverter(typeof(JsonStringEnumConverter))]
     public DayOfWeek DayOfWeek { get; set; }
     public string DayName { get; set; } = string.Empty;
     public string OpenTime { get; set; } = string.Empty;

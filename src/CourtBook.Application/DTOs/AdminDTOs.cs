@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using CourtBook.Domain.Enums;
 
 namespace CourtBook.Application.DTOs;
@@ -96,6 +97,7 @@ public class AdminCourtDto
 
 public class AdminOperatingHourDto
 {
+    [JsonConverter(typeof(JsonStringEnumConverter))]
     public DayOfWeek DayOfWeek { get; set; }
     public TimeOnly OpenTime { get; set; }
     public TimeOnly CloseTime { get; set; }

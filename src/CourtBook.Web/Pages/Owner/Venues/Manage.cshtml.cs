@@ -22,6 +22,7 @@ public class ManageModel : PageModel
 
     public OwnerVenueDetailsDto? Venue { get; set; }
     public List<AmenityDto> AvailableAmenities { get; set; } = [];
+    public Dictionary<Guid, List<CourtAddonDto>> CourtAddons { get; set; } = new();
 
     // Form Binds
     [BindProperty]
@@ -38,6 +39,9 @@ public class ManageModel : PageModel
 
     [BindProperty]
     public List<Guid> SelectedAmenityIds { get; set; } = [];
+
+    [BindProperty]
+    public CreateCourtAddonDto NewAddonInput { get; set; } = new();
 
     public bool IsOwner { get; set; } = true;
     public string? ErrorMessage { get; set; }
@@ -310,6 +314,57 @@ public class ManageModel : PageModel
         return Page();
     }
 
+    public async Task<IActionResult> OnPostCreateAddonAsync()
+    {
+        ActiveTab = "addons";
+        try
+        {
+            var courtId = NewAddonInput.CourtId;
+            var resp = await _api.Client.PostAsJsonAsync($"/api/courts/{courtId}/addons", NewAddonInput);
+            if (resp.IsSuccessStatusCode)
+            {
+                SuccessMessage = $"Add-on '{NewAddonInput.Name}' added successfully!";
+                NewAddonInput = new CreateCourtAddonDto();
+            }
+            else
+            {
+                var err = await resp.Content.ReadFromJsonAsync<Dictionary<string, string>>();
+                ErrorMessage = err != null && err.TryGetValue("error", out var msg) ? msg : "Failed to add court add-on.";
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error adding add-on: {ex.Message}";
+        }
+
+        await LoadDataAsync();
+        return Page();
+    }
+
+    public async Task<IActionResult> OnPostDeleteAddonAsync(Guid courtId, Guid addonId)
+    {
+        ActiveTab = "addons";
+        try
+        {
+            var resp = await _api.Client.DeleteAsync($"/api/courts/{courtId}/addons/{addonId}");
+            if (resp.IsSuccessStatusCode)
+            {
+                SuccessMessage = "Add-on removed successfully.";
+            }
+            else
+            {
+                ErrorMessage = "Failed to remove add-on.";
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error deleting add-on: {ex.Message}";
+        }
+
+        await LoadDataAsync();
+        return Page();
+    }
+
     private async Task LoadDataAsync()
     {
         try
@@ -335,6 +390,23 @@ public class ManageModel : PageModel
                         IsActive = Venue.IsActive
                     };
                     SelectedAmenityIds = Venue.Amenities.Select(a => a.Id).ToList();
+
+                    // Load Addons for each court
+                    if (Venue.Courts != null)
+                    {
+                        foreach (var court in Venue.Courts)
+                        {
+                            var addResp = await _api.Client.GetAsync($"/api/courts/{court.Id}/addons?onlyAvailable=false");
+                            if (addResp.IsSuccessStatusCode)
+                            {
+                                var list = await addResp.Content.ReadFromJsonAsync<List<CourtAddonDto>>();
+                                if (list != null)
+                                {
+                                    CourtAddons[court.Id] = list;
+                                }
+                            }
+                        }
+                    }
                 }
             }
             else if (resp.StatusCode == System.Net.HttpStatusCode.Forbidden)

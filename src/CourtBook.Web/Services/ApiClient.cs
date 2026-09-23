@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http;
 
 namespace CourtBook.Web.Services;
@@ -9,6 +11,12 @@ namespace CourtBook.Web.Services;
 public class ApiClient
 {
     private readonly HttpClient _httpClient;
+
+    public static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        PropertyNameCaseInsensitive = true,
+        Converters = { new JsonStringEnumConverter() }
+    };
 
     public ApiClient(HttpClient httpClient, IHttpContextAccessor? httpContextAccessor = null)
     {

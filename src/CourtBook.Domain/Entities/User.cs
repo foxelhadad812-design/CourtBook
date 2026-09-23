@@ -39,4 +39,5 @@ public class User
     public ICollection<OwnerPayoutMethod> PayoutMethods { get; set; } = [];
     public ICollection<PayoutRequest> PayoutRequests { get; set; } = [];
     public ICollection<RecoveryObligation> RecoveryObligations { get; set; } = [];
+    public ICollection<PromoCodeUsage> PromoCodeUsages { get; set; } = [];
 }

@@ -323,9 +323,9 @@ public class OwnerService : IOwnerService
             CourtName = b.Court?.Name ?? string.Empty,
             SportType = b.Court?.SportType.ToString() ?? string.Empty,
             PlayerId = b.UserId,
-            PlayerName = b.User?.Name ?? "Player",
-            PlayerEmail = b.User?.Email ?? string.Empty,
-            PlayerPhone = b.User?.Phone ?? string.Empty,
+            PlayerName = b.IsManualBooking ? (b.CustomerName ?? "Phone Customer") : (b.User?.Name ?? "Player"),
+            PlayerEmail = b.IsManualBooking ? string.Empty : (b.User?.Email ?? string.Empty),
+            PlayerPhone = b.IsManualBooking ? (b.CustomerPhone ?? string.Empty) : (b.User?.Phone ?? string.Empty),
             StartTime = b.StartTime,
             EndTime = b.EndTime,
             DurationMinutes = (int)(b.EndTime - b.StartTime).TotalMinutes,
@@ -335,7 +335,13 @@ public class OwnerService : IOwnerService
             CancellationReason = b.CancellationReason,
             CancelledAt = b.CancelledAt,
             Notes = b.Notes,
-            CreatedAt = b.CreatedAt
+            CreatedAt = b.CreatedAt,
+            IsManualBooking = b.IsManualBooking,
+            CustomerName = b.CustomerName,
+            CustomerPhone = b.CustomerPhone,
+            IsCheckedIn = b.IsCheckedIn,
+            CheckedInAt = b.CheckedInAt,
+            DiscountAmount = b.DiscountAmount
         };
     }
 
@@ -1129,5 +1135,240 @@ public class OwnerService : IOwnerService
             .SumAsync(b => (decimal?)b.CancellationFee) ?? 0m;
 
         return confirmedFull + confirmedPartial + cancelledWithRetainedFee;
+    }
+
+    // ── Phase 12: Manual / Phone Booking & Receptionist Quick Check-in ──────
+
+    public async Task<BookingResponse> CreateManualBookingAsync(Guid ownerId, CreateManualBookingRequest request)
+    {
+        if (request.StartTime >= request.EndTime)
+            throw new ArgumentException("StartTime must be before EndTime.");
+
+        if (string.IsNullOrWhiteSpace(request.CustomerName))
+            throw new ArgumentException("Customer name is required for manual bookings.");
+
+        var court = await _db.Courts
+            .Include(c => c.Venue)
+            .Include(c => c.PriceRules)
+            .FirstOrDefaultAsync(c => c.Id == request.CourtId && c.Venue.OwnerId == ownerId);
+
+        if (court == null)
+            throw new UnauthorizedAccessException("Court not found or does not belong to your facilities.");
+
+        // Check for conflicts
+        var requestDate = DateOnly.FromDateTime(request.StartTime);
+        var requestStartTime = TimeOnly.FromDateTime(request.StartTime);
+        var requestEndTime = TimeOnly.FromDateTime(request.EndTime);
+
+        var hasOverlap = await _db.Bookings.AnyAsync(b =>
+            b.CourtId == request.CourtId &&
+            b.Status != BookingStatus.Cancelled &&
+            b.StartTime < request.EndTime &&
+            b.EndTime > request.StartTime);
+
+        if (hasOverlap)
+            throw new InvalidOperationException("Court is already booked for this time slot.");
+
+        // Handle Addons
+        decimal addonsTotal = 0;
+        var bookingAddons = new List<BookingAddon>();
+        if (request.Addons != null && request.Addons.Any())
+        {
+            var courtAddonIds = request.Addons.Select(a => a.CourtAddonId).ToList();
+            var availableAddons = await _db.CourtAddons
+                .Where(a => courtAddonIds.Contains(a.Id) && a.CourtId == court.Id && a.IsAvailable)
+                .ToListAsync();
+
+            foreach (var sel in request.Addons.Where(a => a.Quantity > 0))
+            {
+                var ca = availableAddons.FirstOrDefault(x => x.Id == sel.CourtAddonId);
+                if (ca != null)
+                {
+                    var lineTotal = ca.Price * sel.Quantity;
+                    addonsTotal += lineTotal;
+                    bookingAddons.Add(new BookingAddon
+                    {
+                        Id = Guid.NewGuid(),
+                        CourtAddonId = ca.Id,
+                        Quantity = sel.Quantity,
+                        UnitPrice = ca.Price,
+                        TotalPrice = lineTotal,
+                        CourtAddon = ca
+                    });
+                }
+            }
+        }
+
+        // Calculate Price
+        decimal totalPrice;
+        if (request.CustomPrice.HasValue && request.CustomPrice.Value >= 0)
+        {
+            totalPrice = request.CustomPrice.Value + addonsTotal;
+        }
+        else
+        {
+            var basePrice = court.PricePerHour * (decimal)(request.EndTime - request.StartTime).TotalHours;
+            var courtPrice = basePrice;
+            var dayOfWeek = request.StartTime.DayOfWeek;
+            var matchingRule = court.PriceRules.FirstOrDefault(pr =>
+                (pr.DayOfWeek == null || pr.DayOfWeek == dayOfWeek) &&
+                requestStartTime >= pr.StartTime && requestEndTime <= pr.EndTime);
+
+            if (matchingRule != null)
+                courtPrice = matchingRule.FixedPrice ?? basePrice * matchingRule.PriceMultiplier;
+
+            totalPrice = courtPrice + addonsTotal;
+        }
+
+        var reference = $"PS-MAN-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid():N}".Substring(0, 20).ToUpperInvariant();
+
+        var booking = new Booking
+        {
+            Id = Guid.NewGuid(),
+            BookingReference = reference,
+            CourtId = request.CourtId,
+            UserId = ownerId,
+            StartTime = request.StartTime,
+            EndTime = request.EndTime,
+            Status = BookingStatus.Confirmed,
+            PaymentStatus = PaymentStatus.Completed,
+            TotalPrice = Math.Round(totalPrice, 2),
+            Notes = request.Notes,
+            IsManualBooking = true,
+            CustomerName = request.CustomerName.Trim(),
+            CustomerPhone = request.CustomerPhone?.Trim(),
+            IsCheckedIn = false,
+            CheckedInAt = null,
+            Court = court,
+            CreatedAt = DateTime.UtcNow,
+            BookingAddons = bookingAddons
+        };
+
+        _db.Bookings.Add(booking);
+        await _db.SaveChangesAsync();
+
+        return MapBookingToResponse(booking);
+    }
+
+    public async Task<QuickCheckInResult> QuickCheckInAsync(Guid ownerId, QuickCheckInRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.BookingReference))
+        {
+            return new QuickCheckInResult
+            {
+                Success = false,
+                Message = "Booking reference is required.",
+                MessageAr = "يرجى إدخال كود الحجز."
+            };
+        }
+
+        var cleanRef = request.BookingReference.Trim().ToUpperInvariant();
+        var booking = await _db.Bookings
+            .Include(b => b.Court).ThenInclude(c => c.Venue)
+            .Include(b => b.User)
+            .Include(b => b.BookingAddons).ThenInclude(ba => ba.CourtAddon)
+            .Include(b => b.PromoCode)
+            .FirstOrDefaultAsync(b => b.BookingReference.ToUpper() == cleanRef);
+
+        if (booking == null)
+        {
+            return new QuickCheckInResult
+            {
+                Success = false,
+                Message = $"No booking found with reference '{cleanRef}'.",
+                MessageAr = $"لم يتم العثور على أي حجز بالكود '{cleanRef}'."
+            };
+        }
+
+        if (booking.Court?.Venue?.OwnerId != ownerId)
+        {
+            return new QuickCheckInResult
+            {
+                Success = false,
+                Message = "This booking belongs to another venue/owner.",
+                MessageAr = "هذا الحجز لا يتبع أحد ملاعبك أو منشآتك."
+            };
+        }
+
+        if (booking.Status == BookingStatus.Cancelled)
+        {
+            return new QuickCheckInResult
+            {
+                Success = false,
+                Message = "This booking was cancelled.",
+                MessageAr = "هذا الحجز ملغي ولا يمكن تسجيل الدخول به."
+            };
+        }
+
+        if (booking.IsCheckedIn)
+        {
+            return new QuickCheckInResult
+            {
+                Success = true,
+                Message = $"Already checked in at {booking.CheckedInAt:HH:mm} UTC.",
+                MessageAr = $"تم تسجيل الحضور مسبقاً في تمام {booking.CheckedInAt:HH:mm} UTC.",
+                Booking = MapBookingToResponse(booking)
+            };
+        }
+
+        booking.IsCheckedIn = true;
+        booking.CheckedInAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        return new QuickCheckInResult
+        {
+            Success = true,
+            Message = "Check-in successful! Welcome player.",
+            MessageAr = "تم تسجيل الحضور بنجاح! مرحباً باللاعب.",
+            Booking = MapBookingToResponse(booking)
+        };
+    }
+
+    private static BookingResponse MapBookingToResponse(Booking booking)
+    {
+        var court = booking.Court;
+        var venue = court?.Venue;
+        return new BookingResponse
+        {
+            Id = booking.Id,
+            BookingReference = booking.BookingReference,
+            CourtId = booking.CourtId,
+            CourtName = court?.Name ?? string.Empty,
+            SportType = court?.SportType.ToString() ?? string.Empty,
+            VenueId = venue?.Id ?? Guid.Empty,
+            VenueName = venue?.Name ?? string.Empty,
+            VenueCity = venue?.City ?? string.Empty,
+            VenueAddress = venue?.Address ?? string.Empty,
+            VenuePhone = venue?.Phone ?? string.Empty,
+            UserId = booking.UserId,
+            UserName = booking.IsManualBooking ? (booking.CustomerName ?? "Phone Customer") : (booking.User?.Name ?? string.Empty),
+            StartTime = booking.StartTime,
+            EndTime = booking.EndTime,
+            Status = booking.Status.ToString(),
+            PaymentStatus = booking.PaymentStatus.ToString(),
+            TotalPrice = booking.TotalPrice,
+            Notes = booking.Notes,
+            CreatedAt = booking.CreatedAt,
+            IsManualBooking = booking.IsManualBooking,
+            CustomerName = booking.CustomerName,
+            CustomerPhone = booking.CustomerPhone,
+            IsCheckedIn = booking.IsCheckedIn,
+            CheckedInAt = booking.CheckedInAt,
+            DiscountAmount = booking.DiscountAmount,
+            PromoCode = booking.PromoCode?.Code,
+            Addons = booking.BookingAddons?.Select(ba => new BookingAddonDto
+            {
+                Id = ba.Id,
+                CourtAddonId = ba.CourtAddonId,
+                AddonName = ba.CourtAddon?.Name ?? string.Empty,
+                AddonNameAr = ba.CourtAddon?.NameAr,
+                Quantity = ba.Quantity,
+                UnitPrice = ba.UnitPrice,
+                TotalPrice = ba.TotalPrice
+            }).ToList() ?? [],
+            GoogleMapsUrl = venue != null && venue.Latitude.HasValue && venue.Longitude.HasValue
+                ? $"https://www.google.com/maps?q={venue.Latitude.Value},{venue.Longitude.Value}"
+                : null
+        };
     }
 }

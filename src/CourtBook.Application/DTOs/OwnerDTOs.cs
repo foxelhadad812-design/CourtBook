@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using CourtBook.Application.Common;
 using CourtBook.Domain.Enums;
 
@@ -72,6 +73,14 @@ public class OwnerBookingDto
     public DateTime? CancelledAt { get; set; }
     public string? Notes { get; set; }
     public DateTime CreatedAt { get; set; }
+
+    // Phase 12: Manual booking & Check-in
+    public bool IsManualBooking { get; set; }
+    public string? CustomerName { get; set; }
+    public string? CustomerPhone { get; set; }
+    public bool IsCheckedIn { get; set; }
+    public DateTime? CheckedInAt { get; set; }
+    public decimal DiscountAmount { get; set; }
 }
 
 public class OwnerBookingQueryRequest : PagedRequest
@@ -133,6 +142,7 @@ public class AddVenueImageRequest
 
 public class UpdateOperatingHourRequest
 {
+    [JsonConverter(typeof(JsonStringEnumConverter))]
     public DayOfWeek DayOfWeek { get; set; }
     public string OpenTime { get; set; } = "08:00";
     public string CloseTime { get; set; } = "23:00";

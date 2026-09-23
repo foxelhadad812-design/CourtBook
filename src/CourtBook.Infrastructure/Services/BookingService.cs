@@ -22,17 +22,20 @@ namespace CourtBook.Infrastructure.Services
         private readonly AppDbContext _db;
         private readonly INotificationService? _notificationService;
         private readonly IPaymentService? _paymentService;
+        private readonly IPromoCodeService? _promoCodeService;
 
         private const string BookingCourtLockResourcePrefix = "CourtBook:Booking:Court:";
 
         public BookingService(
             AppDbContext db,
             INotificationService? notificationService = null,
-            IPaymentService? paymentService = null)
+            IPaymentService? paymentService = null,
+            IPromoCodeService? promoCodeService = null)
         {
             _db = db;
             _notificationService = notificationService;
             _paymentService = paymentService;
+            _promoCodeService = promoCodeService;
         }
 
         /// <summary>
@@ -159,14 +162,65 @@ namespace CourtBook.Infrastructure.Services
 
                     // Calculate price
                     var basePrice = court.PricePerHour * (decimal)(request.EndTime - request.StartTime).TotalHours;
-                    var totalPrice = basePrice;
+                    var courtPrice = basePrice;
 
                     var matchingRule = court.PriceRules.FirstOrDefault(pr =>
                         (pr.DayOfWeek == null || pr.DayOfWeek == dayOfWeek) &&
                         requestStartTime >= pr.StartTime && requestEndTime <= pr.EndTime);
 
                     if (matchingRule != null)
-                        totalPrice = matchingRule.FixedPrice ?? basePrice * matchingRule.PriceMultiplier;
+                        courtPrice = matchingRule.FixedPrice ?? basePrice * matchingRule.PriceMultiplier;
+
+                    // Handle add-ons
+                    decimal addonsTotal = 0;
+                    var bookingAddonsList = new List<BookingAddon>();
+                    if (request.Addons != null && request.Addons.Any())
+                    {
+                        var addonIds = request.Addons.Select(a => a.CourtAddonId).ToList();
+                        var availableAddons = await _db.CourtAddons
+                            .Where(a => addonIds.Contains(a.Id) && a.CourtId == court.Id && a.IsAvailable)
+                            .ToListAsync();
+
+                        foreach (var item in request.Addons.Where(a => a.Quantity > 0))
+                        {
+                            var addon = availableAddons.FirstOrDefault(a => a.Id == item.CourtAddonId);
+                            if (addon != null)
+                            {
+                                var lineTotal = addon.Price * item.Quantity;
+                                addonsTotal += lineTotal;
+                                bookingAddonsList.Add(new BookingAddon
+                                {
+                                    Id = Guid.NewGuid(),
+                                    CourtAddonId = addon.Id,
+                                    Quantity = item.Quantity,
+                                    UnitPrice = addon.Price,
+                                    TotalPrice = lineTotal,
+                                    CourtAddon = addon
+                                });
+                            }
+                        }
+                    }
+
+                    var grossTotal = courtPrice + addonsTotal;
+                    decimal discountAmount = 0m;
+                    Guid? promoCodeId = null;
+
+                    // Handle promo code
+                    if (!string.IsNullOrWhiteSpace(request.PromoCode) && _promoCodeService != null)
+                    {
+                        var promoValidation = await _promoCodeService.ValidatePromoCodeAsync(
+                            new ValidatePromoCodeRequest { Code = request.PromoCode, BookingAmount = grossTotal },
+                            userId);
+
+                        if (!promoValidation.IsValid)
+                        {
+                            throw new InvalidOperationException(promoValidation.ErrorMessage ?? "Invalid promo code.");
+                        }
+
+                        discountAmount = promoValidation.DiscountAmount;
+                        promoCodeId = promoValidation.PromoCodeId;
+                        grossTotal = promoValidation.FinalAmount;
+                    }
 
                     var reference = $"PS-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid():N}".Substring(0, 20).ToUpperInvariant();
 
@@ -180,13 +234,36 @@ namespace CourtBook.Infrastructure.Services
                         EndTime = request.EndTime,
                         Status = BookingStatus.Confirmed,
                         PaymentStatus = PaymentStatus.Pending,
-                        TotalPrice = Math.Round(totalPrice, 2),
+                        TotalPrice = Math.Round(grossTotal, 2),
+                        DiscountAmount = discountAmount,
+                        PromoCodeId = promoCodeId,
                         Notes = request.Notes,
                         Court = court,
-                        CreatedAt = DateTime.UtcNow
+                        CreatedAt = DateTime.UtcNow,
+                        BookingAddons = bookingAddonsList
                     };
 
                     _db.Bookings.Add(booking);
+
+                    if (promoCodeId.HasValue)
+                    {
+                        _db.PromoCodeUsages.Add(new PromoCodeUsage
+                        {
+                            Id = Guid.NewGuid(),
+                            PromoCodeId = promoCodeId.Value,
+                            UserId = userId,
+                            BookingId = booking.Id,
+                            DiscountAmount = discountAmount,
+                            UsedAt = DateTime.UtcNow
+                        });
+
+                        var promoEntity = await _db.PromoCodes.FindAsync(promoCodeId.Value);
+                        if (promoEntity != null)
+                        {
+                            promoEntity.UsageCount += 1;
+                        }
+                    }
+
                     await _db.SaveChangesAsync();
 
                     if (transaction != null)
@@ -256,6 +333,9 @@ namespace CourtBook.Infrastructure.Services
                         .ThenInclude(v => v.CancellationPolicy)
                 .Include(b => b.User)
                 .Include(b => b.Review)
+                .Include(b => b.PromoCode)
+                .Include(b => b.BookingAddons)
+                    .ThenInclude(ba => ba.CourtAddon)
                 .Where(b => b.UserId == userId)
                 .OrderByDescending(b => b.StartTime)
                 .ToListAsync();
@@ -277,6 +357,9 @@ namespace CourtBook.Infrastructure.Services
                         .ThenInclude(v => v.CancellationPolicy)
                 .Include(b => b.User)
                 .Include(b => b.Review)
+                .Include(b => b.PromoCode)
+                .Include(b => b.BookingAddons)
+                    .ThenInclude(ba => ba.CourtAddon)
                 .Where(b => b.UserId == userId);
 
             var statusFilter = (request.Status ?? "upcoming").Trim().ToLowerInvariant();
@@ -310,6 +393,9 @@ namespace CourtBook.Infrastructure.Services
                         .ThenInclude(v => v.CancellationPolicy)
                 .Include(b => b.User)
                 .Include(b => b.Review)
+                .Include(b => b.PromoCode)
+                .Include(b => b.BookingAddons)
+                    .ThenInclude(ba => ba.CourtAddon)
                 .FirstOrDefaultAsync(b => b.Id == id);
 
             if (booking == null) return null;
@@ -562,7 +648,7 @@ namespace CourtBook.Infrastructure.Services
                 VenueAddress = booking.Court?.Venue?.Address ?? string.Empty,
                 VenuePhone = booking.Court?.Venue?.Phone ?? string.Empty,
                 UserId = booking.UserId,
-                UserName = booking.User?.Name ?? string.Empty,
+                UserName = booking.IsManualBooking ? (booking.CustomerName ?? "Phone Customer") : (booking.User?.Name ?? string.Empty),
                 StartTime = booking.StartTime,
                 EndTime = booking.EndTime,
                 Status = effectiveStatus,
@@ -570,6 +656,26 @@ namespace CourtBook.Infrastructure.Services
                 TotalPrice = booking.TotalPrice,
                 Notes = booking.Notes,
                 CreatedAt = booking.CreatedAt,
+                IsManualBooking = booking.IsManualBooking,
+                CustomerName = booking.CustomerName,
+                CustomerPhone = booking.CustomerPhone,
+                IsCheckedIn = booking.IsCheckedIn,
+                CheckedInAt = booking.CheckedInAt,
+                DiscountAmount = booking.DiscountAmount,
+                PromoCode = booking.PromoCode?.Code,
+                Addons = booking.BookingAddons?.Select(ba => new BookingAddonDto
+                {
+                    Id = ba.Id,
+                    CourtAddonId = ba.CourtAddonId,
+                    AddonName = ba.CourtAddon?.Name ?? string.Empty,
+                    AddonNameAr = ba.CourtAddon?.NameAr,
+                    Quantity = ba.Quantity,
+                    UnitPrice = ba.UnitPrice,
+                    TotalPrice = ba.TotalPrice
+                }).ToList() ?? [],
+                GoogleMapsUrl = booking.Court?.Venue != null && booking.Court.Venue.Latitude.HasValue && booking.Court.Venue.Longitude.HasValue
+                    ? $"https://www.google.com/maps?q={booking.Court.Venue.Latitude.Value},{booking.Court.Venue.Longitude.Value}"
+                    : null,
                 CancelledAt = booking.CancelledAt,
                 CancellationReason = booking.CancellationReason,
                 CanCancel = canCancel,

@@ -23,9 +23,25 @@ public class Booking
     public string? Notes { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    // Manual / phone walk-in booking details
+    public bool IsManualBooking { get; set; } = false;
+    public string? CustomerName { get; set; }
+    public string? CustomerPhone { get; set; }
+
+    // Reception check-in verification
+    public bool IsCheckedIn { get; set; } = false;
+    public DateTime? CheckedInAt { get; set; }
+
+    // Marketing discounts
+    public Guid? PromoCodeId { get; set; }
+    public decimal DiscountAmount { get; set; } = 0;
+
     // Navigation properties
     public Court Court { get; set; } = null!;
     public User User { get; set; } = null!;
     public Payment? Payment { get; set; }
     public Review? Review { get; set; }
+    public PromoCode? PromoCode { get; set; }
+    public ICollection<BookingAddon> BookingAddons { get; set; } = new List<BookingAddon>();
 }
+

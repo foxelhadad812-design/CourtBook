@@ -18,6 +18,7 @@ public class IndexModel : PageModel
     public OwnerDashboardSummaryDto? Dashboard { get; set; }
     public OwnerBalanceDto? Balance { get; set; }
     public PagedResult<OwnerBookingDto> PagedBookings { get; set; } = PagedResult<OwnerBookingDto>.Empty();
+    public List<CourtResponse> OwnerCourts { get; set; } = [];
 
     [BindProperty(SupportsGet = true)]
     public string Status { get; set; } = "all";
@@ -52,6 +53,23 @@ public class IndexModel : PageModel
             if (dashResp.IsSuccessStatusCode)
             {
                 Dashboard = await dashResp.Content.ReadFromJsonAsync<OwnerDashboardSummaryDto>();
+
+                // Fetch owner courts for manual booking selector
+                if (Dashboard?.Venues != null)
+                {
+                    foreach (var v in Dashboard.Venues)
+                    {
+                        var courtsResp = await _api.Client.GetAsync($"/api/venues/{v.Id}/courts");
+                        if (courtsResp.IsSuccessStatusCode)
+                        {
+                            var courts = await courtsResp.Content.ReadFromJsonAsync<List<CourtResponse>>();
+                            if (courts != null)
+                            {
+                                OwnerCourts.AddRange(courts);
+                            }
+                        }
+                    }
+                }
             }
             else
             {
@@ -85,5 +103,53 @@ public class IndexModel : PageModel
         }
 
         return Page();
+    }
+
+    public async Task<IActionResult> OnPostManualBookingAsync([FromBody] CreateManualBookingRequest request)
+    {
+        try
+        {
+            var resp = await _api.Client.PostAsJsonAsync("/api/owner/manual-booking", request);
+            if (resp.IsSuccessStatusCode)
+            {
+                var booking = await resp.Content.ReadFromJsonAsync<OwnerBookingDto>();
+                return new JsonResult(new { success = true, booking });
+            }
+
+            var errObj = await resp.Content.ReadFromJsonAsync<Dictionary<string, string>>();
+            var errMsg = errObj != null && errObj.TryGetValue("error", out var msg)
+                ? msg
+                : "Unable to create manual booking.";
+            return StatusCode((int)resp.StatusCode, new { success = false, message = errMsg });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { success = false, message = ex.Message });
+        }
+    }
+
+    public async Task<IActionResult> OnPostQuickCheckInAsync([FromBody] QuickCheckInRequest request)
+    {
+        try
+        {
+            var resp = await _api.Client.PostAsJsonAsync("/api/owner/check-in", request);
+            if (resp.IsSuccessStatusCode)
+            {
+                var result = await resp.Content.ReadFromJsonAsync<QuickCheckInResult>();
+                return new JsonResult(result);
+            }
+
+            var errResult = await resp.Content.ReadFromJsonAsync<QuickCheckInResult>();
+            if (errResult != null)
+            {
+                return StatusCode((int)resp.StatusCode, errResult);
+            }
+
+            return StatusCode((int)resp.StatusCode, new { success = false, message = "Check-in failed." });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { success = false, message = ex.Message });
+        }
     }
 }

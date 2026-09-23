@@ -24,6 +24,40 @@ public class ConfirmationModel : PageModel
     public DateTime EndTime { get; set; }
     public string? TotalPrice { get; set; }
     public string? PaymentStatus { get; set; }
+    public string? GoogleMapsUrl { get; set; }
+    public decimal DiscountAmount { get; set; }
+    public string? PromoCode { get; set; }
+    public List<BookingAddonDto> Addons { get; set; } = [];
+
+    public string GetWhatsAppShareUrl(bool isArabic)
+    {
+        var dateStr = StartTime.ToString("yyyy-MM-dd");
+        var timeStr = $"{StartTime:hh:mm tt} - {EndTime:hh:mm tt}";
+        string text;
+        if (isArabic)
+        {
+            text = $"🎾 *تفاصيل حجز ملعب - PlaySpot Egypt*\n\n" +
+                   $"📍 *المنشأة:* {VenueName} ({VenueCity})\n" +
+                   $"🏟️ *الملعب:* {CourtName} ({SportType})\n" +
+                   $"📅 *التاريخ:* {dateStr}\n" +
+                   $"⏰ *الوقت:* {timeStr}\n" +
+                   $"🏷️ *كود الحجز:* `{BookingReference}`\n" +
+                   (!string.IsNullOrEmpty(GoogleMapsUrl) ? $"🗺️ *الموقع على الخريطة:* {GoogleMapsUrl}\n" : "") +
+                   $"\nجاهزون للماتش! ⚽🔥";
+        }
+        else
+        {
+            text = $"🎾 *Match Reservation - PlaySpot Egypt*\n\n" +
+                   $"📍 *Venue:* {VenueName} ({VenueCity})\n" +
+                   $"🏟️ *Court:* {CourtName} ({SportType})\n" +
+                   $"📅 *Date:* {dateStr}\n" +
+                   $"⏰ *Time:* {timeStr}\n" +
+                   $"🏷️ *Booking Ref:* `{BookingReference}`\n" +
+                   (!string.IsNullOrEmpty(GoogleMapsUrl) ? $"🗺️ *Location:* {GoogleMapsUrl}\n" : "") +
+                   $"\nReady for the game! ⚽🔥";
+        }
+        return $"https://wa.me/?text={Uri.EscapeDataString(text)}";
+    }
 
     public async Task<IActionResult> OnGetAsync(Guid? id)
     {
@@ -38,6 +72,9 @@ public class ConfirmationModel : PageModel
             VenueCity = TempData["VenueCity"]?.ToString() ?? "Egypt";
             TotalPrice = TempData["TotalPrice"]?.ToString() ?? "0.00";
             PaymentStatus = TempData["PaymentStatus"]?.ToString() ?? "Pending";
+            GoogleMapsUrl = TempData["GoogleMapsUrl"]?.ToString();
+            PromoCode = TempData["PromoCode"]?.ToString();
+            if (decimal.TryParse(TempData["DiscountAmount"]?.ToString(), out var da)) DiscountAmount = da;
 
             if (DateTime.TryParse(TempData["StartTime"]?.ToString(), out var st)) StartTime = st;
             if (DateTime.TryParse(TempData["EndTime"]?.ToString(), out var et)) EndTime = et;
@@ -66,6 +103,10 @@ public class ConfirmationModel : PageModel
                         EndTime = b.EndTime;
                         TotalPrice = b.TotalPrice.ToString("0.00");
                         PaymentStatus = b.PaymentStatus;
+                        GoogleMapsUrl = b.GoogleMapsUrl;
+                        DiscountAmount = b.DiscountAmount;
+                        PromoCode = b.PromoCode;
+                        Addons = b.Addons ?? [];
                         return Page();
                     }
                 }

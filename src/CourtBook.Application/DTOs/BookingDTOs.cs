@@ -8,6 +8,8 @@ public class CreateBookingRequest
     public DateTime StartTime { get; set; }
     public DateTime EndTime { get; set; }
     public string? Notes { get; set; }
+    public string? PromoCode { get; set; }
+    public List<SelectedAddonDto>? Addons { get; set; }
 }
 
 public class BookingQueryRequest : PagedRequest
@@ -37,6 +39,19 @@ public class BookingResponse
     public decimal TotalPrice { get; set; }
     public string? Notes { get; set; }
     public DateTime CreatedAt { get; set; }
+
+    // Phase 12: Manual booking & Check-in
+    public bool IsManualBooking { get; set; }
+    public string? CustomerName { get; set; }
+    public string? CustomerPhone { get; set; }
+    public bool IsCheckedIn { get; set; }
+    public DateTime? CheckedInAt { get; set; }
+
+    // Phase 12: Promo code & Addons
+    public decimal DiscountAmount { get; set; }
+    public string? PromoCode { get; set; }
+    public List<BookingAddonDto> Addons { get; set; } = [];
+    public string? GoogleMapsUrl { get; set; }
 
     // Cancellation info
     public DateTime? CancelledAt { get; set; }

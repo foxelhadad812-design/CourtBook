@@ -98,5 +98,37 @@ public class BookingConfiguration : IEntityTypeConfiguration<Booking>
             .WithOne(r => r.Booking)
             .HasForeignKey<Review>(r => r.BookingId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // Phase 12: Manual booking & Check-in
+        builder.Property(b => b.IsManualBooking)
+            .HasDefaultValue(false)
+            .IsRequired();
+
+        builder.Property(b => b.CustomerName)
+            .HasMaxLength(100);
+
+        builder.Property(b => b.CustomerPhone)
+            .HasMaxLength(30);
+
+        builder.Property(b => b.IsCheckedIn)
+            .HasDefaultValue(false)
+            .IsRequired();
+
+        builder.Property(b => b.DiscountAmount)
+            .HasColumnType("decimal(10,2)")
+            .HasDefaultValue(0m)
+            .IsRequired();
+
+        // PromoCode
+        builder.HasOne(b => b.PromoCode)
+            .WithMany()
+            .HasForeignKey(b => b.PromoCodeId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // BookingAddons
+        builder.HasMany(b => b.BookingAddons)
+            .WithOne(ba => ba.Booking)
+            .HasForeignKey(ba => ba.BookingId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

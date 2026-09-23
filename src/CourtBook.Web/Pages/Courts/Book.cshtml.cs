@@ -17,6 +17,7 @@ public class BookModel : PageModel
     public CourtResponse? Court { get; set; }
     public VenueResponse? Venue { get; set; }
     public CourtAvailabilityResponse? InitialAvailability { get; set; }
+    public List<CourtAddonDto> Addons { get; set; } = [];
     public bool IsNotFound { get; set; } = false;
     public bool IsAuthenticated { get; set; } = false;
     public string? CurrentUserEmail { get; set; }
@@ -61,7 +62,7 @@ public class BookModel : PageModel
                 IsNotFound = true;
                 return Page();
             }
-            Court = await courtResp.Content.ReadFromJsonAsync<CourtResponse>();
+            Court = await courtResp.Content.ReadFromJsonAsync<CourtResponse>(ApiClient.JsonOptions);
             if (Court == null)
             {
                 IsNotFound = true;
@@ -73,7 +74,7 @@ public class BookModel : PageModel
             var venueResp = await _api.Client.GetAsync($"/api/venues/{targetVenueId}");
             if (venueResp.IsSuccessStatusCode)
             {
-                Venue = await venueResp.Content.ReadFromJsonAsync<VenueResponse>();
+                Venue = await venueResp.Content.ReadFromJsonAsync<VenueResponse>(ApiClient.JsonOptions);
             }
 
             // 3. Parse date (default to today)
@@ -87,7 +88,14 @@ public class BookModel : PageModel
             var availResp = await _api.Client.GetAsync($"/api/courts/{targetCourtId.Value}/availability?date={Date}&durationMinutes={DurationMinutes}");
             if (availResp.IsSuccessStatusCode)
             {
-                InitialAvailability = await availResp.Content.ReadFromJsonAsync<CourtAvailabilityResponse>();
+                InitialAvailability = await availResp.Content.ReadFromJsonAsync<CourtAvailabilityResponse>(ApiClient.JsonOptions);
+            }
+
+            // 5. Fetch Court Add-ons
+            var addonsResp = await _api.Client.GetAsync($"/api/courts/{targetCourtId.Value}/addons?onlyAvailable=true");
+            if (addonsResp.IsSuccessStatusCode)
+            {
+                Addons = await addonsResp.Content.ReadFromJsonAsync<List<CourtAddonDto>>(ApiClient.JsonOptions) ?? [];
             }
 
             return Page();
@@ -96,6 +104,28 @@ public class BookModel : PageModel
         {
             IsNotFound = true;
             return Page();
+        }
+    }
+
+    /// <summary>
+    /// Validates a promo code before booking submission
+    /// </summary>
+    public async Task<IActionResult> OnPostValidatePromoAsync([FromBody] ValidatePromoCodeRequest request)
+    {
+        try
+        {
+            var response = await _api.Client.PostAsJsonAsync("/api/promocodes/validate", request);
+            if (response.IsSuccessStatusCode)
+            {
+                var data = await response.Content.ReadFromJsonAsync<ValidatePromoCodeResponse>();
+                return new JsonResult(data);
+            }
+
+            return BadRequest(new { isValid = false, errorMessage = "Failed to validate promo code." });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { isValid = false, errorMessage = ex.Message });
         }
     }
 

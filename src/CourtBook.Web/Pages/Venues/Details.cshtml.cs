@@ -80,7 +80,7 @@ public class DetailsModel : PageModel
                 return Page();
             }
 
-            Venue = await venueResp.Content.ReadFromJsonAsync<VenueResponse>();
+            Venue = await venueResp.Content.ReadFromJsonAsync<VenueResponse>(ApiClient.JsonOptions);
             if (Venue == null)
             {
                 _logger.LogWarning("Venue {VenueId} deserialized to null", targetId.Value);
@@ -94,7 +94,7 @@ public class DetailsModel : PageModel
                 var summaryResp = await _api.Client.GetAsync($"/api/venues/{targetId.Value}/reviews/summary");
                 if (summaryResp.IsSuccessStatusCode)
                 {
-                    RatingSummary = await summaryResp.Content.ReadFromJsonAsync<VenueRatingSummaryDto>();
+                    RatingSummary = await summaryResp.Content.ReadFromJsonAsync<VenueRatingSummaryDto>(ApiClient.JsonOptions);
                     if (RatingSummary != null)
                     {
                         RatingDistribution[5] = RatingSummary.FiveStarCount;
@@ -133,7 +133,7 @@ public class DetailsModel : PageModel
                 var reviewsResp = await _api.Client.GetAsync($"/api/venues/{targetId.Value}/reviews?{queryParams}");
                 if (reviewsResp.IsSuccessStatusCode)
                 {
-                    Reviews = await reviewsResp.Content.ReadFromJsonAsync<PagedResult<ReviewResponse>>();
+                    Reviews = await reviewsResp.Content.ReadFromJsonAsync<PagedResult<ReviewResponse>>(ApiClient.JsonOptions);
                     if (RatingSummary == null)
                     {
                         CalculateReviewMetrics();

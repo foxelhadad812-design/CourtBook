@@ -35,7 +35,7 @@ public class DetailsModel : PageModel
 
             if (resp.IsSuccessStatusCode)
             {
-                Venue = await resp.Content.ReadFromJsonAsync<AdminVenueDetailsDto>();
+                Venue = await resp.Content.ReadFromJsonAsync<AdminVenueDetailsDto>(ApiClient.JsonOptions);
             }
             else
             {

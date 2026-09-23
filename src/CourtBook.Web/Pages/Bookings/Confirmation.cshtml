@@ -80,6 +80,32 @@
                         </span>
                     </div>
 
+                    @if (Model.Addons.Any())
+                    {
+                        <div class="mb-3">
+                            <span class="text-muted small d-block mb-1">@Loc["Book.Addons.Title"]</span>
+                            <div class="bg-light rounded-3 p-2 small">
+                                @foreach (var addon in Model.Addons)
+                                {
+                                    <div class="d-flex justify-content-between py-1">
+                                        <span>@(Loc.IsArabic ? (addon.AddonNameAr ?? addon.AddonName) : addon.AddonName) &times; @addon.Quantity</span>
+                                        <span class="fw-semibold">@Loc.FormatCurrency(addon.TotalPrice)</span>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    @if (Model.DiscountAmount > 0)
+                    {
+                        <div class="mb-3 d-flex justify-content-between align-items-baseline text-success">
+                            <span class="small fw-semibold">
+                                <i class="bi bi-tag-fill me-1"></i>@Loc["Book.Promo.Discount"] @(string.IsNullOrEmpty(Model.PromoCode) ? "" : $"({Model.PromoCode})")
+                            </span>
+                            <strong class="text-success">- @Loc.FormatCurrency(Model.DiscountAmount)</strong>
+                        </div>
+                    }
+
                     <hr class="my-3 text-muted-subtle">
 
                     <!-- Total Price -->
@@ -103,6 +129,14 @@
                         <strong>@Loc["Details.Policy.Title"]:</strong> @Loc.T("Book.PolicyReminder", 24)
                     </div>
                 </div>
+            </div>
+
+            <!-- Phase 12: WhatsApp Quick Share CTA -->
+            <div class="mb-4">
+                <a href="@Model.GetWhatsAppShareUrl(Loc.IsArabic)" target="_blank" rel="noopener noreferrer" class="btn btn-success w-100 py-3 fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2 rounded-4" style="background-color: #25D366; border-color: #25D366; font-size: 1.1rem;">
+                    <i class="bi bi-whatsapp fs-4"></i>
+                    <span>@Loc["Confirm.WhatsApp.Share"]</span>
+                </a>
             </div>
 
             <!-- Action Buttons -->

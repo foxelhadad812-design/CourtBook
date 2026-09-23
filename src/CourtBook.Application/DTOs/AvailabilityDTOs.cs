@@ -1,5 +1,8 @@
+using System.Text.Json.Serialization;
+
 namespace CourtBook.Application.DTOs;
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum SlotAvailabilityStatus
 {
     Available,

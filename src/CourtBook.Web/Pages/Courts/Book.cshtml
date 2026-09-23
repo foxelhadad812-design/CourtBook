@@ -300,6 +300,32 @@ else
                                 </span>
                             </div>
 
+                            <!-- Phase 12: Rental Equipment & Add-ons -->
+                            @if (Model.Addons.Any())
+                            {
+                                <div class="mb-3">
+                                    <span class="text-muted small fw-bold d-block mb-2">
+                                        <i class="bi bi-bag-plus text-primary me-1"></i>@Loc["Book.Addons.Title"]
+                                    </span>
+                                    <div class="list-group list-group-flush border rounded-3 p-2 bg-light">
+                                        @foreach (var addon in Model.Addons)
+                                        {
+                                            <div class="d-flex justify-content-between align-items-center py-2 px-1 border-bottom border-light-subtle">
+                                                <div>
+                                                    <span class="fw-semibold text-dark d-block small">@(Loc.IsArabic ? (addon.NameAr ?? addon.Name) : addon.Name)</span>
+                                                    <span class="text-muted" style="font-size: 11px;">@Loc.FormatCurrency(addon.Price) / @addon.Unit</span>
+                                                </div>
+                                                <div class="d-flex align-items-center gap-1">
+                                                    <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 rounded-circle" onclick="changeAddonQty('@addon.Id', -1, @addon.Price)">&minus;</button>
+                                                    <span id="addon-qty-@addon.Id" class="fw-bold small px-1 addon-qty-label" data-addon-id="@addon.Id" data-price="@addon.Price">0</span>
+                                                    <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 rounded-circle" onclick="changeAddonQty('@addon.Id', 1, @addon.Price)">&plus;</button>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+
                             <!-- Pricing Breakdown -->
                             <div class="p-3 bg-light rounded-3 mb-4">
                                 <div class="d-flex justify-content-between text-muted small mb-1">
@@ -310,6 +336,14 @@ else
                                     <span id="summary-peak-name">@Loc["Book.Summary.PeakSurcharge"]</span>
                                     <span id="summary-peak-badge" class="badge bg-warning-subtle text-warning">Peak</span>
                                 </div>
+                                <div id="summary-addons-row" class="d-flex justify-content-between text-muted small mb-1" style="display: none;">
+                                    <span>@Loc["Book.Addons.Title"]</span>
+                                    <span id="summary-addons-price">+ 0 EGP</span>
+                                </div>
+                                <div id="summary-discount-row" class="d-flex justify-content-between text-success small mb-1" style="display: none;">
+                                    <span>@Loc["Book.Promo.Discount"]</span>
+                                    <span id="summary-discount-price">- 0 EGP</span>
+                                </div>
                                 <hr class="my-2 text-muted-subtle">
                                 <div class="d-flex justify-content-between align-items-baseline">
                                     <span class="fw-bold text-dark">@Loc["Book.Summary.TotalPrice"]</span>
@@ -318,6 +352,18 @@ else
                                         <span class="text-muted small fw-medium">@(Loc.IsArabic ? "ج.م" : "EGP")</span>
                                     </div>
                                 </div>
+                            </div>
+
+                            <!-- Phase 12: Promo Code Box -->
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-dark mb-1">
+                                    <i class="bi bi-tag-fill text-warning me-1"></i>@Loc["Book.Promo.Title"]
+                                </label>
+                                <div class="input-group input-group-sm">
+                                    <input type="text" id="promo-code-input" class="form-control bg-light border-0 font-monospace text-uppercase" placeholder="@Loc["Book.Promo.Placeholder"]" />
+                                    <button type="button" id="apply-promo-btn" class="btn btn-outline-primary px-3 fw-bold" onclick="applyPromoCode()">@Loc["Book.Promo.Apply"]</button>
+                                </div>
+                                <div id="promo-feedback" class="small mt-1" style="display: none;"></div>
                             </div>
 
                             <!-- Special Notes with Helper & Concrete Example -->
@@ -395,6 +441,80 @@ else
         let selectedSlot = null; // { startTime, endTime, effectivePrice, isPeak, appliedRuleName }
         let currentSlots = [];
         let isSubmitting = false;
+        let selectedAddons = {}; // { addonId: { quantity, price } }
+        let appliedPromo = null; // { code, discountAmount, finalAmount }
+
+        function changeAddonQty(addonId, delta, price) {
+            if (!selectedAddons[addonId]) {
+                selectedAddons[addonId] = { quantity: 0, price: price };
+            }
+            selectedAddons[addonId].quantity = Math.max(0, selectedAddons[addonId].quantity + delta);
+            const label = document.getElementById(`addon-qty-${addonId}`);
+            if (label) label.textContent = selectedAddons[addonId].quantity;
+
+            if (appliedPromo) {
+                appliedPromo = null;
+                const feedback = document.getElementById('promo-feedback');
+                if (feedback) feedback.style.display = 'none';
+                const promoInput = document.getElementById('promo-code-input');
+                if (promoInput) promoInput.value = '';
+            }
+            updateSummaryView();
+        }
+
+        async function applyPromoCode() {
+            const input = document.getElementById('promo-code-input');
+            const feedback = document.getElementById('promo-feedback');
+            const code = input?.value?.trim();
+            if (!code) return;
+            if (!selectedSlot) {
+                if (feedback) {
+                    feedback.style.display = 'block';
+                    feedback.className = 'small mt-1 text-danger';
+                    feedback.textContent = isArabic ? 'يرجى اختيار موعد الحجز أولاً.' : 'Please select a time slot first.';
+                }
+                return;
+            }
+
+            const courtPrice = selectedSlot.effectivePrice;
+            let addonsTotal = 0;
+            for (const id in selectedAddons) {
+                addonsTotal += (selectedAddons[id].quantity * selectedAddons[id].price);
+            }
+            const grossTotal = courtPrice + addonsTotal;
+
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+            try {
+                const resp = await fetch('/Courts/Book?handler=ValidatePromo', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': token || ''
+                    },
+                    body: JSON.stringify({ code: code, bookingAmount: grossTotal })
+                });
+                const res = await resp.json();
+                if (resp.ok && res.isValid) {
+                    appliedPromo = res;
+                    if (feedback) {
+                        feedback.style.display = 'block';
+                        feedback.className = 'small mt-1 text-success fw-bold';
+                        feedback.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i> ${isArabic ? 'تم تطبيق الخصم بنجاح!' : 'Discount applied successfully!'}`;
+                    }
+                    updateSummaryView();
+                } else {
+                    appliedPromo = null;
+                    if (feedback) {
+                        feedback.style.display = 'block';
+                        feedback.className = 'small mt-1 text-danger';
+                        feedback.textContent = (isArabic ? res.errorMessageAr : res.errorMessage) || (isArabic ? 'كود الخصم غير صالح.' : 'Invalid promo code.');
+                    }
+                    updateSummaryView();
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
 
         // On DOM Load
         document.addEventListener('DOMContentLoaded', function () {
@@ -632,13 +752,47 @@ else
                     if (peakRow) peakRow.style.display = 'none';
                 }
 
-                if (totalEl) totalEl.textContent = selectedSlot.effectivePrice.toFixed(0);
+                // Add-ons total calculation
+                let addonsTotal = 0;
+                for (const id in selectedAddons) {
+                    addonsTotal += (selectedAddons[id].quantity * selectedAddons[id].price);
+                }
+                const addonsRow = document.getElementById('summary-addons-row');
+                const addonsPrice = document.getElementById('summary-addons-price');
+                if (addonsRow && addonsPrice) {
+                    if (addonsTotal > 0) {
+                        addonsRow.style.display = 'flex';
+                        addonsPrice.textContent = `+ ${addonsTotal.toFixed(0)} ${isArabic ? 'ج.م' : 'EGP'}`;
+                    } else {
+                        addonsRow.style.display = 'none';
+                    }
+                }
+
+                // Promo discount calculation
+                const discountRow = document.getElementById('summary-discount-row');
+                const discountPrice = document.getElementById('summary-discount-price');
+                let discount = appliedPromo ? appliedPromo.discountAmount : 0;
+                if (discountRow && discountPrice) {
+                    if (discount > 0) {
+                        discountRow.style.display = 'flex';
+                        discountPrice.textContent = `- ${discount.toFixed(0)} ${isArabic ? 'ج.م' : 'EGP'}`;
+                    } else {
+                        discountRow.style.display = 'none';
+                    }
+                }
+
+                const finalTotal = Math.max(0, (selectedSlot.effectivePrice + addonsTotal) - discount);
+                if (totalEl) totalEl.textContent = finalTotal.toFixed(0);
 
                 if (confirmBtn) confirmBtn.disabled = false;
             } else {
                 if (timeEl) timeEl.innerHTML = `<span class="text-muted fst-italic fw-normal">${isArabic ? 'يرجى تحديد فترة زمنية أولاً' : 'Please select a time slot'}</span>`;
                 if (baseEl) baseEl.textContent = '--';
                 if (peakRow) peakRow.style.display = 'none';
+                const addonsRow = document.getElementById('summary-addons-row');
+                if (addonsRow) addonsRow.style.display = 'none';
+                const discountRow = document.getElementById('summary-discount-row');
+                if (discountRow) discountRow.style.display = 'none';
                 if (totalEl) totalEl.textContent = '--';
                 if (confirmBtn) confirmBtn.disabled = true;
             }
@@ -677,11 +831,20 @@ else
             const startIso = `${selectedDate}T${selectedSlot.startTime}`;
             const endIso = `${selectedDate}T${selectedSlot.endTime}`;
 
+            const addonsList = [];
+            for (const id in selectedAddons) {
+                if (selectedAddons[id].quantity > 0) {
+                    addonsList.push({ courtAddonId: id, quantity: selectedAddons[id].quantity });
+                }
+            }
+
             const payload = {
                 courtId: courtId,
                 startTime: startIso,
                 endTime: endIso,
-                notes: notesEl ? notesEl.value : null
+                notes: notesEl ? notesEl.value : null,
+                promoCode: appliedPromo ? appliedPromo.code : null,
+                addons: addonsList
             };
 
             try {

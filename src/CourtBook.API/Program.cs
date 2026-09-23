@@ -78,6 +78,10 @@ builder.Services.AddScoped<ISettlementService,   SettlementService>();
 builder.Services.AddScoped<IPayoutService,       PayoutService>();
 builder.Services.AddScoped<IRecoveryService,     RecoveryService>();
 
+// ── Phase 12: Commercial & Operational Features ─────────────────────────────
+builder.Services.AddScoped<IPromoCodeService,     PromoCodeService>();
+builder.Services.AddScoped<ICourtAddonService,     CourtAddonService>();
+
 // ── Phase 8: Real-Time SignalR & Background Workers ──────────────────────────
 var signalRBuilder = builder.Services.AddSignalR();
 var redisConnectionString = builder.Configuration["Redis:ConnectionString"];
@@ -292,6 +296,10 @@ builder.Services.AddHealthChecks()
 
 // ── Controllers & OpenAPI ─────────────────────────────────────────────────────
 builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+    })
     .ConfigureApiBehaviorOptions(options =>
     {
         // Return ProblemDetails for model binding failures (matches FluentValidation output)

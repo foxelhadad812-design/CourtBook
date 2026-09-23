@@ -27,4 +27,5 @@ public class Court
     public ICollection<CourtImage> Images { get; set; } = [];
     public ICollection<Booking> Bookings { get; set; } = [];
     public ICollection<Game> Games { get; set; } = [];
+    public ICollection<CourtAddon> Addons { get; set; } = [];
 }

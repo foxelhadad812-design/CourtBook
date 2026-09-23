@@ -87,4 +87,36 @@ public class VenueDetailsAndGalleryTests
         Assert.NotEmpty(venue.OperatingHours);
         Assert.Equal(7, venue.OperatingHours.Count);
     }
+
+    [Fact]
+    public async Task VenueResponse_OperatingHoursEnum_DeserializesSuccessfullyFromApiJson()
+    {
+        var db = TestDbContextFactory.Create(nameof(VenueResponse_OperatingHoursEnum_DeserializesSuccessfullyFromApiJson));
+        var (venueId, _, _, _) = await TestDbContextFactory.SeedBasicTestDataAsync(db);
+
+        var service = new VenueService(db);
+        var venue = await service.GetByIdAsync(venueId);
+        Assert.NotNull(venue);
+
+        // 1. Simulate API serialization (which converts enums to strings, e.g. "Sunday")
+        var apiOptions = new System.Text.Json.JsonSerializerOptions
+        {
+            Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
+        };
+        var json = System.Text.Json.JsonSerializer.Serialize(venue, apiOptions);
+
+        // Verify JSON contains string day names, e.g. "Sunday"
+        Assert.Contains("\"dayOfWeek\":\"Sunday\"", json, StringComparison.OrdinalIgnoreCase);
+
+        // 2. Simulate Web client deserialization with default and ApiClient.JsonOptions
+        var deserializedWithDefault = System.Text.Json.JsonSerializer.Deserialize<VenueResponse>(json);
+        Assert.NotNull(deserializedWithDefault);
+        Assert.Equal(7, deserializedWithDefault.OperatingHours.Count);
+        Assert.Equal(DayOfWeek.Sunday, deserializedWithDefault.OperatingHours[0].DayOfWeek);
+
+        var deserializedWithWebOptions = System.Text.Json.JsonSerializer.Deserialize<VenueResponse>(json, CourtBook.Web.Services.ApiClient.JsonOptions);
+        Assert.NotNull(deserializedWithWebOptions);
+        Assert.Equal(7, deserializedWithWebOptions.OperatingHours.Count);
+        Assert.Equal(DayOfWeek.Sunday, deserializedWithWebOptions.OperatingHours[0].DayOfWeek);
+    }
 }

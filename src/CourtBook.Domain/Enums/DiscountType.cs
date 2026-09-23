@@ -3,9 +3,8 @@ using System.Text.Json.Serialization;
 namespace CourtBook.Domain.Enums;
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
-public enum PayoutMethodType
+public enum DiscountType
 {
-    BankTransfer,
-    InstaPay,
-    MobileWallet
+    Percentage = 1,
+    FixedAmount = 2
 }

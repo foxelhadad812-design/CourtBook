@@ -37,4 +37,8 @@ public interface IOwnerService
     // Phase 4B: Operating Hours Management
     Task<List<OperatingHourDto>> GetVenueOperatingHoursAsync(Guid ownerId, Guid venueId);
     Task<List<OperatingHourDto>> UpdateVenueOperatingHoursAsync(Guid ownerId, Guid venueId, List<UpdateOperatingHourRequest> hours);
+
+    // Phase 12: Manual / Phone Booking & Receptionist Quick Check-in
+    Task<BookingResponse> CreateManualBookingAsync(Guid ownerId, CreateManualBookingRequest request);
+    Task<QuickCheckInResult> QuickCheckInAsync(Guid ownerId, QuickCheckInRequest request);
 }

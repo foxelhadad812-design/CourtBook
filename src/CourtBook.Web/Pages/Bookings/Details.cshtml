@@ -98,6 +98,12 @@
                                 @Loc.BookingStatus(b.Status)
                             </span>
                         }
+                        @if (b.IsCheckedIn)
+                        {
+                            <span class="badge bg-success-subtle text-success border border-success border-opacity-25 rounded-pill px-3 py-1">
+                                <i class="bi bi-person-check-fill me-1"></i>@(Loc.IsArabic ? "حاضر في الملعب" : "Checked In")
+                            </span>
+                        }
                     </div>
                     <h2 class="h3 fw-bold text-dark mb-1">@b.CourtName</h2>
                     <p class="text-muted mb-0 small">
@@ -106,6 +112,10 @@
                 </div>
 
                 <div class="d-flex flex-wrap gap-2">
+                    <a href="@Model.GetWhatsAppShareUrl(Loc.IsArabic)" target="_blank" rel="noopener noreferrer" class="btn btn-success rounded-pill px-3 btn-sm text-white fw-medium shadow-sm">
+                        <i class="bi bi-whatsapp me-1"></i> @Loc["WhatsApp.ShareBtn"]
+                    </a>
+
                     <a href="/Bookings" class="btn btn-outline-secondary rounded-pill px-3 btn-sm">
                         <i class="bi bi-arrow-left me-1"></i> @Loc["Confirm.Btn.MyBookings"]
                     </a>
@@ -223,6 +233,30 @@
                     <h5 class="fw-bold text-dark mb-3 d-flex align-items-center">
                         <i class="bi bi-receipt text-primary me-2"></i>@Loc["Book.Step4.Title"]
                     </h5>
+
+                    @if (b.Addons != null && b.Addons.Any())
+                    {
+                        <div class="mb-3 pt-2 border-top">
+                            <span class="text-muted small fw-semibold d-block mb-1">
+                                <i class="bi bi-bag-plus me-1 text-primary"></i>@(Loc.IsArabic ? "المستلزمات والخدمات الإضافية:" : "Add-ons & Equipment:")
+                            </span>
+                            @foreach (var a in b.Addons)
+                            {
+                                <div class="d-flex justify-content-between align-items-center small py-1 text-muted">
+                                    <span>@(Loc.IsArabic && !string.IsNullOrEmpty(a.AddonNameAr) ? a.AddonNameAr : a.AddonName) × @a.Quantity</span>
+                                    <span>@Loc.FormatCurrency(a.TotalPrice)</span>
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    @if (b.DiscountAmount > 0)
+                    {
+                        <div class="d-flex justify-content-between align-items-center mb-2 small text-success">
+                            <span><i class="bi bi-tag-fill me-1"></i>@(Loc.IsArabic ? "خصم الكوبون" : "Promo Discount") @(!string.IsNullOrEmpty(b.PromoCode) ? $"({b.PromoCode})" : ""):</span>
+                            <span class="fw-bold">-@Loc.FormatCurrency(b.DiscountAmount)</span>
+                        </div>
+                    }
 
                     <div class="d-flex justify-content-between align-items-center mb-2 small">
                         <span class="text-muted">@Loc["Book.Summary.TotalPrice"]:</span>

@@ -41,7 +41,10 @@
                 <h1 class="h2 fw-bold mb-0 text-dark">@Loc["Owner.Title"]</h1>
                 <p class="text-muted small mb-0 mt-1">@Loc["Owner.Subtitle"]</p>
             </div>
-            <div class="d-flex gap-2">
+            <div class="d-flex flex-wrap gap-2">
+                <button type="button" class="btn btn-warning rounded-pill px-3 btn-sm fw-bold text-dark shadow-sm" data-bs-toggle="modal" data-bs-target="#manualBookingModal">
+                    <i class="bi bi-telephone-plus me-1"></i> @(Loc.IsArabic ? "حجز تليفوني جديد" : "Manual / Phone Booking")
+                </button>
                 <a href="/Owner/Venues" class="ps-btn ps-btn-primary ps-btn-sm rounded-pill px-3 fw-semibold">
                     <i class="bi bi-building me-1"></i> @Loc["Owner.Venues.Title"]
                 </a>
@@ -356,6 +359,33 @@
                 }
             </div>
 
+            <!-- RECEPTIONIST QUICK CHECK-IN WIDGET -->
+            <div class="card border-0 mb-4 shadow-sm" style="border-radius: var(--ps-radius-xl); background: var(--ps-card-bg); border-top: 3px solid #10b981 !important;">
+                <div class="card-body p-4">
+                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+                        <div>
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <span class="badge bg-success-subtle text-success border border-success border-opacity-25 rounded-pill px-2 py-1 small">
+                                    <i class="bi bi-qr-code-scan me-1"></i>@(Loc.IsArabic ? "بوابة الاستقبال" : "Reception Gate")
+                                </span>
+                                <h5 class="fw-bold text-dark mb-0">@(Loc.IsArabic ? "تسجيل الحضور السريع للاعبين" : "Quick Player Check-in")</h5>
+                            </div>
+                            <p class="text-muted small mb-0">@(Loc.IsArabic ? "أدخل رقم الحجز المرجعي لتأكيد وصول اللاعب فورا وتحديث سجل المنشأة" : "Enter booking reference to instantly confirm player arrival and update court check-in status")</p>
+                        </div>
+                        <div class="d-flex w-100 w-md-auto gap-2" style="max-width: 420px;">
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-0"><i class="bi bi-hash"></i></span>
+                                <input type="text" id="quickCheckInRef" class="form-control bg-light border-0 shadow-none font-monospace text-uppercase" placeholder="CB-XXXXXX / PS-XXXXXX" />
+                                <button type="button" id="btnQuickCheckIn" class="btn btn-success px-3 fw-semibold" onclick="handleQuickCheckIn()">
+                                    <i class="bi bi-check2-circle me-1"></i> @(Loc.IsArabic ? "تسجيل الحضور" : "Check In")
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="quickCheckInAlert" class="mt-3 d-none"></div>
+                </div>
+            </div>
+
             <!-- BOOKINGS OVERVIEW SECTION -->
             <div class="mb-4">
                 <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-3">
@@ -415,6 +445,7 @@
                                         <th class="py-3">@Loc["Book.Summary.Date"] &amp; @Loc["Book.Summary.Time"]</th>
                                         <th class="py-3">@Loc["Book.Summary.TotalPrice"]</th>
                                         <th class="py-3">@Loc["Book.Summary.PaymentMethod"]</th>
+                                        <th class="py-3">@(Loc.IsArabic ? "تسجيل الحضور" : "Attendance")</th>
                                         <th class="pe-4 py-3 text-end">@(Loc.IsArabic ? "الحالة" : "Status")</th>
                                     </tr>
                                 </thead>
@@ -434,7 +465,15 @@
                                                 <div class="text-muted small">@b.VenueName • <span class="badge bg-light text-dark border px-1 py-0-5 font-size-11">@Loc.Sport(b.SportType)</span></div>
                                             </td>
                                             <td class="py-3">
-                                                <div class="text-dark fw-medium">@b.PlayerName</div>
+                                                <div class="text-dark fw-medium d-flex align-items-center gap-1">
+                                                    <span>@b.PlayerName</span>
+                                                    @if (b.IsManualBooking)
+                                                    {
+                                                        <span class="badge bg-warning-subtle text-dark border border-warning border-opacity-25 rounded-pill px-2 py-0-5 small" style="font-size: 11px;">
+                                                            <i class="bi bi-telephone me-1"></i>@(Loc.IsArabic ? "تليفوني" : "Phone")
+                                                        </span>
+                                                    }
+                                                </div>
                                                 @if (!string.IsNullOrWhiteSpace(b.PlayerPhone))
                                                 {
                                                     <div class="small">
@@ -448,13 +487,38 @@
                                                 <div class="text-dark fw-medium">@b.StartTime.ToString(Loc.IsArabic ? "dd MMM yyyy" : "MMM dd, yyyy")</div>
                                                 <div class="text-muted small">@b.StartTime.ToString("HH:mm") - @b.EndTime.ToString("HH:mm") (@b.DurationMinutes @(Loc.IsArabic ? "دقيقة" : "mins"))</div>
                                             </td>
-                                            <td class="py-3 fw-bold text-primary">
-                                                @Loc.FormatCurrency(b.TotalPrice)
+                                            <td class="py-3">
+                                                <div class="fw-bold text-primary">@Loc.FormatCurrency(b.TotalPrice)</div>
+                                                @if (b.DiscountAmount > 0)
+                                                {
+                                                    <div class="text-success small" style="font-size: 11px;">
+                                                        <i class="bi bi-tag-fill me-1"></i>@(Loc.IsArabic ? "خصم:" : "Discount:") -@Loc.FormatCurrency(b.DiscountAmount)
+                                                    </div>
+                                                }
                                             </td>
                                             <td class="py-3">
                                                 <span class="badge bg-light text-dark border small px-2 py-1">
                                                     @Loc.PaymentStatus(b.PaymentStatus)
                                                 </span>
+                                            </td>
+                                            <td class="py-3">
+                                                @if (b.IsCheckedIn)
+                                                {
+                                                    <span class="badge bg-success-subtle text-success border border-success border-opacity-25 rounded-pill px-2 py-1 small" title="@b.CheckedInAt?.ToString("yyyy-MM-dd HH:mm")">
+                                                        <i class="bi bi-check-circle-fill me-1"></i>@(Loc.IsArabic ? "حاضر" : "Checked In")
+                                                        <small class="text-muted ms-1">@b.CheckedInAt?.ToString("HH:mm")</small>
+                                                    </span>
+                                                }
+                                                else if (isConf)
+                                                {
+                                                    <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-2 py-1 small" style="font-size: 11px;" onclick="quickCheckInFromTable('@b.BookingReference')">
+                                                        <i class="bi bi-box-arrow-in-right me-1"></i>@(Loc.IsArabic ? "تسجيل حضور" : "Check In")
+                                                    </button>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted small">-</span>
+                                                }
                                             </td>
                                             <td class="pe-4 py-3 text-end">
                                                 @if (isConf)
@@ -534,3 +598,236 @@
         }
     }
 </div>
+
+<form id="antiForgeryForm" class="d-none">
+    @Html.AntiForgeryToken()
+</form>
+
+<!-- MANUAL PHONE BOOKING MODAL -->
+<div class="modal fade" id="manualBookingModal" tabindex="-1" aria-labelledby="manualBookingModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: var(--ps-radius-xl);">
+            <div class="modal-header border-bottom pb-3">
+                <h5 class="modal-title fw-bold text-dark d-flex align-items-center" id="manualBookingModalLabel">
+                    <i class="bi bi-telephone-plus text-warning me-2 fs-4"></i>
+                    @(Loc.IsArabic ? "تسجيل حجز تليفوني / يدوي جديد" : "New Phone / Walk-in Booking")
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-4">
+                <div id="mbAlert" class="alert d-none mb-3" role="alert"></div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-dark mb-1">@(Loc.IsArabic ? "الملعب الرياضي *" : "Select Court *")</label>
+                    <select id="mbCourtId" class="form-select bg-light border-0 shadow-none rounded-3 py-2" required>
+                        <option value="">@(Loc.IsArabic ? "-- اختر الملعب --" : "-- Select a Court --")</option>
+                        @foreach (var c in Model.OwnerCourts)
+                        {
+                            <option value="@c.Id" data-price="@c.PricePerHour">
+                                @c.Name (@Loc.Sport(c.SportType)) — EGP @c.PricePerHour/@(Loc.IsArabic ? "ساعة" : "hr")
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-dark mb-1">@(Loc.IsArabic ? "تاريخ المباراة *" : "Match Date *")</label>
+                    <input type="date" id="mbDate" class="form-control bg-light border-0 shadow-none rounded-3 py-2" value="@DateTime.UtcNow.ToString("yyyy-MM-dd")" required />
+                </div>
+
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="form-label small fw-semibold text-dark mb-1">@(Loc.IsArabic ? "وقت البدء *" : "Start Time *")</label>
+                        <input type="time" id="mbStartTime" class="form-control bg-light border-0 shadow-none rounded-3 py-2" value="18:00" required />
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small fw-semibold text-dark mb-1">@(Loc.IsArabic ? "وقت الانتهاء *" : "End Time *")</label>
+                        <input type="time" id="mbEndTime" class="form-control bg-light border-0 shadow-none rounded-3 py-2" value="19:00" required />
+                    </div>
+                </div>
+
+                <div class="row g-2 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold text-dark mb-1">@(Loc.IsArabic ? "اسم العميل / اللاعب *" : "Customer Name *")</label>
+                        <input type="text" id="mbCustomerName" class="form-control bg-light border-0 shadow-none rounded-3 py-2" placeholder="@(Loc.IsArabic ? "مثال: كابتن أحمد" : "e.g. Captain Ahmed")" required />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold text-dark mb-1">@(Loc.IsArabic ? "رقم الهاتف للتواصل *" : "Customer Phone *")</label>
+                        <input type="tel" id="mbCustomerPhone" class="form-control bg-light border-0 shadow-none rounded-3 py-2" placeholder="01012345678" required />
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-dark mb-1">@(Loc.IsArabic ? "السعر المخصص (اختياري)" : "Custom Price (Optional)")</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-0">EGP</span>
+                        <input type="number" id="mbCustomPrice" step="10" min="0" class="form-control bg-light border-0 shadow-none rounded-end-3 py-2" placeholder="@(Loc.IsArabic ? "اتركه فارغاً لاعتماد سعر الملعب القياسي" : "Leave empty to use court standard rate")" />
+                    </div>
+                </div>
+
+                <div class="mb-0">
+                    <label class="form-label small fw-semibold text-dark mb-1">@(Loc.IsArabic ? "ملاحظات إضافية" : "Additional Notes")</label>
+                    <textarea id="mbNotes" class="form-control bg-light border-0 shadow-none rounded-3" rows="2" placeholder="@(Loc.IsArabic ? "دفع كاش في الملعب، حجز تليفوني..." : "Cash at venue, phone reservation...")"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer border-top pt-3">
+                <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">@Loc["Action.Cancel"]</button>
+                <button type="button" id="btnSubmitManualBooking" class="btn btn-warning rounded-pill px-4 fw-bold text-dark" onclick="submitManualBooking()">
+                    <span id="mbSpinner" class="spinner-border spinner-border-sm me-1 d-none" role="status"></span>
+                    <i class="bi bi-check-circle-fill me-1" id="mbCheckIcon"></i>
+                    @(Loc.IsArabic ? "تأكيد وتسجيل الحجز" : "Confirm & Save Booking")
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function getAntiForgeryToken() {
+        const tokenInput = document.querySelector('#antiForgeryForm input[name="__RequestVerificationToken"]');
+        return tokenInput ? tokenInput.value : '';
+    }
+
+    async function handleQuickCheckIn(refOverride) {
+        const input = document.getElementById('quickCheckInRef');
+        const alertBox = document.getElementById('quickCheckInAlert');
+        const btn = document.getElementById('btnQuickCheckIn');
+        const ref = (refOverride || input.value || '').trim();
+
+        if (!ref) {
+            alertBox.className = 'alert alert-warning border-0 rounded-3 mb-0 small d-block';
+            alertBox.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i> @(Loc.IsArabic ? "يرجى إدخال رقم الحجز المرجعي أولاً." : "Please enter a valid booking reference first.")';
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> @(Loc.IsArabic ? "جاري التحقق..." : "Checking...")';
+        alertBox.className = 'd-none';
+
+        try {
+            const resp = await fetch('/Owner?handler=QuickCheckIn', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': getAntiForgeryToken()
+                },
+                body: JSON.stringify({ bookingReference: ref })
+            });
+
+            const data = await resp.json();
+
+            if (resp.ok && data.success) {
+                alertBox.className = 'alert alert-success border-0 rounded-3 mb-0 d-block shadow-sm';
+                const msg = @(Loc.IsArabic ? "data.messageAr || data.message" : "data.message");
+                const player = data.booking ? data.booking.playerName : '';
+                const court = data.booking ? data.booking.courtName : '';
+                alertBox.innerHTML = `<div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-check-circle-fill fs-4 text-success"></i>
+                    <div>
+                        <div class="fw-bold">${msg}</div>
+                        <div class="small text-muted">${player ? `اللاعب: ${player}` : ''} • ${court ? `الملعب: ${court}` : ''}</div>
+                    </div>
+                </div>`;
+                input.value = '';
+                setTimeout(() => window.location.reload(), 1500);
+            } else {
+                alertBox.className = 'alert alert-danger border-0 rounded-3 mb-0 small d-block shadow-sm';
+                const errMsg = @(Loc.IsArabic ? "data.messageAr || data.message || data.error" : "data.message || data.error");
+                alertBox.innerHTML = `<i class="bi bi-x-circle-fill me-1"></i> ${errMsg || '@(Loc.IsArabic ? "فشل تسجيل الحضور، تأكد من كود الحجز" : "Check-in failed, please verify the booking reference")'}`;
+            }
+        } catch (e) {
+            alertBox.className = 'alert alert-danger border-0 rounded-3 mb-0 small d-block';
+            alertBox.innerHTML = `<i class="bi bi-exclamation-triangle me-1"></i> @(Loc.IsArabic ? "حدث خطأ في الاتصال بالخادم" : "Network error contacting server")`;
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check2-circle me-1"></i> @(Loc.IsArabic ? "تسجيل الحضور" : "Check In")';
+        }
+    }
+
+    function quickCheckInFromTable(reference) {
+        const input = document.getElementById('quickCheckInRef');
+        if (input) {
+            input.value = reference;
+            input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            handleQuickCheckIn(reference);
+        }
+    }
+
+    async function submitManualBooking() {
+        const courtId = document.getElementById('mbCourtId').value;
+        const dateVal = document.getElementById('mbDate').value;
+        const startVal = document.getElementById('mbStartTime').value;
+        const endVal = document.getElementById('mbEndTime').value;
+        const custName = document.getElementById('mbCustomerName').value.trim();
+        const custPhone = document.getElementById('mbCustomerPhone').value.trim();
+        const customPriceVal = document.getElementById('mbCustomPrice').value;
+        const notes = document.getElementById('mbNotes').value.trim();
+        const alertBox = document.getElementById('mbAlert');
+        const btn = document.getElementById('btnSubmitManualBooking');
+        const spinner = document.getElementById('mbSpinner');
+        const checkIcon = document.getElementById('mbCheckIcon');
+
+        if (!courtId || !dateVal || !startVal || !endVal || !custName || !custPhone) {
+            alertBox.className = 'alert alert-warning border-0 rounded-3 small d-block';
+            alertBox.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i> @(Loc.IsArabic ? "يرجى تعبئة جميع الحقول الإلزامية (*)" : "Please fill in all mandatory fields (*)")';
+            return;
+        }
+
+        const startIso = `${dateVal}T${startVal}:00Z`;
+        const endIso = `${dateVal}T${endVal}:00Z`;
+
+        if (new Date(endIso) <= new Date(startIso)) {
+            alertBox.className = 'alert alert-warning border-0 rounded-3 small d-block';
+            alertBox.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i> @(Loc.IsArabic ? "وقت الانتهاء يجب أن يكون بعد وقت البدء." : "End time must be after start time.")';
+            return;
+        }
+
+        btn.disabled = true;
+        spinner.classList.remove('d-none');
+        checkIcon.classList.add('d-none');
+        alertBox.className = 'd-none';
+
+        const payload = {
+            courtId: courtId,
+            startTime: startIso,
+            endTime: endIso,
+            customerName: custName,
+            customerPhone: custPhone,
+            customPrice: customPriceVal ? parseFloat(customPriceVal) : null,
+            notes: notes || null
+        };
+
+        try {
+            const resp = await fetch('/Owner?handler=ManualBooking', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': getAntiForgeryToken()
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await resp.json();
+
+            if (resp.ok && result.success) {
+                alertBox.className = 'alert alert-success border-0 rounded-3 small d-block';
+                alertBox.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> @(Loc.IsArabic ? "تم تسجيل وتأكيد الحجز بنجاح!" : "Booking created and confirmed successfully!")';
+                setTimeout(() => window.location.reload(), 1200);
+            } else {
+                alertBox.className = 'alert alert-danger border-0 rounded-3 small d-block';
+                alertBox.innerHTML = `<i class="bi bi-x-circle-fill me-1"></i> ${result.message || '@(Loc.IsArabic ? "تعذر تسجيل الحجز، قد يكون الموعد محجوزاً بالفعل." : "Failed to create booking. The slot might already be reserved.")'}`;
+                btn.disabled = false;
+                spinner.classList.add('d-none');
+                checkIcon.classList.remove('d-none');
+            }
+        } catch (e) {
+            alertBox.className = 'alert alert-danger border-0 rounded-3 small d-block';
+            alertBox.innerHTML = `<i class="bi bi-exclamation-triangle me-1"></i> @(Loc.IsArabic ? "خطأ في الشبكة، يرجى المحاولة ثانية" : "Network error, please try again")`;
+            btn.disabled = false;
+            spinner.classList.add('d-none');
+            checkIcon.classList.remove('d-none');
+        }
+    }
+</script>
+}

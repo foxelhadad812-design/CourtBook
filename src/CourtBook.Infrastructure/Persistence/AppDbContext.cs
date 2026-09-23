@@ -58,6 +58,12 @@ public class AppDbContext : DbContext
     public DbSet<SettlementItem> SettlementItems => Set<SettlementItem>();
     public DbSet<RecoveryObligation> RecoveryObligations => Set<RecoveryObligation>();
 
+    // Phase 12: Commercial & Operational Features
+    public DbSet<PromoCode> PromoCodes => Set<PromoCode>();
+    public DbSet<PromoCodeUsage> PromoCodeUsages => Set<PromoCodeUsage>();
+    public DbSet<CourtAddon> CourtAddons => Set<CourtAddon>();
+    public DbSet<BookingAddon> BookingAddons => Set<BookingAddon>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // Automatically applies all IEntityTypeConfiguration<T> classes in this assembly

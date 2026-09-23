@@ -1,0 +1,256 @@
+@page "/Admin/PromoCodes"
+@model CourtBook.Web.Pages.Admin.PromoCodesModel
+@inject CourtBook.Web.Services.ITextLocalizer Loc
+@{
+    ViewData["Title"] = Loc.IsArabic ? "إدارة الكوبونات والخصومات — بلاي سبوت" : "Promo Codes Management — PlaySpot";
+}
+
+<div class="container py-4">
+    <!-- Breadcrumb & Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1 small">
+                    <li class="breadcrumb-item"><a href="/" class="text-decoration-none">@(Loc.IsArabic ? "الرئيسية" : "Home")</a></li>
+                    <li class="breadcrumb-item"><a href="/admin" class="text-decoration-none">@(Loc.IsArabic ? "لوحة الإدارة" : "Admin Portal")</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">@(Loc.IsArabic ? "الكوبونات والخصومات" : "Promo Codes")</li>
+                </ol>
+            </nav>
+            <h1 class="h3 fw-bold mb-1" style="color: var(--ps-text);">
+                <i class="bi bi-tag-fill text-primary me-2"></i>
+                @(Loc.IsArabic ? "إدارة كوبونات الخصم والعروض الترويجية" : "Promo Codes & Discount Campaigns")
+            </h1>
+            <p class="text-muted mb-0 small">
+                @(Loc.IsArabic 
+                    ? "إنشاء ومتابعة أكواد الخصم، تحديد نسب التخفيض، صلاحية الكوبونات وحدود الاستخدام" 
+                    : "Create, monitor, and configure promotional discount codes, validity windows, and usage caps")
+            </p>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button type="button" class="ps-btn ps-btn-primary" data-bs-toggle="collapse" data-bs-target="#createPromoCollapse">
+                <i class="bi bi-plus-lg me-1"></i>
+                @(Loc.IsArabic ? "إضافة كود خصم جديد" : "Create Promo Code")
+            </button>
+            <a href="/admin" class="btn btn-outline-secondary rounded-pill px-3">
+                <i class="bi bi-arrow-left me-1"></i> @(Loc.IsArabic ? "العودة للوحة" : "Back to Admin")
+            </a>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm d-flex align-items-center mb-4" role="alert">
+            <i class="bi bi-check-circle-fill fs-5 me-2"></i>
+            <div>@Model.SuccessMessage</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm d-flex align-items-center mb-4" role="alert">
+            <i class="bi bi-exclamation-triangle-fill fs-5 me-2"></i>
+            <div>@Model.ErrorMessage</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Create Promo Code Collapse Form -->
+    <div class="collapse mb-4" id="createPromoCollapse">
+        <div class="card border-0 p-4 p-md-5 shadow-sm" style="border-radius: var(--ps-radius-xl);">
+            <h5 class="text-primary fw-bold mb-3">
+                <i class="bi bi-tag me-2"></i>@(Loc.IsArabic ? "إصدار كود خصم ترويجي جديد" : "Issue New Promo Code")
+            </h5>
+            <form method="post" asp-page-handler="Create">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold text-dark mb-1">@(Loc.IsArabic ? "رمز الكود (بالأحرف الإنجليزية) *" : "Promo Code *")</label>
+                        <input type="text" asp-for="NewPromo.Code" class="form-control bg-light border-0 shadow-none font-monospace text-uppercase py-2 rounded-3" placeholder="SUMMER2026" required />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold text-dark mb-1">@(Loc.IsArabic ? "نوع الخصم *" : "Discount Type *")</label>
+                        <select asp-for="NewPromo.DiscountType" class="form-select bg-light border-0 shadow-none py-2 rounded-3" required>
+                            <option value="Percentage">@(Loc.IsArabic ? "نسبة مئوية (%)" : "Percentage (%)")</option>
+                            <option value="FixedAmount">@(Loc.IsArabic ? "مبلغ ثابت (ج.م)" : "Fixed Amount (EGP)")</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold text-dark mb-1">@(Loc.IsArabic ? "قيمة الخصم *" : "Discount Value *")</label>
+                        <input type="number" step="0.5" min="1" asp-for="NewPromo.Value" class="form-control bg-light border-0 shadow-none py-2 rounded-3" placeholder="20" required />
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold text-dark mb-1">@(Loc.IsArabic ? "الحد الأدنى لمبلغ الحجز (اختياري)" : "Min Booking Amount (Optional)")</label>
+                        <input type="number" step="10" min="0" asp-for="NewPromo.MinBookingAmount" class="form-control bg-light border-0 shadow-none py-2 rounded-3" placeholder="100" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold text-dark mb-1">@(Loc.IsArabic ? "أقصى قيمة للخصم بالجنيه (اختياري)" : "Max Discount Cap EGP (Optional)")</label>
+                        <input type="number" step="10" min="0" asp-for="NewPromo.MaxDiscountAmount" class="form-control bg-light border-0 shadow-none py-2 rounded-3" placeholder="50" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold text-dark mb-1">@(Loc.IsArabic ? "الحد الأقصى لمرات الاستخدام (اختياري)" : "Max Usages Total (Optional)")</label>
+                        <input type="number" min="1" asp-for="NewPromo.MaxUsages" class="form-control bg-light border-0 shadow-none py-2 rounded-3" placeholder="100" />
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold text-dark mb-1">@(Loc.IsArabic ? "تاريخ بدء الصلاحية (اختياري)" : "Valid From (Optional)")</label>
+                        <input type="datetime-local" asp-for="NewPromo.ValidFrom" class="form-control bg-light border-0 shadow-none py-2 rounded-3" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold text-dark mb-1">@(Loc.IsArabic ? "تاريخ انتهاء الصلاحية (اختياري)" : "Valid Until / Expiration (Optional)")</label>
+                        <input type="datetime-local" asp-for="NewPromo.ValidTo" class="form-control bg-light border-0 shadow-none py-2 rounded-3" />
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label small fw-semibold text-dark mb-1">@(Loc.IsArabic ? "وصف الكوبون / الحملة الترويجية" : "Description / Campaign Notes")</label>
+                        <input type="text" asp-for="NewPromo.Description" class="form-control bg-light border-0 shadow-none py-2 rounded-3" placeholder="@(Loc.IsArabic ? "خصم صيفي 20% لجميع حجوزات البادل وكرة القدم" : "Summer 20% discount for all padel and football bookings")" />
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-toggle="collapse" data-bs-target="#createPromoCollapse">
+                        @(Loc.IsArabic ? "إلغاء" : "Cancel")
+                    </button>
+                    <button type="submit" class="ps-btn ps-btn-primary rounded-pill px-4 fw-semibold">
+                        <i class="bi bi-check2-circle me-1"></i>
+                        @(Loc.IsArabic ? "إصدار الكود وتفعيله" : "Create & Activate Code")
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Promo Codes Table -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden" style="border-radius: var(--ps-radius-xl);">
+        <div class="card-header bg-light border-bottom d-flex justify-content-between align-items-center py-3 px-4">
+            <h5 class="fw-bold text-dark mb-0">@(Loc.IsArabic ? "قائمة الأكواد النشطة والتاريخية" : "Active & Historical Promo Codes")</h5>
+            <span class="badge bg-secondary-subtle text-muted rounded-pill">@Model.PromoCodes.Count @(Loc.IsArabic ? "كود" : "Codes")</span>
+        </div>
+
+        @if (!Model.PromoCodes.Any())
+        {
+            <div class="card-body p-5 text-center">
+                <i class="bi bi-tag display-4 text-muted mb-3 opacity-50"></i>
+                <h5 class="fw-bold text-dark mb-1">@(Loc.IsArabic ? "لا توجد أكواد خصم حالياً" : "No Promo Codes Yet")</h5>
+                <p class="text-muted small mb-0">@(Loc.IsArabic ? "اضغط على زر 'إضافة كود خصم جديد' لإنشاء أول كوبون ترويجي." : "Click 'Create Promo Code' above to publish your first campaign coupon.")</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead class="table-light small text-muted">
+                        <tr>
+                            <th class="ps-4 py-3">@(Loc.IsArabic ? "الكود" : "Code")</th>
+                            <th class="py-3">@(Loc.IsArabic ? "قيمة الخصم" : "Discount")</th>
+                            <th class="py-3">@(Loc.IsArabic ? "الحدود والشروط" : "Limits & Rules")</th>
+                            <th class="py-3">@(Loc.IsArabic ? "مرات الاستخدام" : "Usage")</th>
+                            <th class="py-3">@(Loc.IsArabic ? "فترة الصلاحية" : "Validity Window")</th>
+                            <th class="py-3">@(Loc.IsArabic ? "الحالة" : "Status")</th>
+                            <th class="pe-4 py-3 text-end">@(Loc.IsArabic ? "الإجراءات" : "Actions")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in Model.PromoCodes)
+                        {
+                            var isPercent = p.DiscountType == CourtBook.Domain.Enums.DiscountType.Percentage;
+                            var isExpired = p.ValidTo.HasValue && p.ValidTo.Value < DateTime.UtcNow;
+                            var isMaxed = p.MaxUsages.HasValue && p.UsageCount >= p.MaxUsages.Value;
+
+                            <tr>
+                                <td class="ps-4 py-3">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge bg-primary-subtle text-primary border border-primary border-opacity-25 font-monospace fs-6 px-3 py-1">
+                                            @p.Code
+                                        </span>
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(p.Description))
+                                    {
+                                        <div class="text-muted small mt-1">@p.Description</div>
+                                    }
+                                </td>
+                                <td class="py-3">
+                                    <div class="fw-bold text-success fs-6">
+                                        @(isPercent ? $"{p.Value}%" : Loc.FormatCurrency(p.Value))
+                                    </div>
+                                    <div class="text-muted small">
+                                        @(isPercent ? (Loc.IsArabic ? "نسبة من الإجمالي" : "Percent of Total") : (Loc.IsArabic ? "مبلغ ثابت مخصوم" : "Fixed deduction"))
+                                    </div>
+                                </td>
+                                <td class="py-3 small">
+                                    @if (p.MinBookingAmount.HasValue && p.MinBookingAmount > 0)
+                                    {
+                                        <div><span class="text-muted">@(Loc.IsArabic ? "الحد الأدنى:" : "Min:")</span> @Loc.FormatCurrency(p.MinBookingAmount.Value)</div>
+                                    }
+                                    @if (p.MaxDiscountAmount.HasValue && p.MaxDiscountAmount > 0)
+                                    {
+                                        <div><span class="text-muted">@(Loc.IsArabic ? "أقصى خصم:" : "Max Cap:")</span> @Loc.FormatCurrency(p.MaxDiscountAmount.Value)</div>
+                                    }
+                                    @if (!p.MinBookingAmount.HasValue && !p.MaxDiscountAmount.HasValue)
+                                    {
+                                        <span class="text-muted">@(Loc.IsArabic ? "بدون حدود" : "None")</span>
+                                    }
+                                </td>
+                                <td class="py-3">
+                                    <div class="fw-bold text-dark">
+                                        @p.UsageCount @(p.MaxUsages.HasValue ? $" / {p.MaxUsages.Value}" : "")
+                                    </div>
+                                    <div class="text-muted small">
+                                        @(p.MaxUsages.HasValue ? (Loc.IsArabic ? "استخدام مقيد" : "Capped") : (Loc.IsArabic ? "غير محدود" : "Unlimited"))
+                                    </div>
+                                </td>
+                                <td class="py-3 small">
+                                    @if (p.ValidFrom.HasValue || p.ValidTo.HasValue)
+                                    {
+                                        <div>@(p.ValidFrom.HasValue ? p.ValidFrom.Value.ToString("yyyy-MM-dd") : "—") إلى @(p.ValidTo.HasValue ? p.ValidTo.Value.ToString("yyyy-MM-dd") : "—")</div>
+                                        @if (isExpired)
+                                        {
+                                            <span class="badge bg-danger-subtle text-danger font-size-11">@(Loc.IsArabic ? "منتهي الصلاحية" : "Expired")</span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">@(Loc.IsArabic ? "دائم / غير محدد" : "Always valid")</span>
+                                    }
+                                </td>
+                                <td class="py-3">
+                                    @if (!p.IsActive)
+                                    {
+                                        <span class="badge bg-secondary-subtle text-muted rounded-pill px-2 py-1 small">@(Loc.IsArabic ? "معطّل" : "Inactive")</span>
+                                    }
+                                    else if (isExpired)
+                                    {
+                                        <span class="badge bg-danger-subtle text-danger rounded-pill px-2 py-1 small">@(Loc.IsArabic ? "منتهي" : "Expired")</span>
+                                    }
+                                    else if (isMaxed)
+                                    {
+                                        <span class="badge bg-warning-subtle text-warning rounded-pill px-2 py-1 small">@(Loc.IsArabic ? "استُنفد" : "Maxed Out")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success-subtle text-success border border-success border-opacity-25 rounded-pill px-2 py-1 small">@(Loc.IsArabic ? "نشط وفعال" : "Active")</span>
+                                    }
+                                </td>
+                                <td class="pe-4 py-3 text-end">
+                                    @if (p.IsActive)
+                                    {
+                                        <form method="post" asp-page-handler="Deactivate" asp-route-id="@p.Id" onsubmit="return confirm('@(Loc.IsArabic ? $"هل أنت متأكد من تعطيل الكوبون {p.Code}؟" : $"Are you sure you want to deactivate {p.Code}?")');">
+                                            <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill px-3" title="@(Loc.IsArabic ? "تعطيل الكود" : "Deactivate")">
+                                                <i class="bi bi-pause-circle me-1"></i> @(Loc.IsArabic ? "تعطيل" : "Deactivate")
+                                            </button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">—</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

@@ -469,7 +469,24 @@ public class TextLocalizer : ITextLocalizer
         ["Auth.Register.RolePlayer"] = "Player / Athlete (Book Courts)",
         ["Auth.Register.RoleOwner"] = "Facility Owner (Manage Venues)",
         ["Auth.Register.Btn"] = "Create Account",
-        ["Auth.Register.HaveAccount"] = "Already have an account?"
+        ["Auth.Register.HaveAccount"] = "Already have an account?",
+
+        // Phase 12 Commercial & Operational
+        ["Book.Promo.Title"] = "Promo Code",
+        ["Book.Promo.Placeholder"] = "Enter promo code here",
+        ["Book.Promo.Apply"] = "Apply",
+        ["Book.Promo.Applied"] = "Discount applied",
+        ["Book.Promo.Remove"] = "Remove",
+        ["Book.Promo.Discount"] = "Discount",
+        ["Book.Addons.Title"] = "Rental Equipment & Add-ons",
+        ["Book.Addons.Subtitle"] = "Select any equipment or extras needed for your match",
+        ["Owner.ManualBooking.Title"] = "Record Manual / Phone Booking",
+        ["Owner.ManualBooking.Btn"] = "New Manual Booking",
+        ["Owner.CheckIn.Title"] = "Quick Check-in Gate",
+        ["Owner.CheckIn.Placeholder"] = "Enter booking reference (e.g. PS-2026...)",
+        ["Owner.CheckIn.Btn"] = "Check In",
+        ["Confirm.WhatsApp.Share"] = "Share Details via WhatsApp",
+        ["Bookings.WhatsApp.Share"] = "Share via WhatsApp"
     };
 
     private static readonly Dictionary<string, string> _ar = new(StringComparer.OrdinalIgnoreCase)
@@ -860,6 +877,23 @@ public class TextLocalizer : ITextLocalizer
         ["Auth.Register.RolePlayer"] = "لاعب (حجز الملاعب)",
         ["Auth.Register.RoleOwner"] = "صاحب منشأة رياضية (إدارة الملاعب)",
         ["Auth.Register.Btn"] = "إنشاء الحساب",
-        ["Auth.Register.HaveAccount"] = "لديك حساب بالفعل؟"
+        ["Auth.Register.HaveAccount"] = "لديك حساب بالفعل؟",
+
+        // Phase 12 Commercial & Operational
+        ["Book.Promo.Title"] = "كود الخصم (بروموكود)",
+        ["Book.Promo.Placeholder"] = "أدخل كود الخصم هنا",
+        ["Book.Promo.Apply"] = "تطبيق",
+        ["Book.Promo.Applied"] = "تم تطبيق الخصم",
+        ["Book.Promo.Remove"] = "إلغاء",
+        ["Book.Promo.Discount"] = "قيمة الخصم",
+        ["Book.Addons.Title"] = "مستلزمات وخدمات إضافية",
+        ["Book.Addons.Subtitle"] = "اختر المعدات أو المستلزمات التي تحتاجها في ملعبك",
+        ["Owner.ManualBooking.Title"] = "تسجيل حجز يدوي / تليفوني",
+        ["Owner.ManualBooking.Btn"] = "حجز تليفوني جديد",
+        ["Owner.CheckIn.Title"] = "تسجيل الحضور السريع",
+        ["Owner.CheckIn.Placeholder"] = "أدخل كود الحجز (مثال: PS-2026...)",
+        ["Owner.CheckIn.Btn"] = "تأكيد الحضور",
+        ["Confirm.WhatsApp.Share"] = "مشاركة تفاصيل الحجز عبر واتساب",
+        ["Bookings.WhatsApp.Share"] = "مشاركة عبر واتساب"
     };
 }
