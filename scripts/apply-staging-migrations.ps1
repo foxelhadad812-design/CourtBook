@@ -23,7 +23,7 @@ if ([string]::IsNullOrWhiteSpace($ConnectionString)) {
 }
 
 Write-Host "==============================================================================" -ForegroundColor Cyan
-Write-Host "CourtBook — Applying Existing Migrations to Staging Database" -ForegroundColor Cyan
+Write-Host "CourtBook -- Applying Existing Migrations to Staging Database" -ForegroundColor Cyan
 Write-Host "==============================================================================" -ForegroundColor Cyan
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path

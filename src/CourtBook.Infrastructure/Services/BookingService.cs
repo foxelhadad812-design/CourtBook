@@ -108,6 +108,12 @@ public class BookingService : IBookingService
                 if (hasOverlap)
                     throw new InvalidOperationException("Court is not available for the selected time slot.");
 
+                // The database trigger (TRG_Booking_NoOverlap) is the final integrity backstop.
+                // It rejects any INSERT/UPDATE that would create overlapping bookings for the same
+                // court where both bookings have a non-Cancelled status. If the application check
+                // above passes but a concurrent request slips through, the trigger throws error 50001
+                // which we translate into the same friendly domain error below.
+
                 // Concurrency-safe check for conflicting active community games
                 var requestDate = DateOnly.FromDateTime(localStart);
                 var hasGameConflict = await _db.Games
@@ -189,22 +195,33 @@ public class BookingService : IBookingService
 
                 return MapToResponse(booking);
             }
+            catch (DbUpdateException ex) when (IsBookingOverlapDatabaseError(ex))
+            {
+                if (transaction is not null)
+                    await transaction.RollbackAsync();
+                throw new InvalidOperationException("Court is not available for the selected time slot.");
+            }
             catch
             {
                 if (transaction is not null)
-                {
                     await transaction.RollbackAsync();
-                }
                 throw;
             }
             finally
             {
                 if (transaction is not null)
-                {
                     await transaction.DisposeAsync();
-                }
             }
         });
+    }
+
+    private static bool IsBookingOverlapDatabaseError(DbUpdateException ex)
+    {
+        // SQL Server trigger (TRG_Booking_NoOverlap) throws THROW 50001 with message:
+        // "Court is not available for the selected time slot."
+        // EF Core wraps the provider error; we detect by message text alone (provider-agnostic).
+        return ex.InnerException is Exception inner
+            && inner.Message.Contains("Court is not available for the selected time slot");
     }
 
     public async Task<List<BookingResponse>> GetMyBookingsAsync(Guid userId)
