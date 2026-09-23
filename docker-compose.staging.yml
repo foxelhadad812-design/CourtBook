@@ -1,0 +1,87 @@
+services:
+  # ----------------------------------------------------------------------------
+  # CourtBook API Service
+  # ----------------------------------------------------------------------------
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: courtbook-staging-api
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Staging
+      - ConnectionStrings__DefaultConnection=${ConnectionStrings__DefaultConnection:-Server=tcp:db,1433;Initial Catalog=PlaySpotStagingDB;User Id=sa;Password=<STAGING_DB_PASSWORD>;Encrypt=True;TrustServerCertificate=True;}
+      - JwtSettings__Key=${JwtSettings__Key:-<STAGING_JWT_SECRET>}
+      - JwtSettings__Issuer=${JwtSettings__Issuer:-https://staging-api.playspot.internal}
+      - JwtSettings__Audience=${JwtSettings__Audience:-https://staging.playspot.internal}
+      - PaymentGateway__Paymob__IsSandbox=true
+      - PaymentGateway__Paymob__ApiKey=${PaymentGateway__Paymob__ApiKey:-<STAGING_PAYMOB_API_KEY>}
+      - PaymentGateway__Paymob__IntegrationId=${PaymentGateway__Paymob__IntegrationId:-<STAGING_PAYMOB_INTEGRATION_ID>}
+      - PaymentGateway__Paymob__IframeId=${PaymentGateway__Paymob__IframeId:-<STAGING_PAYMOB_IFRAME_ID>}
+      - PaymentGateway__Paymob__HmacSecret=${PaymentGateway__Paymob__HmacSecret:-<STAGING_PAYMOB_HMAC_SECRET>}
+      - Redis__ConnectionString=${Redis__ConnectionString:-redis:6379,abortConnect=false}
+      - HealthChecks__DetailsApiKey=${HealthChecks__DetailsApiKey:-<STAGING_HEALTH_DETAILS_API_KEY>}
+      - AllowedOrigins__0=http://localhost:5100
+      - AllowedOrigins__1=https://staging.playspot.internal
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  # ----------------------------------------------------------------------------
+  # CourtBook Web Frontend
+  # ----------------------------------------------------------------------------
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: courtbook-staging-web
+    restart: unless-stopped
+    ports:
+      - "5100:5100"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Staging
+      - ApiSettings__BaseUrl=http://api:5000
+      - Redis__ConnectionString=${Redis__ConnectionString:-redis:6379,abortConnect=false}
+    depends_on:
+      - api
+
+  # ----------------------------------------------------------------------------
+  # Microsoft SQL Server 2022 (Containerized Staging Database)
+  # ----------------------------------------------------------------------------
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: courtbook-staging-db
+    restart: unless-stopped
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=<STAGING_DB_PASSWORD>
+    ports:
+      - "1433:1433"
+    volumes:
+      - staging_mssql_data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P '<STAGING_DB_PASSWORD>' -C -Q 'SELECT 1' || /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P '<STAGING_DB_PASSWORD>' -Q 'SELECT 1'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # ----------------------------------------------------------------------------
+  # Redis 7 (Cache & SignalR Backplane)
+  # ----------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: courtbook-staging-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - staging_redis_data:/data
+
+volumes:
+  staging_mssql_data:
+  staging_redis_data:

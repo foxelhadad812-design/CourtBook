@@ -1,0 +1,36 @@
+# ==============================================================================
+# CourtBook.API — Multi-stage Container Build
+# ==============================================================================
+
+# Stage 1: Build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /app
+
+# Copy project definition files for layer caching
+COPY src/CourtBook.Domain/CourtBook.Domain.csproj src/CourtBook.Domain/
+COPY src/CourtBook.Application/CourtBook.Application.csproj src/CourtBook.Application/
+COPY src/CourtBook.Infrastructure/CourtBook.Infrastructure.csproj src/CourtBook.Infrastructure/
+COPY src/CourtBook.API/CourtBook.API.csproj src/CourtBook.API/
+
+# Restore dependencies
+RUN dotnet restore src/CourtBook.API/CourtBook.API.csproj
+
+# Copy source tree and publish
+COPY src/CourtBook.Domain/ src/CourtBook.Domain/
+COPY src/CourtBook.Application/ src/CourtBook.Application/
+COPY src/CourtBook.Infrastructure/ src/CourtBook.Infrastructure/
+COPY src/CourtBook.API/ src/CourtBook.API/
+
+WORKDIR /app/src/CourtBook.API
+RUN dotnet publish -c Release -o /app/publish /p:UseAppHost=false
+
+# Stage 2: Runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+WORKDIR /app
+EXPOSE 5000
+
+ENV ASPNETCORE_URLS=http://+:5000
+ENV ASPNETCORE_ENVIRONMENT=Staging
+
+COPY --from=build /app/publish .
+ENTRYPOINT ["dotnet", "CourtBook.API.dll"]
