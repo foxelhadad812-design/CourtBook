@@ -52,9 +52,22 @@ public class BookingConfiguration : IEntityTypeConfiguration<Booking>
             .HasMaxLength(500);
 
         // DB-level guard: a booking must end after it starts
-        builder.ToTable(t => t.HasCheckConstraint(
-            "CK_Booking_EndTime_After_StartTime",
-            "[EndTime] > [StartTime]"));
+        builder.ToTable(t =>
+        {
+            t.HasCheckConstraint(
+                "CK_Booking_EndTime_After_StartTime",
+                "[EndTime] > [StartTime]");
+
+            // The Bookings table has an INSTEAD OF INSERT/UPDATE trigger
+            // (TRG_Booking_NoOverlap) that performs the actual DML.
+            // SQL Server OUTPUT clause is incompatible with tables that have
+            // triggers, so EF Core must not emit OUTPUT for Booking DML.
+            // This is required because EF Core SQL Server provider defaults to
+            // UseSqlOutputClause(true) for store-generated properties, and the
+            // model snapshot inherits this via UseIdentityColumns at the model
+            // level (AppDbContextModelSnapshot line 23).
+            t.UseSqlOutputClause(false);
+        });
 
         // Critical index for availability and double-booking conflict detection
         builder.HasIndex(b => new { b.CourtId, b.StartTime, b.EndTime, b.Status });
