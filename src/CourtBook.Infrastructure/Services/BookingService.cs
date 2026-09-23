@@ -63,6 +63,7 @@ namespace CourtBook.Infrastructure.Services
             return await executionStrategy.ExecuteAsync(async () =>
             {
                 IDbContextTransaction? transaction = null;
+                DbTransaction? dbTransaction = null;
                 bool lockAcquired = false;
 
                 if (_db.Database.IsRelational())
@@ -72,9 +73,10 @@ namespace CourtBook.Infrastructure.Services
                         await connection.OpenAsync();
 
                     transaction = await _db.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted);
+                    dbTransaction = transaction.GetDbTransaction();
 
-                    // Layer 1: acquire Court-level application lock BEFORE overlap check
-                    lockAcquired = await AcquireCourtLockAsync(connection, request.CourtId);
+                    // Layer 1: acquire Court-level application lock BEFORE overlap check using active transaction
+                    lockAcquired = await AcquireCourtLockAsync(connection, request.CourtId, dbTransaction);
                     if (!lockAcquired)
                     {
                         throw new InvalidOperationException(
@@ -235,7 +237,7 @@ namespace CourtBook.Infrastructure.Services
                         {
                             var conn = _db.Database.GetDbConnection();
                             if (conn.State == ConnectionState.Open)
-                                await ReleaseCourtLockAsync(conn, request.CourtId);
+                                await ReleaseCourtLockAsync(conn, request.CourtId, dbTransaction);
                         }
                         catch { /* best-effort release */ }
                     }
@@ -596,12 +598,15 @@ namespace CourtBook.Infrastructure.Services
         /// Acquires an exclusive sp_getapplock for the given CourtId.
         /// LockOwner = 'Transaction' so the lock is automatically released on commit/rollback.
         /// </summary>
-        private async Task<bool> AcquireCourtLockAsync(DbConnection connection, Guid courtId)
+        private async Task<bool> AcquireCourtLockAsync(DbConnection connection, Guid courtId, DbTransaction? transaction = null)
         {
             if (connection.State != ConnectionState.Open)
                 await connection.OpenAsync();
 
             await using var cmd = connection.CreateCommand();
+            if (transaction != null)
+                cmd.Transaction = transaction;
+
             cmd.CommandText = @"
                 DECLARE @result INT;
                 EXEC @result = sp_getapplock
@@ -627,12 +632,15 @@ namespace CourtBook.Infrastructure.Services
         /// Releases the exclusive sp_getapplock for the given CourtId.
         /// Best-effort; the lock is also released automatically at transaction end.
         /// </summary>
-        private async Task ReleaseCourtLockAsync(DbConnection connection, Guid courtId)
+        private async Task ReleaseCourtLockAsync(DbConnection connection, Guid courtId, DbTransaction? transaction = null)
         {
             if (connection.State != ConnectionState.Open)
                 await connection.OpenAsync();
 
             await using var cmd = connection.CreateCommand();
+            if (transaction != null && transaction.Connection != null)
+                cmd.Transaction = transaction;
+
             cmd.CommandText = @"
                 EXEC sp_releaseapplock
                     @Resource = @ResourceName,

@@ -1,9 +1,12 @@
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 #nullable disable
 
 namespace CourtBook.Infrastructure.Persistence.Migrations
 {
     /// <inheritdoc />
+    [DbContext(typeof(AppDbContext))]
+    [Migration("20260923_AddBookingCourtLockResource")]
     public partial class AddBookingCourtLockResource : Migration
     {
         /// <inheritdoc />
