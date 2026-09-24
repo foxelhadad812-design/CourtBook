@@ -430,6 +430,30 @@ else
             </div>
 
         </div>
+
+        <!-- ── Mobile Sticky Quick Action Bar (Appears when a slot is chosen) ── -->
+        <div id="mobile-booking-bar" class="ps-mobile-booking-bar d-lg-none" style="display: none;">
+            <div class="d-flex align-items-center justify-content-between gap-2">
+                <div>
+                    <div class="text-muted fw-semibold" id="mobile-bar-slot" style="font-size: 11px;">--</div>
+                    <div class="fw-extrabold text-primary" id="mobile-bar-price" style="font-size: 1.15rem;">--</div>
+                </div>
+                @if (Model.IsAuthenticated)
+                {
+                    <button type="button" class="ps-btn ps-btn-primary px-3 py-2 fw-bold" onclick="onMobileConfirmClicked()">
+                        <span>@Loc["Book.Btn.Confirm"]</span>
+                        <i class="bi bi-arrow-right ms-1"></i>
+                    </button>
+                }
+                else
+                {
+                    <a href="/Login?returnUrl=@System.Net.WebUtility.UrlEncode($"/Courts/Book?courtId={court.Id}&venueId={court.VenueId}")" class="ps-btn ps-btn-primary px-3 py-2 fw-bold">
+                        <span>@Loc["Nav.SignIn"]</span>
+                        <i class="bi bi-box-arrow-in-right ms-1"></i>
+                    </a>
+                }
+            </div>
+        </div>
     </div>
 
     <!-- ── Front-end Controller Script ───────────────────────────────── -->
@@ -785,6 +809,18 @@ else
                 if (totalEl) totalEl.textContent = finalTotal.toFixed(0);
 
                 if (confirmBtn) confirmBtn.disabled = false;
+
+                // Sync with mobile sticky booking bar
+                const mobBar = document.getElementById('mobile-booking-bar');
+                const mobSlot = document.getElementById('mobile-bar-slot');
+                const mobPrice = document.getElementById('mobile-bar-price');
+                if (mobBar && mobSlot && mobPrice) {
+                    mobBar.style.display = 'block';
+                    const startStr = typeof selectedSlot.startTime === 'string' ? selectedSlot.startTime.substring(11, 16) : '';
+                    const endStr = typeof selectedSlot.endTime === 'string' ? selectedSlot.endTime.substring(11, 16) : '';
+                    mobSlot.textContent = `${formatTime(startStr)} - ${formatTime(endStr)}`;
+                    mobPrice.textContent = `${finalTotal.toFixed(0)} ${isArabic ? 'ج.م' : 'EGP'}`;
+                }
             } else {
                 if (timeEl) timeEl.innerHTML = `<span class="text-muted fst-italic fw-normal">${isArabic ? 'يرجى تحديد فترة زمنية أولاً' : 'Please select a time slot'}</span>`;
                 if (baseEl) baseEl.textContent = '--';
@@ -795,6 +831,20 @@ else
                 if (discountRow) discountRow.style.display = 'none';
                 if (totalEl) totalEl.textContent = '--';
                 if (confirmBtn) confirmBtn.disabled = true;
+
+                const mobBar = document.getElementById('mobile-booking-bar');
+                if (mobBar) mobBar.style.display = 'none';
+            }
+        }
+
+        function onMobileConfirmClicked() {
+            const confirmBtn = document.getElementById('confirm-booking-btn');
+            if (confirmBtn && !confirmBtn.disabled) {
+                // Scroll to notes or submit
+                submitBooking();
+            } else {
+                const checkoutCol = document.querySelector('.col-lg-4');
+                if (checkoutCol) checkoutCol.scrollIntoView({ behavior: 'smooth' });
             }
         }
 
@@ -802,7 +852,7 @@ else
             if (!t) return '';
             const parts = t.split(':');
             let h = parseInt(parts[0], 10);
-            const m = parts[1];
+            const m = parts[1] || '00';
             const ampm = isArabic ? (h >= 12 ? 'م' : 'ص') : (h >= 12 ? 'PM' : 'AM');
             h = h % 12;
             h = h ? h : 12; // 0 -> 12

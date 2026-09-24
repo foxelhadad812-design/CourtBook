@@ -65,7 +65,7 @@
      NAVIGATION BAR
      ══════════════════════════════════════════════════════════ -->
 <nav class="ps-navbar" role="navigation" aria-label="Main navigation">
-    <div class="container-fluid px-4">
+    <div class="container-fluid px-3 px-md-4">
 
         <!-- Brand -->
         <a class="ps-navbar-brand" href="/" aria-label="PlaySpot Home">
@@ -432,6 +432,63 @@
         </div>
     </div>
 </div>
+
+<!-- ══════════════════════════════════════════════════════════
+     MOBILE BOTTOM NAVIGATION (APP-LIKE EXPERIENCE)
+     ══════════════════════════════════════════════════════════ -->
+<nav class="ps-mobile-bottom-nav d-md-none" role="navigation" aria-label="Quick mobile navigation">
+    <a href="/" class="ps-mobile-bottom-item @(ViewContext.RouteData.Values["page"]?.ToString()?.Equals("/Index", StringComparison.OrdinalIgnoreCase) == true ? "active" : "")">
+        <i class="bi bi-house-door-fill"></i>
+        <span>@Loc["Nav.Home"]</span>
+    </a>
+    <a href="/venues" class="ps-mobile-bottom-item @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Venues", StringComparison.OrdinalIgnoreCase) == true ? "active" : "")">
+        <i class="bi bi-grid-fill"></i>
+        <span>@Loc["Nav.Venues"]</span>
+    </a>
+    <a href="/games" class="ps-mobile-bottom-item @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Games", StringComparison.OrdinalIgnoreCase) == true ? "active" : "")">
+        <i class="bi bi-trophy-fill"></i>
+        <span>@Loc["Nav.Games"]</span>
+    </a>
+    @if (loggedIn)
+    {
+        @if (userRole == "Owner")
+        {
+            <a href="/owner" class="ps-mobile-bottom-item @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Owner", StringComparison.OrdinalIgnoreCase) == true ? "active" : "")">
+                <i class="bi bi-speedometer2"></i>
+                <span>@(Loc.IsArabic ? "إدارتي" : "Owner")</span>
+            </a>
+        }
+        else if (userRole == "Admin")
+        {
+            <a href="/admin" class="ps-mobile-bottom-item @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Admin", StringComparison.OrdinalIgnoreCase) == true ? "active" : "")">
+                <i class="bi bi-shield-check"></i>
+                <span>@(Loc.IsArabic ? "الإدارة" : "Admin")</span>
+            </a>
+        }
+        else
+        {
+            <a href="/bookings" class="ps-mobile-bottom-item @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Bookings", StringComparison.OrdinalIgnoreCase) == true ? "active" : "")">
+                <i class="bi bi-calendar2-check-fill"></i>
+                <span>@Loc["Nav.MyBookings"]</span>
+            </a>
+        }
+        <a href="/profile" class="ps-mobile-bottom-item @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Profile", StringComparison.OrdinalIgnoreCase) == true ? "active" : "")">
+            <i class="bi bi-person-circle"></i>
+            <span>@Loc["Nav.Profile"]</span>
+        </a>
+    }
+    else
+    {
+        <a href="/login?returnUrl=/bookings" class="ps-mobile-bottom-item">
+            <i class="bi bi-calendar2-check"></i>
+            <span>@Loc["Nav.MyBookings"]</span>
+        </a>
+        <a href="/login" class="ps-mobile-bottom-item @(ViewContext.RouteData.Values["page"]?.ToString()?.Equals("/Login", StringComparison.OrdinalIgnoreCase) == true ? "active" : "")">
+            <i class="bi bi-person-fill"></i>
+            <span>@Loc["Nav.SignIn"]</span>
+        </a>
+    }
+</nav>
 
 <!-- Bootstrap 5 JS Bundle -->
 <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js" asp-append-version="true"></script>
