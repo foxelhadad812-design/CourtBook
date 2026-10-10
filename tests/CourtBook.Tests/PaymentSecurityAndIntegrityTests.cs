@@ -637,4 +637,26 @@ public class PaymentSecurityAndIntegrityTests
         var refundEntries = db.TransactionLedger.Where(t => t.BookingId == bookingId && t.EntryType == LedgerEntryType.Refund).ToList();
         Assert.Single(refundEntries);
     }
+
+    [Fact]
+    public async Task InitiateOnlinePayment_RepeatedRequest_ReusesExistingProviderOrder()
+    {
+        var db = TestDbContextFactory.Create($"SecTest_DuplicateInitiation_{Guid.NewGuid()}");
+        var (svc, gateway, _) = BuildService(db);
+        var (bookingId, userId, _, _) = await SeedBookingAsync(db, 200m);
+
+        gateway.Setup(g => g.InitiatePaymentAsync(It.IsAny<PaymentInitiationRequest>()))
+            .ReturnsAsync(new PaymentInitiationResult(true, "https://pay.test/existing", "ORD_IDEMPOTENT_01", null));
+
+        var first = await svc.InitiateOnlinePaymentAsync(userId, bookingId, "CreditCard", "https://localhost");
+        var second = await svc.InitiateOnlinePaymentAsync(userId, bookingId, "CreditCard", "https://localhost");
+
+        Assert.True(first.Success);
+        Assert.True(second.Success);
+        Assert.Equal(first.PaymentId, second.PaymentId);
+        Assert.Equal(first.ProviderOrderId, second.ProviderOrderId);
+        Assert.Equal(first.PaymentUrl, second.PaymentUrl);
+        gateway.Verify(g => g.InitiatePaymentAsync(It.IsAny<PaymentInitiationRequest>()), Times.Once);
+    }
+
 }
