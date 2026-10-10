@@ -623,7 +623,7 @@ public class PaymentGatewayTests
 
         var result = await svc.VerifyReturnAsync(userId, "Player", "ORD_LOOKUP_FAIL");
 
-        var payment = await db.Payments.FirstAsync(p => p.BookingId == bookingId);
+        var payment = db.Payments.First(p => p.BookingId == bookingId);
         Assert.Equal(PaymentStatus.Processing, payment.Status);
         Assert.Equal(PaymentStatus.Processing, (await db.Bookings.FindAsync(bookingId))!.PaymentStatus);
         Assert.False(result.IsSuccessful);
