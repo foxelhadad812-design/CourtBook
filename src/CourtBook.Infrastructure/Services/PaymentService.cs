@@ -678,26 +678,9 @@ public class PaymentService : IPaymentService
                 $"return-{providerOrderId}",
                 _gateway.ProviderName);
         }
-        else if (!verification.IsSuccessful && payment.Status == PaymentStatus.Processing)
-        {
-            payment.Status                = PaymentStatus.Failed;
-            payment.Booking.PaymentStatus = PaymentStatus.Failed;
-            await _db.SaveChangesAsync();
-
-            if (_notifications is not null)
-            {
-                try
-                {
-                    await _notifications.SendNotificationAsync(
-                        payment.Booking.UserId,
-                        "Payment Failed ❌",
-                        $"Payment for booking {payment.Booking.BookingReference} could not be completed. Please try again.",
-                        NotificationType.PaymentFailed,
-                        $"/Payments/Failed?bookingId={payment.BookingId}");
-                }
-                catch { /* best effort */ }
-            }
-        }
+        // A negative/failed status lookup is not proof that the payment failed.
+        // Network errors and an unpaid order can be transient; keep Processing until
+        // a trusted webhook or an explicit, provider-confirmed terminal state resolves it.
 
         // Re-read final status
         await _db.Entry(payment).ReloadAsync();
