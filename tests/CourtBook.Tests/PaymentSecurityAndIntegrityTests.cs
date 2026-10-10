@@ -86,18 +86,18 @@ public class PaymentSecurityAndIntegrityTests
     // ── 1. Webhook HMAC Security Tests ──────────────────────────────────────
 
     [Fact]
-    public void ValidateWebhookSignature_ValidSignature_ReturnsTrue()
+    public void ValidateWebhookSignature_LegacyRawBodySignature_IsRejected()
     {
         var config = BuildConfig();
         var client = new HttpClient();
         var gateway = new PaymobGatewayService(client, config, NullLogger<PaymobGatewayService>.Instance);
 
+        // Paymob does not sign the raw JSON body; legacy payloads must not validate.
         var payload = "{\"order_id\":\"12345\",\"transaction_id\":\"tx_999\",\"amount_cents\":20000,\"success\":true}";
         var hmac = HMACSHA512.HashData(Encoding.UTF8.GetBytes(TestHmacSecret), Encoding.UTF8.GetBytes(payload));
-        var validSignature = Convert.ToHexString(hmac).ToLowerInvariant();
+        var rawBodySignature = Convert.ToHexString(hmac).ToLowerInvariant();
 
-        var isValid = gateway.ValidateWebhookSignature(payload, validSignature);
-        Assert.True(isValid);
+        Assert.False(gateway.ValidateWebhookSignature(payload, rawBodySignature));
     }
 
     [Fact]
