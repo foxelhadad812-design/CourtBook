@@ -634,4 +634,33 @@ public class PaymentGatewayTests
         Assert.Equal("Processing", result.Status);
     }
 
+
+    [Fact]
+    public async Task RefundOnlinePayment_MissingTransactionReference_DoesNotCallGateway()
+    {
+        var db = TestDbContextFactory.Create($"PayTest_RefundMissingReference_{Guid.NewGuid()}");
+        var (svc, gateway, _) = BuildService(db);
+        var (bookingId, _, _) = await SeedBookingAsync(db);
+
+        db.Payments.Add(new Payment
+        {
+            Id = Guid.NewGuid(),
+            BookingId = bookingId,
+            Amount = 200m,
+            Currency = "EGP",
+            Method = PaymentMethod.CreditCard,
+            Status = PaymentStatus.Completed,
+            TransactionReference = null,
+            CreatedAt = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+
+        var result = await svc.ProcessRefundAsync(bookingId, "Venue cancelled");
+
+        Assert.False(result.Success);
+        Assert.Contains("transaction reference is missing", result.ErrorMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(PaymentStatus.Completed, db.Payments.First(p => p.BookingId == bookingId).Status);
+        gateway.Verify(g => g.RefundAsync(It.IsAny<RefundRequest>()), Times.Never);
+    }
+
 }
