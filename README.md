@@ -26,6 +26,21 @@ PlaySpot is featured as the flagship enterprise full-stack system in Mohamed Elh
 [Overview](#playSpot-courtbook--enterprise-sports-venue--court-booking-platform) · [Architecture](#-system-architecture) · [Features](#-key-functional-capabilities-phases-112) · [Tech Stack](#-tech-stack-matrix) · [Local Setup](#-getting-started--local-development) · [Testing](#-automated-testing--quality-assurance) · [Deployment](#-external-dependencies--production-disclosure)
 
 
+## Technical Documentation
+
+The repository includes focused documentation for developers and deployment planning:
+
+- [Deployment Playbook](DEPLOYMENT.md) — environment configuration, database setup, scaling notes, and production deployment considerations.
+- [Payment Architecture](docs/PAYMENT_ARCHITECTURE.md) — payment flow and related design decisions.
+- [Paymob Sandbox Setup](docs/PAYMOB_SANDBOX_SETUP.md) — configuring the gateway for sandbox testing.
+- [Security Review](docs/PHASE_9_1_SECURITY_REVIEW.md) — documented security review findings.
+- [Mobile API Authentication Report](docs/PHASE_9_1_MOBILE_API_AUTH_REPORT.md) — API authentication notes for mobile-client scenarios.
+- [Staging Paymob E2E Report](docs/PHASE_8_5_STAGING_PAYMOB_E2E_REPORT.md) — recorded end-to-end staging test report.
+
+These documents describe implementation and operational guidance; production readiness still depends on environment-specific configuration and verification.
+
+---
+
 ## 🏛 System Architecture
 
 The solution strictly adheres to **Clean Architecture** (Onion Architecture) principles and domain-driven separation of concerns. Dependencies flow inwards toward domain entities.
@@ -233,4 +248,4 @@ Venue and sports photography assets are curated under royalty-free licenses (Uns
 ---
 
 **Developed with precision by [Mohamed Elhadad](https://foxelhadad812-design.github.io/portfolio/)**  
-*Enterprise Software Engineer & Full-Stack .NET Specialist*
+*Computer Science Student · .NET Developer*
