@@ -106,10 +106,7 @@ public class PaymentService : IPaymentService
             if (openedConnectionHere && connection is not null)
                 await connection.CloseAsync();
 
-            if (semaphoreAcquired)
-            {
-                semaphore.Release();
-            }
+            semaphore.Release();
         }
     }
 
@@ -616,7 +613,10 @@ public class PaymentService : IPaymentService
                 }
             }
 
-            semaphore.Release();
+            if (semaphoreAcquired)
+            {
+                semaphore.Release();
+            }
         }
     }
 
