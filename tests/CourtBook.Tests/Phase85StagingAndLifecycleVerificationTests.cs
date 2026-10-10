@@ -199,6 +199,13 @@ public class Phase85StagingAndLifecycleVerificationTests
         var feeEntry = db.TransactionLedger.FirstOrDefault(t => t.BookingId == bookingId && t.EntryType == LedgerEntryType.CancellationFee);
         Assert.NotNull(feeEntry);
         Assert.Equal(200m, feeEntry.GrossAmount);
+
+        // Repeating the same zero-refund operation must not duplicate the fee ledger.
+        var repeatedResponse = await svc.ProcessRefundAsync(bookingId, "Repeated cancellation request");
+        Assert.True(repeatedResponse.Success);
+        Assert.Single(db.TransactionLedger.Where(t =>
+            t.BookingId == bookingId && t.EntryType == LedgerEntryType.CancellationFee));
+        gatewayMock.Verify(g => g.RefundAsync(It.IsAny<RefundRequest>()), Times.Never);
     }
 
     [Fact]
