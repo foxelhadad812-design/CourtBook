@@ -158,7 +158,7 @@ public class PaymobGatewayService : IPaymentGatewayService
     public bool ValidateWebhookSignature(string payload, string incomingSignature)
     {
         if (string.IsNullOrWhiteSpace(_hmacSecret) ||
-            _hmacSecret == "PAYMOB_HMAC_SECRET_PLACEHOLDER" ||
+            IsPlaceholderSecret(_hmacSecret) ||
             string.IsNullOrWhiteSpace(incomingSignature))
         {
             _logger.LogWarning("Paymob HMAC secret or signature is missing — rejecting webhook.");
@@ -222,16 +222,23 @@ public class PaymobGatewayService : IPaymentGatewayService
         }
     }
 
+    private static bool IsPlaceholderSecret(string value) =>
+        value.Contains("PLACEHOLDER", StringComparison.OrdinalIgnoreCase) ||
+        value.Contains("OVERRIDE_VIA_ENV_VAR", StringComparison.OrdinalIgnoreCase) ||
+        value.Contains("YOUR_", StringComparison.OrdinalIgnoreCase);
+
     private static string? GetPaymobHmacValue(JsonElement transaction, string path)
     {
         var current = transaction;
         foreach (var segment in path.Split('.'))
         {
             if (current.ValueKind != JsonValueKind.Object ||
-                !current.TryGetProperty(segment, out current))
+                !current.TryGetProperty(segment, out var next))
             {
                 return null;
             }
+
+            current = next;
         }
 
         return current.ValueKind switch
