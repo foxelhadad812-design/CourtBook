@@ -738,25 +738,20 @@ public class PaymentService : IPaymentService
         if (payment.Status != PaymentStatus.Completed)
             return new RefundResponse { Success = false, ErrorMessage = "Only completed payments can be refunded." };
 
-        // Persist a durable state before any external refund side effect. If the provider
-        // succeeds but the following database save fails, future calls must not issue a
-        // second refund automatically; RefundPending requires reconciliation.
-        payment.Status = PaymentStatus.RefundPending;
-        booking.PaymentStatus = PaymentStatus.RefundPending;
-        await _db.SaveChangesAsync();
-
         // Respect cancellation policy fee: refund = paid amount - cancellation fee
         var cancellationFee = booking.CancellationFee;
         var eligibleRefundAmount = Math.Max(0m, payment.Amount - cancellationFee);
         var isPartial = eligibleRefundAmount > 0 && eligibleRefundAmount < payment.Amount;
         var newStatus = isPartial ? PaymentStatus.PartiallyRefunded : PaymentStatus.Refunded;
 
-        // Zero refund case (e.g. 100% late fee)
+        // Zero refund case (e.g. 100% late fee). No external side effect occurs,
+        // so retain Completed status and make the fee ledger entry idempotent.
         if (eligibleRefundAmount == 0m)
         {
-            // No provider call is needed; the cancellation-fee-only outcome is final.
-            payment.Status = PaymentStatus.Refunded;
-            booking.PaymentStatus = PaymentStatus.Refunded;
+            var existingFee = await _db.TransactionLedger.AnyAsync(t =>
+                t.PaymentId == payment.Id && t.EntryType == LedgerEntryType.CancellationFee);
+            if (existingFee)
+                return new RefundResponse { Success = true, RefundAmount = 0m, RefundTransactionId = "RETAINED_FEE" };
 
             _db.TransactionLedger.Add(new TransactionLedger
             {
@@ -778,6 +773,13 @@ public class PaymentService : IPaymentService
             await _db.SaveChangesAsync();
             return new RefundResponse { Success = true, RefundAmount = 0m, RefundTransactionId = "RETAINED_FEE" };
         }
+
+        // Persist a durable state before any external refund side effect. If the provider
+        // succeeds but the following database save fails, future calls must not issue a
+        // second refund automatically; RefundPending requires reconciliation.
+        payment.Status = PaymentStatus.RefundPending;
+        booking.PaymentStatus = PaymentStatus.RefundPending;
+        await _db.SaveChangesAsync();
 
         var commissionReversed = Math.Round(eligibleRefundAmount * _commissionRate, 2);
         var ownerNetReversed   = Math.Round(eligibleRefundAmount - commissionReversed, 2);
@@ -850,7 +852,7 @@ public class PaymentService : IPaymentService
             return new RefundResponse
             {
                 Success = false,
-                ErrorMessage = "Refund outcome is unconfirmed. Payment is locked for reconciliation; do not retry automatically."
+                ErrorMessage = $"Refund outcome is unconfirmed ({refundResult.ErrorMessage ?? "provider returned no details"}). Payment is locked for reconciliation; do not retry automatically."
             };
         }
 
