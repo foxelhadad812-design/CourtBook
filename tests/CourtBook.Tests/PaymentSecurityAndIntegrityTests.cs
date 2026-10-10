@@ -464,8 +464,13 @@ public class PaymentSecurityAndIntegrityTests
         Assert.Equal("Provider refund declined", result.ErrorMessage);
 
         var refreshed = db.Payments.Find(payment.Id)!;
-        Assert.Equal(PaymentStatus.Completed, refreshed.Status); // remains Completed!
+        Assert.Equal(PaymentStatus.RefundPending, refreshed.Status);
         Assert.Empty(db.TransactionLedger.Where(t => t.EntryType == LedgerEntryType.Refund));
+
+        // An unconfirmed provider result must not trigger a second automatic refund.
+        var retry = await svc.ProcessRefundAsync(bookingId, "Retry after ambiguous gateway result");
+        Assert.False(retry.Success);
+        gateway.Verify(g => g.RefundAsync(It.IsAny<RefundRequest>()), Times.Once);
     }
 
     // ── 5. Payment Authorization: Strict Player Isolation on Verify ─────────
@@ -657,6 +662,39 @@ public class PaymentSecurityAndIntegrityTests
         Assert.Equal(first.ProviderOrderId, second.ProviderOrderId);
         Assert.Equal(first.PaymentUrl, second.PaymentUrl);
         gateway.Verify(g => g.InitiatePaymentAsync(It.IsAny<PaymentInitiationRequest>()), Times.Once);
+    }
+
+
+    [Fact]
+    public async Task ProcessRefund_WhenProviderOutcomeIsUnconfirmed_LeavesDurablePendingStateAndBlocksRetry()
+    {
+        var db = TestDbContextFactory.Create($"SecTest_RefundPending_{Guid.NewGuid()}");
+        var (svc, gateway, _) = BuildService(db);
+        var (bookingId, _, _, _) = await SeedBookingAsync(db, 200m);
+
+        var payment = new Payment
+        {
+            Id = Guid.NewGuid(),
+            BookingId = bookingId,
+            Amount = 200m,
+            Status = PaymentStatus.Completed,
+            Method = PaymentMethod.CreditCard,
+            TransactionReference = "TX_REF_PENDING",
+            CreatedAt = DateTime.UtcNow
+        };
+        db.Payments.Add(payment);
+        await db.SaveChangesAsync();
+
+        gateway.Setup(g => g.RefundAsync(It.IsAny<RefundRequest>()))
+            .ReturnsAsync(new RefundResult(false, null, "Gateway timeout"));
+
+        var first = await svc.ProcessRefundAsync(bookingId, "Test ambiguous provider result");
+        Assert.False(first.Success);
+        Assert.Equal(PaymentStatus.RefundPending, db.Payments.Find(payment.Id)!.Status);
+
+        var second = await svc.ProcessRefundAsync(bookingId, "Do not double refund");
+        Assert.False(second.Success);
+        gateway.Verify(g => g.RefundAsync(It.IsAny<RefundRequest>()), Times.Once);
     }
 
 }
