@@ -238,16 +238,18 @@ public class PaymentService : IPaymentService
 
         if (!result.Success)
         {
-            // Revert to Pending on initiation failure
-            payment.Status      = PaymentStatus.Pending;
-            booking.PaymentStatus = PaymentStatus.Pending;
-            await _db.SaveChangesAsync();
+            // Provider failures can be ambiguous (e.g. order created but response lost).
+            // Keep Processing to block a duplicate order until reconciliation confirms
+            // whether the provider created an order. Never blindly reset to Pending.
+            _logger.LogWarning(
+                "Payment initiation outcome is unconfirmed for booking {BookingId}; payment remains Processing. Provider={Provider}, Error={Error}",
+                bookingId, "Paymob", result.ErrorMessage);
 
             return new InitiatePaymentResponse
             {
                 Success      = false,
                 BookingId    = bookingId,
-                ErrorMessage = result.ErrorMessage
+                ErrorMessage = "Payment initiation could not be confirmed. The payment is locked for reconciliation; do not retry automatically."
             };
         }
 
