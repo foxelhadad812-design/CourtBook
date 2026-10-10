@@ -521,6 +521,7 @@ namespace CourtBook.Infrastructure.Services
 
             decimal fee = 0;
             decimal refund = booking.TotalPrice;
+            var refundPending = false;
             var isFree = hoursUntilStart >= freeHours;
 
             if (!isFree)
@@ -549,7 +550,16 @@ namespace CourtBook.Infrastructure.Services
                     {
                         var refundResult = await _paymentService.ProcessRefundAsync(booking.Id, reason);
                         if (refundResult.Success)
+                        {
                             refund = refundResult.RefundAmount;
+                        }
+                        else
+                        {
+                            // Do not tell the player a refund happened when provider outcome
+                            // is unconfirmed; payment remains locked for reconciliation.
+                            refund = 0m;
+                            refundPending = true;
+                        }
                     }
                 }
                 else if (booking.Payment.Status == PaymentStatus.Processing || booking.Payment.Status == PaymentStatus.Pending)
@@ -578,7 +588,9 @@ namespace CourtBook.Infrastructure.Services
                     booking.UserId,
                     "Booking Cancelled",
                     $"Booking {booking.BookingReference} has been cancelled. " +
-                    (isFree ? $"Full refund of EGP {refund:0.00}." : $"Fee: EGP {fee:0.00}, Refund: EGP {refund:0.00}."),
+                    (refundPending
+                        ? "Cancellation is complete, but the refund is pending payment-provider reconciliation. Do not retry the refund."
+                        : (isFree ? $"Full refund of EGP {refund:0.00}." : $"Fee: EGP {fee:0.00}, Refund: EGP {refund:0.00}.")),
                     NotificationType.BookingCancelled,
                     $"/Bookings/Details?id={booking.Id}");
 
@@ -602,8 +614,10 @@ namespace CourtBook.Infrastructure.Services
             return new CancelBookingResult
             {
                 Success = true,
-                Message = isFree ? "Booking cancelled with full refund." :
-                                   $"Booking cancelled with late fee of EGP {fee:0.00}.",
+                Message = refundPending
+                    ? "Booking cancelled, but the refund is pending payment-provider reconciliation."
+                    : (isFree ? "Booking cancelled with full refund." :
+                                $"Booking cancelled with late fee of EGP {fee:0.00}."),
                 CancellationFee = fee,
                 RefundAmount = refund,
                 CancelledAt = now
