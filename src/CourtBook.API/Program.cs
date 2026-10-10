@@ -459,12 +459,12 @@ app.MapHealthChecks("/health/details", new Microsoft.AspNetCore.Diagnostics.Heal
             var config = context.RequestServices.GetRequiredService<IConfiguration>();
             var requiredKey = config["HealthChecks:DetailsApiKey"];
 
+            // Accept the secret only in a header; query strings can leak through access logs,
+            // browser history, analytics, and referrer metadata.
             var providedHeaderKey = context.Request.Headers["X-Health-Key"].FirstOrDefault();
-            var providedQueryKey = context.Request.Query["apiKey"].FirstOrDefault();
 
             var isKeyAuthorized = !string.IsNullOrWhiteSpace(requiredKey) &&
-                                  (string.Equals(providedHeaderKey, requiredKey, StringComparison.Ordinal) ||
-                                   string.Equals(providedQueryKey, requiredKey, StringComparison.Ordinal));
+                                  string.Equals(providedHeaderKey, requiredKey, StringComparison.Ordinal);
 
             var isLocal = context.Connection.RemoteIpAddress != null &&
                           (System.Net.IPAddress.IsLoopback(context.Connection.RemoteIpAddress) ||
