@@ -462,15 +462,13 @@ app.MapHealthChecks("/health/details", new Microsoft.AspNetCore.Diagnostics.Heal
             // Accept the secret only in a header; query strings can leak through access logs,
             // browser history, analytics, and referrer metadata.
             var providedHeaderKey = context.Request.Headers["X-Health-Key"].FirstOrDefault();
+            var isAuthorized = HealthDetailsAccessPolicy.IsAuthorized(
+                requiredKey,
+                providedHeaderKey,
+                context.Connection.RemoteIpAddress,
+                context.Connection.LocalIpAddress);
 
-            var isKeyAuthorized = !string.IsNullOrWhiteSpace(requiredKey) &&
-                                  string.Equals(providedHeaderKey, requiredKey, StringComparison.Ordinal);
-
-            var isLocal = context.Connection.RemoteIpAddress != null &&
-                          (System.Net.IPAddress.IsLoopback(context.Connection.RemoteIpAddress) ||
-                           context.Connection.RemoteIpAddress.Equals(context.Connection.LocalIpAddress));
-
-            if (!isKeyAuthorized && !isLocal)
+            if (!isAuthorized)
             {
                 context.Response.StatusCode = StatusCodes.Status403Forbidden;
                 context.Response.ContentType = "application/json";
