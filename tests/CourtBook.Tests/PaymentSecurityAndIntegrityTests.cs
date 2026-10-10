@@ -644,6 +644,29 @@ public class PaymentSecurityAndIntegrityTests
     }
 
     [Fact]
+    public async Task InitiateOnlinePayment_UnconfirmedProviderResult_BlocksDuplicateOrderRetry()
+    {
+        var db = TestDbContextFactory.Create($"SecTest_InitiationPending_{Guid.NewGuid()}");
+        var (svc, gateway, _) = BuildService(db);
+        var (bookingId, userId, _, _) = await SeedBookingAsync(db, 200m);
+
+        gateway.Setup(g => g.InitiatePaymentAsync(It.IsAny<PaymentInitiationRequest>()))
+            .ReturnsAsync(new PaymentInitiationResult(false, null, null, "Provider response unavailable"));
+
+        var first = await svc.InitiateOnlinePaymentAsync(userId, bookingId, "CreditCard", "https://localhost");
+
+        Assert.False(first.Success);
+        Assert.Contains("locked for reconciliation", first.ErrorMessage);
+        var payment = db.Payments.Single(p => p.BookingId == bookingId);
+        Assert.Equal(PaymentStatus.Processing, payment.Status);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            svc.InitiateOnlinePaymentAsync(userId, bookingId, "CreditCard", "https://localhost"));
+
+        gateway.Verify(g => g.InitiatePaymentAsync(It.IsAny<PaymentInitiationRequest>()), Times.Once);
+    }
+
+    [Fact]
     public async Task InitiateOnlinePayment_RepeatedRequest_ReusesExistingProviderOrder()
     {
         var db = TestDbContextFactory.Create($"SecTest_DuplicateInitiation_{Guid.NewGuid()}");
