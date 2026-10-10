@@ -157,6 +157,9 @@ public class PaymentService : IPaymentService
             throw new InvalidOperationException("Cannot pay for a cancelled booking.");
 
         // Prevent paying twice or creating multiple provider orders for the same booking.
+        if (booking.Payment?.Status == PaymentStatus.RefundPending)
+            throw new InvalidOperationException("A refund is pending reconciliation for this booking. A new payment cannot be initiated.");
+
         if (booking.Payment?.Status == PaymentStatus.Completed)
             throw new InvalidOperationException("This booking has already been paid.");
 
@@ -414,6 +417,7 @@ public class PaymentService : IPaymentService
             // Invalid transitions: cannot complete an already Refunded, PartiallyRefunded, Cancelled, or Failed payment
             if (payment.Status == PaymentStatus.Refunded ||
                 payment.Status == PaymentStatus.PartiallyRefunded ||
+                payment.Status == PaymentStatus.RefundPending ||
                 payment.Status == PaymentStatus.Cancelled ||
                 payment.Status == PaymentStatus.Failed ||
                 payment.Booking.Status == BookingStatus.Cancelled)
@@ -627,7 +631,8 @@ public class PaymentService : IPaymentService
         if (payment.Status == PaymentStatus.Failed ||
             payment.Status == PaymentStatus.Cancelled ||
             payment.Status == PaymentStatus.Refunded ||
-            payment.Status == PaymentStatus.PartiallyRefunded)
+            payment.Status == PaymentStatus.PartiallyRefunded ||
+            payment.Status == PaymentStatus.RefundPending)
         {
             return new PaymentVerificationResponse
             {
@@ -733,6 +738,13 @@ public class PaymentService : IPaymentService
         if (payment.Status != PaymentStatus.Completed)
             return new RefundResponse { Success = false, ErrorMessage = "Only completed payments can be refunded." };
 
+        // Persist a durable state before any external refund side effect. If the provider
+        // succeeds but the following database save fails, future calls must not issue a
+        // second refund automatically; RefundPending requires reconciliation.
+        payment.Status = PaymentStatus.RefundPending;
+        booking.PaymentStatus = PaymentStatus.RefundPending;
+        await _db.SaveChangesAsync();
+
         // Respect cancellation policy fee: refund = paid amount - cancellation fee
         var cancellationFee = booking.CancellationFee;
         var eligibleRefundAmount = Math.Max(0m, payment.Amount - cancellationFee);
@@ -742,7 +754,9 @@ public class PaymentService : IPaymentService
         // Zero refund case (e.g. 100% late fee)
         if (eligibleRefundAmount == 0m)
         {
-            payment.Status = PaymentStatus.Completed; // remains completed, full penalty retained
+            // No provider call is needed; the cancellation-fee-only outcome is final.
+            payment.Status = PaymentStatus.Refunded;
+            booking.PaymentStatus = PaymentStatus.Refunded;
 
             _db.TransactionLedger.Add(new TransactionLedger
             {
@@ -827,7 +841,18 @@ public class PaymentService : IPaymentService
         var refundResult = await _gateway.RefundAsync(refundRequest);
 
         if (!refundResult.Success)
-            return new RefundResponse { Success = false, ErrorMessage = refundResult.ErrorMessage };
+        {
+            // Provider errors may be ambiguous (e.g. timeout after provider accepted the
+            // request). Keep RefundPending to prevent duplicate refunds until reconciled.
+            _logger.LogError(
+                "Refund outcome is not confirmed for booking {BookingId}; payment remains RefundPending. Provider={Provider}, Error={Error}",
+                bookingId, _gateway.ProviderName, refundResult.ErrorMessage);
+            return new RefundResponse
+            {
+                Success = false,
+                ErrorMessage = "Refund outcome is unconfirmed. Payment is locked for reconciliation; do not retry automatically."
+            };
+        }
 
         payment.Status        = newStatus;
         booking.PaymentStatus = newStatus;
