@@ -604,6 +604,10 @@ public class PaymentGatewayTests
         var (svc, gateway, _) = BuildService(db);
         var (bookingId, userId, _) = await SeedBookingAsync(db);
 
+        var booking = await db.Bookings.FindAsync(bookingId);
+        Assert.NotNull(booking);
+        booking.PaymentStatus = PaymentStatus.Processing;
+
         db.Payments.Add(new Payment
         {
             Id = Guid.NewGuid(),
