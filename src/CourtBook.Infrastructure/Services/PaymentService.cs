@@ -331,7 +331,7 @@ public class PaymentService : IPaymentService
             }
 
             // 4. Server-side amount integrity check
-            if (amountPaid < payment.Amount)
+            if (amountPaid != payment.Amount)
             {
                 _logger.LogWarning("Amount mismatch: expected {Expected}, received {Actual} for Payment {PaymentId}",
                     payment.Amount, amountPaid, payment.Id);
