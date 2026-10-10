@@ -34,6 +34,82 @@ public class PaymentService : IPaymentService
     private readonly ILogger<PaymentService> _logger;
     private readonly decimal _commissionRate;
 
+    private static readonly ConcurrentDictionary<string, SemaphoreSlim> _paymentOperationLocks = new(StringComparer.OrdinalIgnoreCase);
+
+    private async Task<T> ExecuteWithPaymentOperationLockAsync<T>(string resource, Func<Task<T>> operation)
+    {
+        var semaphore = _paymentOperationLocks.GetOrAdd(resource, _ => new SemaphoreSlim(1, 1));
+        if (!await semaphore.WaitAsync(TimeSpan.FromSeconds(30)))
+            throw new InvalidOperationException("Another payment operation is in progress for this booking.");
+
+        DbConnection? connection = null;
+        var openedConnectionHere = false;
+        var sqlLockAcquired = false;
+        var isSqlServer = _db.Database.ProviderName?.Contains("SqlServer", StringComparison.OrdinalIgnoreCase) == true;
+
+        try
+        {
+            // The in-process semaphore protects a single API instance. SQL Server's
+            // session application lock extends serialization across multiple instances.
+            if (isSqlServer)
+            {
+                connection = _db.Database.GetDbConnection();
+                if (connection.State != ConnectionState.Open)
+                {
+                    await connection.OpenAsync();
+                    openedConnectionHere = true;
+                }
+
+                await using var command = connection.CreateCommand();
+                command.CommandText = @"
+                    DECLARE @result INT;
+                    EXEC @result = sp_getapplock
+                        @Resource = @resourceName,
+                        @LockMode = 'Exclusive',
+                        @LockOwner = 'Session',
+                        @LockTimeout = 10000;
+                    SELECT @result;";
+                var parameter = command.CreateParameter();
+                parameter.ParameterName = "@resourceName";
+                parameter.Value = resource.Length > 255 ? resource[..255] : resource;
+                command.Parameters.Add(parameter);
+
+                var scalar = await command.ExecuteScalarAsync();
+                var lockResult = scalar is not null ? Convert.ToInt32(scalar) : -999;
+                if (lockResult < 0)
+                    throw new InvalidOperationException("Could not acquire the payment operation lock. Please retry.");
+                sqlLockAcquired = true;
+            }
+
+            return await operation();
+        }
+        finally
+        {
+            if (sqlLockAcquired && connection is not null)
+            {
+                try
+                {
+                    await using var release = connection.CreateCommand();
+                    release.CommandText = "EXEC sp_releaseapplock @Resource = @resourceName, @LockOwner = 'Session';";
+                    var parameter = release.CreateParameter();
+                    parameter.ParameterName = "@resourceName";
+                    parameter.Value = resource.Length > 255 ? resource[..255] : resource;
+                    release.Parameters.Add(parameter);
+                    await release.ExecuteNonQueryAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to release payment operation lock for {Resource}", resource);
+                }
+            }
+
+            if (openedConnectionHere && connection is not null)
+                await connection.CloseAsync();
+
+            semaphore.Release();
+        }
+    }
+
     private const string OnlineHoldMinutesKey = "PaymentGateway:OnlineHoldMinutes";
     private const int DefaultOnlineHoldMinutes = 10;
     private const decimal DefaultCommissionRate = 0.05m; // 5%
@@ -58,7 +134,13 @@ public class PaymentService : IPaymentService
 
     // ── Initiation ──────────────────────────────────────────────────────────
 
-    public async Task<InitiatePaymentResponse> InitiateOnlinePaymentAsync(
+    public Task<InitiatePaymentResponse> InitiateOnlinePaymentAsync(
+        Guid userId, Guid bookingId, string paymentMethodStr, string returnBaseUrl) =>
+        ExecuteWithPaymentOperationLockAsync(
+            $"CourtBook:PaymentOperation:Booking:{bookingId}",
+            () => InitiateOnlinePaymentCoreAsync(userId, bookingId, paymentMethodStr, returnBaseUrl));
+
+    private async Task<InitiatePaymentResponse> InitiateOnlinePaymentCoreAsync(
         Guid userId, Guid bookingId, string paymentMethodStr, string returnBaseUrl)
     {
         var booking = await _db.Bookings
@@ -74,9 +156,33 @@ public class PaymentService : IPaymentService
         if (booking.Status == BookingStatus.Cancelled)
             throw new InvalidOperationException("Cannot pay for a cancelled booking.");
 
-        // Prevent paying twice
+        // Prevent paying twice or creating multiple provider orders for the same booking.
         if (booking.Payment?.Status == PaymentStatus.Completed)
             throw new InvalidOperationException("This booking has already been paid.");
+
+        if (booking.Payment?.Status == PaymentStatus.Processing)
+        {
+            if (!string.IsNullOrWhiteSpace(booking.Payment.ProviderOrderId) &&
+                !string.IsNullOrWhiteSpace(booking.Payment.PaymentUrl))
+            {
+                return new InitiatePaymentResponse
+                {
+                    Success = true,
+                    PaymentId = booking.Payment.Id,
+                    BookingId = bookingId,
+                    PaymentUrl = booking.Payment.PaymentUrl,
+                    ProviderOrderId = booking.Payment.ProviderOrderId,
+                    Amount = booking.Payment.Amount,
+                    Currency = booking.Payment.Currency,
+                    PaymentMethod = booking.Payment.Method.ToString(),
+                    Status = booking.Payment.Status.ToString(),
+                    ExpiresAt = booking.Payment.ExpiresAt
+                };
+            }
+
+            throw new InvalidOperationException(
+                "A payment initiation is already in progress for this booking. Please retry shortly or contact support.");
+        }
 
         // Server-calculated amount — never trust client
         var amount = booking.TotalPrice;
@@ -601,7 +707,12 @@ public class PaymentService : IPaymentService
 
     // ── Refund Engine ───────────────────────────────────────────────────────
 
-    public async Task<RefundResponse> ProcessRefundAsync(Guid bookingId, string reason)
+    public Task<RefundResponse> ProcessRefundAsync(Guid bookingId, string reason) =>
+        ExecuteWithPaymentOperationLockAsync(
+            $"CourtBook:PaymentOperation:Booking:{bookingId}",
+            () => ProcessRefundCoreAsync(bookingId, reason));
+
+    private async Task<RefundResponse> ProcessRefundCoreAsync(Guid bookingId, string reason)
     {
         var payment = await _db.Payments
             .Include(p => p.Booking)
