@@ -596,4 +596,71 @@ public class PaymentGatewayTests
         Assert.Equal(3, result.Items.Count);
         Assert.Equal(2, result.TotalPages);
     }
+
+    [Fact]
+    public async Task VerifyReturn_GatewayLookupFailure_DoesNotMarkPaymentFailed()
+    {
+        var db = TestDbContextFactory.Create($"PayTest_VerifyLookupFailure_{Guid.NewGuid()}");
+        var (svc, gateway, _) = BuildService(db);
+        var (bookingId, userId, _) = await SeedBookingAsync(db);
+
+        var booking = await db.Bookings.FindAsync(bookingId);
+        Assert.NotNull(booking);
+        booking.PaymentStatus = PaymentStatus.Processing;
+
+        db.Payments.Add(new Payment
+        {
+            Id = Guid.NewGuid(),
+            BookingId = bookingId,
+            Amount = 200m,
+            Currency = "EGP",
+            Method = PaymentMethod.CreditCard,
+            Status = PaymentStatus.Processing,
+            ProviderOrderId = "ORD_LOOKUP_FAIL",
+            ExpiresAt = DateTime.UtcNow.AddMinutes(5),
+            CreatedAt = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+
+        gateway.Setup(g => g.VerifyPaymentAsync("ORD_LOOKUP_FAIL"))
+            .ReturnsAsync(new PaymentVerificationResult(false, null, null, null, "Gateway order lookup failed."));
+
+        var result = await svc.VerifyReturnAsync(userId, "Player", "ORD_LOOKUP_FAIL");
+
+        var payment = db.Payments.First(p => p.BookingId == bookingId);
+        Assert.Equal(PaymentStatus.Processing, payment.Status);
+        Assert.Equal(PaymentStatus.Processing, (await db.Bookings.FindAsync(bookingId))!.PaymentStatus);
+        Assert.False(result.IsSuccessful);
+        Assert.Equal("Processing", result.Status);
+    }
+
+
+    [Fact]
+    public async Task RefundOnlinePayment_MissingTransactionReference_DoesNotCallGateway()
+    {
+        var db = TestDbContextFactory.Create($"PayTest_RefundMissingReference_{Guid.NewGuid()}");
+        var (svc, gateway, _) = BuildService(db);
+        var (bookingId, _, _) = await SeedBookingAsync(db);
+
+        db.Payments.Add(new Payment
+        {
+            Id = Guid.NewGuid(),
+            BookingId = bookingId,
+            Amount = 200m,
+            Currency = "EGP",
+            Method = PaymentMethod.CreditCard,
+            Status = PaymentStatus.Completed,
+            TransactionReference = null,
+            CreatedAt = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+
+        var result = await svc.ProcessRefundAsync(bookingId, "Venue cancelled");
+
+        Assert.False(result.Success);
+        Assert.Contains("transaction reference is missing", result.ErrorMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(PaymentStatus.Completed, db.Payments.First(p => p.BookingId == bookingId).Status);
+        gateway.Verify(g => g.RefundAsync(It.IsAny<RefundRequest>()), Times.Never);
+    }
+
 }

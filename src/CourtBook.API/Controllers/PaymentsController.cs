@@ -120,7 +120,7 @@ public class PaymentsController : ControllerBase
     [HttpPost("webhook")]
     [AllowAnonymous]
     [EnableRateLimiting("api")]
-    public async Task<IActionResult> Webhook([FromHeader(Name = "X-Hmac-Signature")] string? signature)
+    public async Task<IActionResult> Webhook([FromQuery(Name = "hmac")] string? signature)
     {
         // Read raw body for HMAC validation
         string rawBody;
@@ -142,44 +142,65 @@ public class PaymentsController : ControllerBase
             return Unauthorized(new { error = "Invalid webhook signature." });
         }
 
-        WebhookPayload? payload;
+        string orderId;
+        string transactionId;
+        decimal amountCents;
+        bool success;
+        bool pending;
         try
         {
-            payload = System.Text.Json.JsonSerializer.Deserialize<WebhookPayload>(rawBody,
-                new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            using var document = System.Text.Json.JsonDocument.Parse(rawBody);
+            var root = document.RootElement;
+            if (!root.TryGetProperty("obj", out var transaction))
+            {
+                _logger.LogWarning("Paymob webhook is missing the transaction object.");
+                return BadRequest();
+            }
+
+            if (!transaction.TryGetProperty("order", out var order) ||
+                !order.TryGetProperty("id", out var orderIdElement) ||
+                !transaction.TryGetProperty("id", out var transactionIdElement) ||
+                !transaction.TryGetProperty("amount_cents", out var amountElement) ||
+                !transaction.TryGetProperty("success", out var successElement) ||
+                !transaction.TryGetProperty("pending", out var pendingElement))
+            {
+                _logger.LogWarning("Paymob webhook is missing required transaction fields.");
+                return BadRequest();
+            }
+
+            orderId = orderIdElement.ToString();
+            transactionId = transactionIdElement.ToString();
+            amountCents = amountElement.GetDecimal();
+            success = successElement.ValueKind == System.Text.Json.JsonValueKind.True;
+            pending = pendingElement.ValueKind == System.Text.Json.JsonValueKind.True;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is System.Text.Json.JsonException or InvalidOperationException or FormatException)
         {
-            _logger.LogWarning(ex, "Webhook deserialization failed.");
+            _logger.LogWarning(ex, "Paymob webhook deserialization failed.");
             return BadRequest();
         }
 
-        if (payload?.OrderId == null || payload.TransactionId == null)
-        {
-            _logger.LogWarning("Webhook missing required fields.");
-            return BadRequest();
-        }
-
-        // Only process successful payment events
-        if (payload.Success == true && payload.Amount.HasValue)
+        // Paymob's transaction callback uses amount_cents and reports pending separately.
+        if (success && !pending && amountCents > 0)
         {
             try
             {
                 await _paymentService.ProcessWebhookPaymentCompletedAsync(
-                    providerOrderId:  payload.OrderId,
-                    transactionRef:   payload.TransactionId,
-                    amountPaid:       payload.Amount.Value / 100m, // provider sends cents
-                    idempotencyKey:   payload.TransactionId,
-                    provider:         _gateway.ProviderName);
+                    providerOrderId: orderId,
+                    transactionRef: transactionId,
+                    amountPaid: amountCents / 100m,
+                    idempotencyKey: transactionId,
+                    provider: _gateway.ProviderName);
             }
             catch (Exception ex)
             {
-                // Log but return 200 to prevent provider retry storms
-                _logger.LogError(ex, "Webhook processing error for order {OrderId}", payload.OrderId);
+                // Return a retryable status so a transient persistence failure cannot silently lose a payment event.
+                _logger.LogError(ex, "Webhook processing error for order {OrderId}", orderId);
+                return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                    new { error = "Webhook processing failed; retry is safe." });
             }
         }
 
-        // Always return 200 to acknowledge receipt
         return Ok();
     }
 

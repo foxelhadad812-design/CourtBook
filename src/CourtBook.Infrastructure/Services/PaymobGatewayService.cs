@@ -158,22 +158,98 @@ public class PaymobGatewayService : IPaymentGatewayService
     public bool ValidateWebhookSignature(string payload, string incomingSignature)
     {
         if (string.IsNullOrWhiteSpace(_hmacSecret) ||
-            _hmacSecret == "PAYMOB_HMAC_SECRET_PLACEHOLDER")
+            IsPlaceholderSecret(_hmacSecret) ||
+            string.IsNullOrWhiteSpace(incomingSignature))
         {
-            _logger.LogWarning("HMAC secret not configured — rejecting webhook for security.");
+            _logger.LogWarning("Paymob HMAC secret or signature is missing — rejecting webhook.");
             return false;
         }
 
-        var hmac = HMACSHA512.HashData(Encoding.UTF8.GetBytes(_hmacSecret), Encoding.UTF8.GetBytes(payload));
-        var computed = Convert.ToHexString(hmac).ToLowerInvariant();
+        try
+        {
+            using var document = JsonDocument.Parse(payload);
+            var root = document.RootElement;
+            if (!root.TryGetProperty("obj", out var transaction) ||
+                transaction.ValueKind != JsonValueKind.Object)
+            {
+                return false;
+            }
 
-        if (string.IsNullOrWhiteSpace(incomingSignature))
+            // Paymob transaction callbacks sign these 20 values in this exact order,
+            // not the raw JSON body. See Paymob's transaction HMAC specification.
+            string[] paths =
+            [
+                "amount_cents", "created_at", "currency", "error_occured",
+                "has_parent_transaction", "id", "integration_id", "is_3d_secure",
+                "is_auth", "is_capture", "is_refunded", "is_standalone_payment",
+                "is_voided", "order.id", "owner", "pending",
+                "source_data.pan", "source_data.sub_type", "source_data.type", "success"
+            ];
+
+            var values = new StringBuilder();
+            foreach (var path in paths)
+            {
+                var value = GetPaymobHmacValue(transaction, path);
+                if (value is null)
+                {
+                    _logger.LogWarning("Paymob webhook is missing HMAC field {Field}; rejecting.", path);
+                    return false;
+                }
+
+                values.Append(value);
+            }
+
+            var digest = HMACSHA512.HashData(
+                Encoding.UTF8.GetBytes(_hmacSecret),
+                Encoding.UTF8.GetBytes(values.ToString()));
+
+            byte[] incomingBytes;
+            try
+            {
+                incomingBytes = Convert.FromHexString(incomingSignature.Trim());
+            }
+            catch (FormatException)
+            {
+                return false;
+            }
+
+            return incomingBytes.Length == digest.Length &&
+                CryptographicOperations.FixedTimeEquals(digest, incomingBytes);
+        }
+        catch (JsonException)
+        {
             return false;
+        }
+    }
 
-        var computedBytes = Encoding.UTF8.GetBytes(computed);
-        var incomingBytes = Encoding.UTF8.GetBytes(incomingSignature.Trim().ToLowerInvariant());
+    private static bool IsPlaceholderSecret(string value) =>
+        value.Contains("PLACEHOLDER", StringComparison.OrdinalIgnoreCase) ||
+        value.Contains("OVERRIDE_VIA_ENV_VAR", StringComparison.OrdinalIgnoreCase) ||
+        value.Contains("YOUR_", StringComparison.OrdinalIgnoreCase);
 
-        return CryptographicOperations.FixedTimeEquals(computedBytes, incomingBytes);
+    private static string? GetPaymobHmacValue(JsonElement transaction, string path)
+    {
+        var current = transaction;
+        foreach (var segment in path.Split('.'))
+        {
+            if (current.ValueKind != JsonValueKind.Object ||
+                !current.TryGetProperty(segment, out var next))
+            {
+                return null;
+            }
+
+            current = next;
+        }
+
+        return current.ValueKind switch
+        {
+            JsonValueKind.String => current.GetString() ?? string.Empty,
+            JsonValueKind.True => "true",
+            JsonValueKind.False => "false",
+            JsonValueKind.Null or JsonValueKind.Undefined => string.Empty,
+            JsonValueKind.Number => current.GetRawText(),
+            _ => null
+        };
     }
 
     // ── Private helpers ─────────────────────────────────────────────────────

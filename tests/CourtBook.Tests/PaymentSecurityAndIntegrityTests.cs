@@ -86,18 +86,18 @@ public class PaymentSecurityAndIntegrityTests
     // ── 1. Webhook HMAC Security Tests ──────────────────────────────────────
 
     [Fact]
-    public void ValidateWebhookSignature_ValidSignature_ReturnsTrue()
+    public void ValidateWebhookSignature_LegacyRawBodySignature_IsRejected()
     {
         var config = BuildConfig();
         var client = new HttpClient();
         var gateway = new PaymobGatewayService(client, config, NullLogger<PaymobGatewayService>.Instance);
 
+        // Paymob does not sign the raw JSON body; legacy payloads must not validate.
         var payload = "{\"order_id\":\"12345\",\"transaction_id\":\"tx_999\",\"amount_cents\":20000,\"success\":true}";
         var hmac = HMACSHA512.HashData(Encoding.UTF8.GetBytes(TestHmacSecret), Encoding.UTF8.GetBytes(payload));
-        var validSignature = Convert.ToHexString(hmac).ToLowerInvariant();
+        var rawBodySignature = Convert.ToHexString(hmac).ToLowerInvariant();
 
-        var isValid = gateway.ValidateWebhookSignature(payload, validSignature);
-        Assert.True(isValid);
+        Assert.False(gateway.ValidateWebhookSignature(payload, rawBodySignature));
     }
 
     [Fact]
@@ -160,6 +160,34 @@ public class PaymentSecurityAndIntegrityTests
 
         var refreshed = db.Payments.Find(payment.Id)!;
         Assert.Equal(PaymentStatus.Refunded, refreshed.Status); // must NOT turn into Completed!
+        Assert.Empty(db.TransactionLedger.Where(t => t.PaymentId == payment.Id && t.EntryType == LedgerEntryType.Payment));
+    }
+
+    [Fact]
+    public async Task Webhook_OverpaymentAmountMismatch_IsRejectedAndNotCredited()
+    {
+        var db = TestDbContextFactory.Create($"SecTest_OverpaymentMismatch_{Guid.NewGuid()}");
+        var (svc, _, _) = BuildService(db);
+        var (bookingId, _, _, _) = await SeedBookingAsync(db);
+
+        var payment = new Payment
+        {
+            Id = Guid.NewGuid(),
+            BookingId = bookingId,
+            Amount = 200m,
+            ProviderOrderId = "ORD_OVERPAY_01",
+            Status = PaymentStatus.Processing,
+            Method = PaymentMethod.CreditCard,
+            CreatedAt = DateTime.UtcNow
+        };
+        db.Payments.Add(payment);
+        await db.SaveChangesAsync();
+
+        await svc.ProcessWebhookPaymentCompletedAsync(
+            "ORD_OVERPAY_01", "TX_OVERPAY_01", 201m, "TX_OVERPAY_01", "Paymob");
+
+        var refreshed = db.Payments.Find(payment.Id)!;
+        Assert.Equal(PaymentStatus.Failed, refreshed.Status);
         Assert.Empty(db.TransactionLedger.Where(t => t.PaymentId == payment.Id && t.EntryType == LedgerEntryType.Payment));
     }
 
@@ -433,11 +461,16 @@ public class PaymentSecurityAndIntegrityTests
         var result = await svc.ProcessRefundAsync(bookingId, "Failed refund test");
 
         Assert.False(result.Success);
-        Assert.Equal("Provider refund declined", result.ErrorMessage);
+        Assert.Contains("Provider refund declined", result.ErrorMessage);
 
         var refreshed = db.Payments.Find(payment.Id)!;
-        Assert.Equal(PaymentStatus.Completed, refreshed.Status); // remains Completed!
+        Assert.Equal(PaymentStatus.RefundPending, refreshed.Status);
         Assert.Empty(db.TransactionLedger.Where(t => t.EntryType == LedgerEntryType.Refund));
+
+        // An unconfirmed provider result must not trigger a second automatic refund.
+        var retry = await svc.ProcessRefundAsync(bookingId, "Retry after ambiguous gateway result");
+        Assert.False(retry.Success);
+        gateway.Verify(g => g.RefundAsync(It.IsAny<RefundRequest>()), Times.Once);
     }
 
     // ── 5. Payment Authorization: Strict Player Isolation on Verify ─────────
@@ -609,4 +642,82 @@ public class PaymentSecurityAndIntegrityTests
         var refundEntries = db.TransactionLedger.Where(t => t.BookingId == bookingId && t.EntryType == LedgerEntryType.Refund).ToList();
         Assert.Single(refundEntries);
     }
+
+    [Fact]
+    public async Task InitiateOnlinePayment_UnconfirmedProviderResult_BlocksDuplicateOrderRetry()
+    {
+        var db = TestDbContextFactory.Create($"SecTest_InitiationPending_{Guid.NewGuid()}");
+        var (svc, gateway, _) = BuildService(db);
+        var (bookingId, userId, _, _) = await SeedBookingAsync(db, 200m);
+
+        gateway.Setup(g => g.InitiatePaymentAsync(It.IsAny<PaymentInitiationRequest>()))
+            .ReturnsAsync(new PaymentInitiationResult(false, null, null, "Provider response unavailable"));
+
+        var first = await svc.InitiateOnlinePaymentAsync(userId, bookingId, "CreditCard", "https://localhost");
+
+        Assert.False(first.Success);
+        Assert.Contains("locked for reconciliation", first.ErrorMessage);
+        var payment = db.Payments.Single(p => p.BookingId == bookingId);
+        Assert.Equal(PaymentStatus.Processing, payment.Status);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            svc.InitiateOnlinePaymentAsync(userId, bookingId, "CreditCard", "https://localhost"));
+
+        gateway.Verify(g => g.InitiatePaymentAsync(It.IsAny<PaymentInitiationRequest>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task InitiateOnlinePayment_RepeatedRequest_ReusesExistingProviderOrder()
+    {
+        var db = TestDbContextFactory.Create($"SecTest_DuplicateInitiation_{Guid.NewGuid()}");
+        var (svc, gateway, _) = BuildService(db);
+        var (bookingId, userId, _, _) = await SeedBookingAsync(db, 200m);
+
+        gateway.Setup(g => g.InitiatePaymentAsync(It.IsAny<PaymentInitiationRequest>()))
+            .ReturnsAsync(new PaymentInitiationResult(true, "https://pay.test/existing", "ORD_IDEMPOTENT_01", null));
+
+        var first = await svc.InitiateOnlinePaymentAsync(userId, bookingId, "CreditCard", "https://localhost");
+        var second = await svc.InitiateOnlinePaymentAsync(userId, bookingId, "CreditCard", "https://localhost");
+
+        Assert.True(first.Success);
+        Assert.True(second.Success);
+        Assert.Equal(first.PaymentId, second.PaymentId);
+        Assert.Equal(first.ProviderOrderId, second.ProviderOrderId);
+        Assert.Equal(first.PaymentUrl, second.PaymentUrl);
+        gateway.Verify(g => g.InitiatePaymentAsync(It.IsAny<PaymentInitiationRequest>()), Times.Once);
+    }
+
+
+    [Fact]
+    public async Task ProcessRefund_WhenProviderOutcomeIsUnconfirmed_LeavesDurablePendingStateAndBlocksRetry()
+    {
+        var db = TestDbContextFactory.Create($"SecTest_RefundPending_{Guid.NewGuid()}");
+        var (svc, gateway, _) = BuildService(db);
+        var (bookingId, _, _, _) = await SeedBookingAsync(db, 200m);
+
+        var payment = new Payment
+        {
+            Id = Guid.NewGuid(),
+            BookingId = bookingId,
+            Amount = 200m,
+            Status = PaymentStatus.Completed,
+            Method = PaymentMethod.CreditCard,
+            TransactionReference = "TX_REF_PENDING",
+            CreatedAt = DateTime.UtcNow
+        };
+        db.Payments.Add(payment);
+        await db.SaveChangesAsync();
+
+        gateway.Setup(g => g.RefundAsync(It.IsAny<RefundRequest>()))
+            .ReturnsAsync(new RefundResult(false, null, "Gateway timeout"));
+
+        var first = await svc.ProcessRefundAsync(bookingId, "Test ambiguous provider result");
+        Assert.False(first.Success);
+        Assert.Equal(PaymentStatus.RefundPending, db.Payments.Find(payment.Id)!.Status);
+
+        var second = await svc.ProcessRefundAsync(bookingId, "Do not double refund");
+        Assert.False(second.Success);
+        gateway.Verify(g => g.RefundAsync(It.IsAny<RefundRequest>()), Times.Once);
+    }
+
 }
