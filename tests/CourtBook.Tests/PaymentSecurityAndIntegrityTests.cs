@@ -164,6 +164,34 @@ public class PaymentSecurityAndIntegrityTests
     }
 
     [Fact]
+    public async Task Webhook_OverpaymentAmountMismatch_IsRejectedAndNotCredited()
+    {
+        var db = TestDbContextFactory.Create($"SecTest_OverpaymentMismatch_{Guid.NewGuid()}");
+        var (svc, _, _) = BuildService(db);
+        var (bookingId, _, _, _) = await SeedBookingAsync(db);
+
+        var payment = new Payment
+        {
+            Id = Guid.NewGuid(),
+            BookingId = bookingId,
+            Amount = 200m,
+            ProviderOrderId = "ORD_OVERPAY_01",
+            Status = PaymentStatus.Processing,
+            Method = PaymentMethod.CreditCard,
+            CreatedAt = DateTime.UtcNow
+        };
+        db.Payments.Add(payment);
+        await db.SaveChangesAsync();
+
+        await svc.ProcessWebhookPaymentCompletedAsync(
+            "ORD_OVERPAY_01", "TX_OVERPAY_01", 201m, "TX_OVERPAY_01", "Paymob");
+
+        var refreshed = db.Payments.Find(payment.Id)!;
+        Assert.Equal(PaymentStatus.Failed, refreshed.Status);
+        Assert.Empty(db.TransactionLedger.Where(t => t.PaymentId == payment.Id && t.EntryType == LedgerEntryType.Payment));
+    }
+
+    [Fact]
     public async Task Webhook_DeliveredForCancelledBooking_IsRejected()
     {
         var db = TestDbContextFactory.Create($"SecTest_CancelledBooking_{Guid.NewGuid()}");
