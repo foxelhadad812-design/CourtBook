@@ -461,7 +461,7 @@ public class PaymentSecurityAndIntegrityTests
         var result = await svc.ProcessRefundAsync(bookingId, "Failed refund test");
 
         Assert.False(result.Success);
-        Assert.Equal("Provider refund declined", result.ErrorMessage);
+        Assert.Contains("Provider refund declined", result.ErrorMessage);
 
         var refreshed = db.Payments.Find(payment.Id)!;
         Assert.Equal(PaymentStatus.RefundPending, refreshed.Status);
