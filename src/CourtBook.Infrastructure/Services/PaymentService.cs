@@ -759,6 +759,21 @@ public class PaymentService : IPaymentService
             return new RefundResponse { Success = true, RefundAmount = 0m, RefundTransactionId = "RETAINED_FEE" };
         }
 
+        // Never call the provider with an empty/unknown transaction identifier.
+        // A completed online payment without this reference requires manual investigation.
+        if (payment.Method != PaymentMethod.PayAtFacility &&
+            string.IsNullOrWhiteSpace(payment.TransactionReference))
+        {
+            _logger.LogError(
+                "Cannot refund online payment for booking {BookingId}: provider transaction reference is missing.",
+                bookingId);
+            return new RefundResponse
+            {
+                Success = false,
+                ErrorMessage = "Provider transaction reference is missing. Payment requires manual reconciliation; no refund was attempted."
+            };
+        }
+
         // Persist a durable state before any external refund side effect. If the provider
         // succeeds but the following database save fails, future calls must not issue a
         // second refund automatically; RefundPending requires reconciliation.
