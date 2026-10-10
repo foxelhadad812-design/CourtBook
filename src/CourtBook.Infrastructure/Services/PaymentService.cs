@@ -106,7 +106,10 @@ public class PaymentService : IPaymentService
             if (openedConnectionHere && connection is not null)
                 await connection.CloseAsync();
 
-            semaphore.Release();
+            if (semaphoreAcquired)
+            {
+                semaphore.Release();
+            }
         }
     }
 
@@ -335,7 +338,11 @@ public class PaymentService : IPaymentService
         // Concurrency synchronization: serialize concurrent duplicate webhook attempts for the same provider + key
         var lockKey = $"{provider}:{idempotencyKey}".Trim().ToLowerInvariant();
         var semaphore = _webhookLocks.GetOrAdd(lockKey, _ => new SemaphoreSlim(1, 1));
-        await semaphore.WaitAsync(TimeSpan.FromSeconds(30));
+        var semaphoreAcquired = await semaphore.WaitAsync(TimeSpan.FromSeconds(30));
+        if (!semaphoreAcquired)
+        {
+            throw new TimeoutException($"Timed out waiting for in-process webhook lock: {lockKey}.");
+        }
 
         DbConnection? connection = null;
         var sqlLockAcquired = false;
@@ -344,8 +351,8 @@ public class PaymentService : IPaymentService
 
         try
         {
-            // Acquire SQL Server session-level application lock if running on relational database
-            if (_db.Database.IsRelational())
+            // sp_getapplock is SQL Server-specific. Do not execute it against every relational provider.
+            if (_db.Database.ProviderName?.Contains("SqlServer", StringComparison.OrdinalIgnoreCase) == true)
             {
                 try
                 {
@@ -371,14 +378,19 @@ public class PaymentService : IPaymentService
 
                     var scalar = await getLockCmd.ExecuteScalarAsync();
                     var lockResult = scalar is not null ? Convert.ToInt32(scalar) : -999;
-                    if (lockResult >= 0)
+                    if (lockResult < 0)
                     {
-                        sqlLockAcquired = true;
+                        throw new TimeoutException(
+                            $"SQL Server application lock was not acquired for webhook resource '{sqlLockResource}' (result {lockResult}).");
                     }
+
+                    sqlLockAcquired = true;
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Failed to acquire distributed lock for webhook {Resource}. Relying on in-memory semaphore and database unique constraints.", sqlLockResource);
+                    _logger.LogError(ex, "Failed to acquire required SQL Server distributed lock for webhook {Resource}; aborting processing.", sqlLockResource);
+                    throw new InvalidOperationException(
+                        $"Unable to acquire distributed webhook lock for '{sqlLockResource}'. The webhook can be retried.", ex);
                 }
             }
 
